@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npx prisma db push:*)",
+      "Bash(npx prisma db seed:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npm run dev:*)",
+      "Bash(ls:*)",
+      "Bash(npm run test:run:*)",
+      "Bash(dir:*)",
+      "Bash(npx tsc:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill /F /PID 6956)",
+      "Bash(taskkill:*)",
+      "Bash(npm run db:push:*)",
+      "Bash(npm run db:seed:*)",
+      "Bash(npm test:*)",
+      "Bash(npx next dev --port 3000)",
+      "Bash(curl:*)",
+      "Bash(if exist \".next\" rmdir /s /q .next)",
+      "Bash(tail:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

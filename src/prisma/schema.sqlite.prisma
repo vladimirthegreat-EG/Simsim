@@ -1,0 +1,156 @@
+// SQLite version of schema for local development
+// To use: Copy this file to schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// ============================================
+// CORE MODELS
+// ============================================
+// Note: Using strings instead of enums for SQLite compatibility
+// GameStatus: LOBBY, IN_PROGRESS, ROUND_PROCESSING, PAUSED, COMPLETED
+// RoundStatus: PENDING, ACCEPTING_DECISIONS, LOCKED, PROCESSING, COMPLETED
+// GameModule: FACTORY, FINANCE, HR, MARKETING, RD
+
+model Facilitator {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  games        Game[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Game {
+  id            String  @id @default(cuid())
+  name          String
+  joinCode      String  @unique // 6-char code (e.g., "ABC123")
+  status        String  @default("LOBBY") // GameStatus enum as string
+  currentRound  Int     @default(0)
+  maxRounds     Int     @default(8)
+  config        String  @default("{}")
+
+  // Relationships
+  facilitatorId String
+  facilitator   Facilitator @relation(fields: [facilitatorId], references: [id])
+  teams         Team[]
+  rounds        Round[]
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  startedAt DateTime?
+  endedAt   DateTime?
+
+  @@index([joinCode])
+  @@index([facilitatorId])
+}
+
+model Team {
+  id           String @id @default(cuid())
+  name         String
+  color        String // For UI differentiation (hex color)
+  sessionToken String @unique @default(cuid()) // For auth without accounts
+
+  // Current state snapshot (denormalized for fast reads)
+  currentState String @default("{}")
+
+  // Relationships
+  gameId       String
+  game         Game           @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  decisions    TeamDecision[]
+  roundResults RoundResult[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([gameId, name])
+  @@index([sessionToken])
+}
+
+model Round {
+  id          String @id @default(cuid())
+  roundNumber Int
+  status      String @default("PENDING") // RoundStatus enum as string
+
+  // Market state at start of round
+  marketState String @default("{}")
+
+  // Facilitator-injected events (JSON array stored as string)
+  events String @default("[]")
+
+  // Simulation results log
+  simulationLog String?
+
+  // Relationships
+  gameId    String
+  game      Game           @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  decisions TeamDecision[]
+  results   RoundResult[]
+
+  // Timestamps
+  startedAt          DateTime  @default(now())
+  submissionDeadline DateTime?
+  processedAt        DateTime?
+
+  @@unique([gameId, roundNumber])
+  @@index([gameId, status])
+}
+
+model TeamDecision {
+  id        String @id @default(cuid())
+  module    String // GameModule enum as string: FACTORY, FINANCE, HR, MARKETING, RD
+  decisions String // Module-specific decisions (JSON as string)
+
+  submittedAt DateTime @default(now())
+  isLocked    Boolean  @default(false)
+
+  // Relationships
+  teamId  String
+  team    Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  roundId String
+  round   Round  @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, roundId, module])
+  @@index([roundId, module])
+}
+
+model RoundResult {
+  id String @id @default(cuid())
+
+  // Snapshot of team state after simulation
+  stateAfter String
+
+  // Performance metrics for this round
+  metrics String
+
+  // Detailed breakdown by module (JSON as strings)
+  factoryResults   String?
+  financeResults   String?
+  hrResults        String?
+  marketingResults String?
+  rdResults        String?
+
+  // Ranking for this round
+  rank Int
+
+  // Relationships
+  teamId  String
+  team    Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  roundId String
+  round   Round  @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  @@unique([teamId, roundId])
+  @@index([roundId])
+}
