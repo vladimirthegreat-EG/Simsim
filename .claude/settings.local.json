@@ -23,7 +23,17 @@
       "Bash(if exist \".next\" rmdir /s /q .next)",
       "Bash(tail:*)",
       "Bash(git remote add:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial commit: Business Simulation Platform\n\nComplete implementation of multi-player business simulation game with comprehensive features:\n\nCore Features:\n- Full-stack Next.js 16 application with TypeScript\n- Multi-team competitive gameplay \\(up to 5 teams\\)\n- Real-time decision-making across 5 departments\n- Facilitator dashboard for game management\n\nGame Modules:\n- Factory: Production management, logistics, supply chain, maintenance, upgrades, ESG\n- Finance: Cash flow, funding, FX management, financial statements\n- HR: Employee management, training, benefits, compensation\n- Marketing: Advertising, branding, sponsorships, market segments\n- R&D: Product development, innovation, quality improvements\n\nEnhanced UI/UX:\n- Color-coded interactive tabs with smooth animations\n- Animated tab content transitions \\(fade + slide\\)\n- Hover and click effects for better user feedback\n- News ticker system for market events\n- Dedicated news page with event filtering\n- Responsive design with mobile support\n\nAdvanced Systems:\n- Logistics engine with multi-modal shipping optimization\n- Materials management and supplier relationships\n- Tariff and trade policy simulation\n- Financial statements \\(P&L, Balance Sheet, Cash Flow\\)\n- Market shock and event injection system\n- Monte Carlo validation and balance testing\n\nTechnical Stack:\n- Next.js 16 \\(App Router\\)\n- tRPC for type-safe API\n- Prisma ORM \\(SQLite/PostgreSQL support\\)\n- Framer Motion for animations\n- Recharts for data visualization\n- Zustand for state management\n- Tailwind CSS + shadcn/ui components\n\nTesting:\n- Vitest unit tests\n- Playwright E2E tests\n- Strategy validation harness\n- Balance verification suite\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git config:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(git fetch:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git pull:*)",
+      "Bash(npm run db:studio:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
