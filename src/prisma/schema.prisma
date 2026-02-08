@@ -1,4 +1,4 @@
-// SQLite version of schema for local development
+// PostgreSQL version of schema for Vercel/Supabase production
 // To use: Copy this file to schema.prisma
 
 generator client {
@@ -6,14 +6,15 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ============================================
 // CORE MODELS
 // ============================================
-// Note: Using strings instead of enums for SQLite compatibility
+// Using strings for status fields for compatibility with both SQLite and PostgreSQL
 // GameStatus: LOBBY, IN_PROGRESS, ROUND_PROCESSING, PAUSED, COMPLETED
 // RoundStatus: PENDING, ACCEPTING_DECISIONS, LOCKED, PROCESSING, COMPLETED
 // GameModule: FACTORY, FINANCE, HR, MARKETING, RD

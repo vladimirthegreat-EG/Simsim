@@ -1,4 +1,4 @@
-// PostgreSQL version of schema for Supabase production
+// PostgreSQL version of schema for Vercel/Supabase production
 // To use: Copy this file to schema.prisma
 
 generator client {
@@ -63,11 +63,17 @@ model Team {
   // Current state snapshot (denormalized for fast reads)
   currentState String @default("{}")
 
+  // Achievement tracking
+  achievementPoints Int @default(0)
+  achievementState  String @default("{}") // ExtendedAchievementState JSON
+
   // Relationships
   gameId       String
   game         Game           @relation(fields: [gameId], references: [id], onDelete: Cascade)
   decisions    TeamDecision[]
   roundResults RoundResult[]
+  achievements TeamAchievement[]
+  achievementProgress AchievementProgress[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -154,4 +160,43 @@ model RoundResult {
 
   @@unique([teamId, roundId])
   @@index([roundId])
+}
+
+// ============================================
+// ACHIEVEMENT MODELS
+// ============================================
+
+model TeamAchievement {
+  id            String   @id @default(cuid())
+  achievementId String   // References achievement definition ID
+  earnedRound   Int      // Round when achievement was earned
+  earnedAt      DateTime @default(now())
+  pointsAwarded Int      // Points awarded (can be negative for infamy)
+  wasHidden     Boolean  @default(false) // Was this a secret achievement
+
+  // Relationships
+  teamId String
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, achievementId])
+  @@index([teamId])
+  @@index([achievementId])
+}
+
+model AchievementProgress {
+  id              String   @id @default(cuid())
+  achievementId   String   // References achievement definition ID
+  currentValue    Float    @default(0)
+  targetValue     Float    @default(0)
+  percentComplete Float    @default(0)
+  sustainedRounds Int      @default(0) // For sustained requirements
+  history         String   @default("[]") // JSON array of historical values
+  updatedAt       DateTime @updatedAt
+
+  // Relationships
+  teamId String
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, achievementId])
+  @@index([teamId])
 }
