@@ -266,28 +266,4 @@ export type {
   AchievementResult,
 } from "./achievements";
 
-// Balance testing
-export {
-  BalanceHarness,
-  DEFAULT_HARNESS_CONFIG,
-  quickBalanceCheck,
-  STRATEGIES,
-  getAvailableStrategies,
-  getStrategy,
-  MetricsCalculator,
-  BALANCE_THRESHOLDS,
-} from "./balance";
-export type {
-  StrategyArchetype,
-  StrategyDecisionMaker,
-  StrategyResult,
-  HarnessConfig,
-  SimulationRun,
-  TeamRunResult,
-  HarnessOutput,
-  BalanceMetrics,
-  DiversityIndex,
-  RoundMetrics,
-  StrategicHealth,
-  MetricsSummary,
-} from "./balance";
+// Balance testing tools moved to tools/balance/ (not part of game engine)

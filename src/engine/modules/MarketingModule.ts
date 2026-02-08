@@ -94,12 +94,29 @@ export class MarketingModule {
       messages.push(`Branding investment: $${(investment / 1_000_000).toFixed(1)}M → +${(brandImpact * 100).toFixed(2)}% brand`);
     }
 
-    // Process promotions
+    // v3.1.0: Process product pricing decisions
+    if (decisions.productPricing) {
+      for (const pricing of decisions.productPricing) {
+        const product = newState.products.find(p => p.id === pricing.productId);
+        if (product && pricing.newPrice > 0) {
+          const oldPrice = product.price;
+          product.price = pricing.newPrice;
+          messages.push(`Repriced ${product.name}: $${oldPrice} → $${pricing.newPrice}`);
+        }
+      }
+    }
+
+    // Process promotions — apply discount directly to product prices for this round
+    // v3.1.0: Promotions now actually reduce prices for market scoring
     if (decisions.promotions) {
       for (const promo of decisions.promotions) {
-        // Promotions temporarily boost sales but don't add to costs here
-        // (handled in market share calculation)
-        messages.push(`${promo.segment} promotion: ${promo.discountPercent}% off for ${promo.duration} rounds`);
+        const segmentProduct = newState.products.find(p => p.segment === promo.segment);
+        if (segmentProduct && promo.discountPercent > 0) {
+          const discount = promo.discountPercent / 100;
+          const oldPrice = segmentProduct.price;
+          segmentProduct.price = Math.round(oldPrice * (1 - discount));
+          messages.push(`${promo.segment} promotion: ${promo.discountPercent}% off ($${oldPrice} → $${segmentProduct.price})`);
+        }
       }
     }
 

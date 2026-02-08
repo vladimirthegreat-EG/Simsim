@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { trpc } from "@/lib/api/trpc";
 import { toast } from "sonner";
-import { ComplexitySelector } from "@/components/admin/ComplexitySelector";
+import { ComplexitySelector } from "@/components/facilitator/ComplexitySelector";
 import { GameComplexitySettings, getComplexitySettings } from "@/engine/types";
 
 export default function AdminDashboard() {

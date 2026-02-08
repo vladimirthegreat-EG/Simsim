@@ -156,6 +156,8 @@ export interface MarketingDecisions {
     duration: number;
   }[];
   sponsorships?: { name: string; cost: number; brandImpact: number }[];
+  // v3.1.0: Product pricing decisions — set product prices each round
+  productPricing?: { productId: string; newPrice: number }[];
 }
 
 // ============================================

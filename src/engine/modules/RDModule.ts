@@ -86,6 +86,13 @@ export class RDModule {
     newState.rdProgress += rdOutput;
     messages.push(`Engineers generated ${rdOutput.toFixed(0)} R&D points`);
 
+    // v3.1.0: R&D budget also generates rdProgress (Fix: budget was previously wasted)
+    if (decisions.rdBudget && decisions.rdBudget > 0) {
+      const budgetPoints = Math.floor(decisions.rdBudget / CONSTANTS.RD_BUDGET_TO_POINTS_RATIO);
+      newState.rdProgress += budgetPoints;
+      messages.push(`R&D budget generated ${budgetPoints} additional R&D points`);
+    }
+
     // Process new product development (now starts in "in_development" status)
     if (decisions.newProducts) {
       for (const productSpec of decisions.newProducts) {

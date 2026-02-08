@@ -114,6 +114,7 @@ export const CONSTANTS = {
   WORKERS_PER_SUPERVISOR: 15,
   ENGINEERS_PER_FACTORY: 8,
   BASE_RD_POINTS_PER_ENGINEER: 10,
+  RD_BUDGET_TO_POINTS_RATIO: 200_000,  // v3.1.0: $200K per rdProgress point (so $15M → 75 pts)
   MAX_SALARY: 500_000,
   SALARY_MULTIPLIER_MIN: 0.8,
   SALARY_MULTIPLIER_MAX: 2.2,
@@ -379,12 +380,12 @@ export const CONSTANTS = {
 
   // Brand - Rebalanced (v3.1.0, Fix 2.1)
   // Reduced decay so brand strategy can actually build value over time
-  BRAND_DECAY_RATE: 0.04,               // 4.0% brand decay per round (v3.1.0 tuning: 6.5%→2.5%→4.0%)
+  BRAND_DECAY_RATE: 0.045,              // 4.5% brand decay per round (sweep optimal: 6.5%→2.5%→4.0%→4.5%)
   BRAND_MAX_GROWTH_PER_ROUND: 0.02,     // Max 2% brand growth per round
 
   // v3.1.0: Tuning parameters (exposed for parameter sweep)
-  SOFTMAX_TEMPERATURE: 5,               // Market share allocation sharpness (lower = more winner-take-all)
-  SEGMENT_BRAND_WEIGHT_ACTIVE_LIFESTYLE: 18, // Brand weight in Active Lifestyle segment
+  SOFTMAX_TEMPERATURE: 10,              // Market share allocation sharpness (sweep2 optimal: 10→5→7→10)
+  SEGMENT_BRAND_WEIGHT_ACTIVE_LIFESTYLE: 14, // Brand weight in Active Lifestyle segment (sweep2 optimal: 18→12→14)
 
   // Initial State Defaults
   DEFAULT_STARTING_CASH: 200_000_000,

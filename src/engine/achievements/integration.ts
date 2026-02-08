@@ -1,7 +1,7 @@
 /**
  * Achievement System Integration
  *
- * Bridges the SimulationEngine with the ExtendedAchievementEngine.
+ * Bridges the SimulationEngine with the LedgerEngine (Ledger of Legends & Losers).
  * Provides utilities for checking achievements after round processing.
  */
 
@@ -11,7 +11,7 @@ import type { DifficultyLevel } from "../config/schema";
 import {
   ExtendedAchievementEngine,
   AchievementContext,
-} from "./ExtendedAchievementEngine";
+} from "./LedgerEngine";
 import type {
   ExtendedAchievementState,
   ExtendedAchievementResult,

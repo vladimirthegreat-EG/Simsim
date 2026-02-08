@@ -3,8 +3,8 @@
  *
  * Achievement tracking, milestones, and rewards.
  *
- * Includes both the original AchievementEngine (30 achievements)
- * and the ExtendedAchievementEngine (221 achievements - "Ledger of Legends & Losers").
+ * Includes the base AchievementEngine (30 achievements)
+ * and the LedgerEngine (221 achievements - "Ledger of Legends & Losers").
  */
 
 // Original Achievement Engine
@@ -25,9 +25,9 @@ export type {
   AchievementResult,
 } from "./AchievementEngine";
 
-// Extended Achievement Engine (221 achievements)
-export { ExtendedAchievementEngine } from "./ExtendedAchievementEngine";
-export type { AchievementContext } from "./ExtendedAchievementEngine";
+// Ledger Engine - "Ledger of Legends & Losers" (221 achievements)
+export { ExtendedAchievementEngine, ExtendedAchievementEngine as LedgerEngine } from "./LedgerEngine";
+export type { AchievementContext } from "./LedgerEngine";
 
 // Extended Types
 export type {
