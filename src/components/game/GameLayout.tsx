@@ -25,6 +25,7 @@ import {
   Settings,
   Rocket,
   Radio,
+  Trophy,
 } from "lucide-react";
 import { useDecisionStore, GameModule } from "@/lib/stores/decisionStore";
 import { useComplexity } from "@/lib/contexts/ComplexityContext";
@@ -62,6 +63,7 @@ const moduleToComplexityKey: Record<string, keyof ReturnType<typeof useComplexit
   rnd: "rd",
   news: null, // Always visible
   results: null, // Always visible
+  achievements: null, // Always visible
 };
 
 const modules = [
@@ -120,6 +122,13 @@ const modules = [
     icon: BarChart3,
     path: "/results",
     color: "text-cyan-400",
+  },
+  {
+    id: "achievements",
+    name: "Achievements",
+    icon: Trophy,
+    path: "/achievements",
+    color: "text-yellow-400",
   },
 ];
 

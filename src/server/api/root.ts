@@ -4,6 +4,7 @@ import { teamRouter } from "./routers/team";
 import { decisionRouter } from "./routers/decision";
 import { facilitatorRouter } from "./routers/facilitator";
 import { materialRouter } from "./routers/material";
+import { achievementRouter } from "./routers/achievement";
 
 /**
  * This is the primary router for your server.
@@ -16,6 +17,7 @@ export const appRouter = createTRPCRouter({
   decision: decisionRouter,
   facilitator: facilitatorRouter,
   material: materialRouter,
+  achievement: achievementRouter,
 });
 
 // Export type definition of API

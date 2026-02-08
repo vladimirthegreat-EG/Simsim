@@ -45,6 +45,7 @@ import {
   ShoppingCart,
   Globe,
   LayoutDashboard,
+  Lock,
 } from "lucide-react";
 import type { TeamState, Factory as FactoryType, Segment } from "@/engine/types";
 import {
@@ -148,89 +149,230 @@ const MATERIAL_ICONS: Record<MaterialType, React.ElementType> = {
 };
 
 const upgrades = [
+  // === TIER 1: No R&D Required ===
   {
     id: "sixSigma",
     name: "Six Sigma Quality",
     cost: 75_000_000,
     description: "Advanced quality management system",
-    benefits: [
-      "Reduces defect rate by 40%",
-      "Improves product reliability",
-      "Enhances customer satisfaction",
-      "Reduces warranty costs"
-    ],
+    benefits: ["40% defect reduction", "50% warranty cost reduction", "75% fewer recalls"],
     category: "quality",
     icon: CheckCircle2,
+    tier: 1,
+    rdRequired: null,
   },
+  {
+    id: "warehousing",
+    name: "Advanced Warehousing",
+    cost: 100_000_000,
+    description: "Smart warehouse automation",
+    benefits: ["90% storage cost reduction", "90% demand spike capture", "Optimized inventory"],
+    category: "efficiency",
+    icon: Boxes,
+    tier: 1,
+    rdRequired: null,
+  },
+  {
+    id: "leanManufacturing",
+    name: "Lean Manufacturing",
+    cost: 40_000_000,
+    description: "Toyota Production System principles",
+    benefits: ["+15% efficiency", "-10% operating costs", "Reduced waste"],
+    category: "efficiency",
+    icon: TrendingUp,
+    tier: 1,
+    rdRequired: null,
+  },
+  {
+    id: "continuousImprovement",
+    name: "Continuous Improvement",
+    cost: 30_000_000,
+    description: "Kaizen culture implementation",
+    benefits: ["+1% efficiency/round", "Caps at +10% total", "Employee engagement"],
+    category: "efficiency",
+    icon: TrendingUp,
+    tier: 1,
+    rdRequired: null,
+  },
+  // === TIER 2: Process Optimization Required (R&D Level 1) ===
   {
     id: "automation",
     name: "Full Automation",
     cost: 75_000_000,
     description: "Advanced robotic production lines",
-    benefits: [
-      "Reduces worker requirements by 80%",
-      "Increases production consistency",
-      "Operates 24/7 with minimal supervision",
-      "Reduces labor costs long-term"
-    ],
+    benefits: ["80% fewer workers needed", "60% cost variance reduction", "24/7 operation"],
     category: "efficiency",
     icon: Settings,
+    tier: 2,
+    rdRequired: "Process Optimization",
   },
   {
-    id: "greenEnergy",
-    name: "Green Energy",
-    cost: 50_000_000,
-    description: "Solar panels and renewable energy systems",
-    benefits: [
-      "Reduces CO2 emissions by 60%",
-      "Lowers energy costs by 30%",
-      "Improves ESG score",
-      "Qualifies for green incentives"
-    ],
+    id: "materialRefinement",
+    name: "Material Refinement",
+    cost: 100_000_000,
+    description: "Advanced material processing",
+    benefits: ["+1 material level", "Higher quality products", "Premium pricing enabled"],
+    category: "quality",
+    icon: Package,
+    tier: 2,
+    rdRequired: "Process Optimization",
+  },
+  {
+    id: "modularLines",
+    name: "Modular Production Lines",
+    cost: 80_000_000,
+    description: "Reconfigurable manufacturing cells",
+    benefits: ["-50% changeover time", "Flexible production", "Quick product switches"],
+    category: "efficiency",
+    icon: Cog,
+    tier: 2,
+    rdRequired: "Process Optimization",
+  },
+  {
+    id: "waterRecycling",
+    name: "Water Recycling",
+    cost: 25_000_000,
+    description: "Closed-loop water system",
+    benefits: ["-30% water costs", "+50 ESG", "Reduced water usage"],
     category: "sustainability",
     icon: Leaf,
+    tier: 2,
+    rdRequired: "Process Optimization",
   },
+  {
+    id: "solarPanels",
+    name: "Solar Panels",
+    cost: 45_000_000,
+    description: "Rooftop solar installation",
+    benefits: ["-40% energy costs", "+100 ESG", "Green energy credits"],
+    category: "sustainability",
+    icon: Leaf,
+    tier: 2,
+    rdRequired: "Process Optimization",
+  },
+  // === TIER 3: Advanced Manufacturing Required (R&D Level 2) ===
+  {
+    id: "supplyChain",
+    name: "Supply Chain Optimization",
+    cost: 200_000_000,
+    description: "End-to-end supply chain visibility",
+    benefits: ["70% shipping cost reduction", "70% stockout reduction", "Faster delivery"],
+    category: "efficiency",
+    icon: Truck,
+    tier: 3,
+    rdRequired: "Advanced Manufacturing",
+  },
+  {
+    id: "digitalTwin",
+    name: "Digital Twin",
+    cost: 60_000_000,
+    description: "Virtual factory simulation",
+    benefits: ["-20% maintenance costs", "Predictive alerts", "Process optimization"],
+    category: "maintenance",
+    icon: Activity,
+    tier: 3,
+    rdRequired: "Advanced Manufacturing",
+  },
+  {
+    id: "iotIntegration",
+    name: "IoT Integration",
+    cost: 50_000_000,
+    description: "Connected sensors throughout factory",
+    benefits: ["Real-time monitoring", "-15% breakdown risk", "Data-driven decisions"],
+    category: "maintenance",
+    icon: Globe,
+    tier: 3,
+    rdRequired: "Advanced Manufacturing",
+  },
+  {
+    id: "wasteToEnergy",
+    name: "Waste to Energy",
+    cost: 35_000_000,
+    description: "Convert waste to power",
+    benefits: ["-20% waste costs", "+75 ESG", "Zero landfill"],
+    category: "sustainability",
+    icon: Zap,
+    tier: 3,
+    rdRequired: "Advanced Manufacturing",
+  },
+  {
+    id: "smartGrid",
+    name: "Smart Grid",
+    cost: 55_000_000,
+    description: "Intelligent energy management",
+    benefits: ["-25% energy usage", "+80 ESG", "Peak load optimization"],
+    category: "sustainability",
+    icon: Zap,
+    tier: 3,
+    rdRequired: "Advanced Manufacturing",
+  },
+  {
+    id: "rapidPrototyping",
+    name: "Rapid Prototyping",
+    cost: 40_000_000,
+    description: "3D printing and fast iteration",
+    benefits: ["-50% R&D prototype time", "+25% innovation", "Faster time-to-market"],
+    category: "specialized",
+    icon: Wrench,
+    tier: 3,
+    rdRequired: "Advanced Manufacturing",
+  },
+  // === TIER 4: Industry 4.0 Required (R&D Level 3) ===
   {
     id: "advancedRobotics",
     name: "Advanced Robotics",
     cost: 100_000_000,
-    description: "AI-powered production optimization",
-    benefits: [
-      "Increases capacity by 50%",
-      "Reduces setup time by 60%",
-      "Enables rapid product changeovers",
-      "Improves equipment utilization"
-    ],
-    category: "efficiency",
-    icon: Wrench,
+    description: "AI-powered production robots",
+    benefits: ["+50% capacity", "-30% labor needs", "Precision manufacturing"],
+    category: "capacity",
+    icon: Settings,
+    tier: 4,
+    rdRequired: "Industry 4.0",
   },
   {
-    id: "predictiveMaintenance",
-    name: "Predictive Maintenance",
-    cost: 40_000_000,
-    description: "IoT sensors and AI analytics",
-    benefits: [
-      "Reduces breakdown risk by 70%",
-      "Extends equipment lifespan by 30%",
-      "Minimizes unplanned downtime",
-      "Optimizes maintenance schedules"
-    ],
-    category: "maintenance",
-    icon: Activity,
-  },
-  {
-    id: "qualityControl",
-    name: "Automated Quality Control",
-    cost: 35_000_000,
-    description: "AI-powered inspection systems",
-    benefits: [
-      "Detects defects with 99% accuracy",
-      "Reduces manual inspection time by 80%",
-      "Real-time quality feedback",
-      "Prevents defective products from shipping"
-    ],
+    id: "qualityLab",
+    name: "Quality Laboratory",
+    cost: 60_000_000,
+    description: "In-house testing facility",
+    benefits: ["-50% defect rate", "+30% QA speed", "Certified testing"],
     category: "quality",
+    icon: CheckCircle2,
+    tier: 4,
+    rdRequired: "Industry 4.0",
+  },
+  {
+    id: "carbonCapture",
+    name: "Carbon Capture",
+    cost: 70_000_000,
+    description: "Direct air capture system",
+    benefits: ["-50% CO2 emissions", "+150 ESG", "Carbon negative potential"],
+    category: "sustainability",
+    icon: Leaf,
+    tier: 4,
+    rdRequired: "Industry 4.0",
+  },
+  {
+    id: "flexibleManufacturing",
+    name: "Flexible Manufacturing",
+    cost: 90_000_000,
+    description: "Multi-product production system",
+    benefits: ["All segments efficient", "-30% changeover", "Product mix flexibility"],
+    category: "capacity",
+    icon: Factory,
+    tier: 4,
+    rdRequired: "Industry 4.0",
+  },
+  // === TIER 5: Breakthrough Tech Required (R&D Level 4) ===
+  {
+    id: "cleanRoom",
+    name: "Clean Room",
+    cost: 120_000_000,
+    description: "ISO Class 5 clean room facility",
+    benefits: ["+20% Professional pricing", "Medical/precision enabled", "Ultra-low defects"],
+    category: "specialized",
     icon: ShieldAlert,
+    tier: 5,
+    rdRequired: "Breakthrough Technology",
   },
 ];
 
@@ -623,6 +765,13 @@ export default function FactoryPage({ params }: PageProps) {
           >
             <Wrench className="w-4 h-4 mr-2 inline-block" />
             Maintenance
+          </TabsTrigger>
+          <TabsTrigger
+            value="machinery"
+            className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white transition-all duration-300 hover:scale-105 active:scale-95"
+          >
+            <Cog className="w-4 h-4 mr-2 inline-block" />
+            Machinery
           </TabsTrigger>
           <TabsTrigger
             value="logistics"
@@ -1600,6 +1749,160 @@ export default function FactoryPage({ params }: PageProps) {
           </motion.div>
         </TabsContent>
 
+        {/* Machinery Tab - NEW */}
+        <TabsContent value="machinery" className="space-y-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            {/* Machinery Overview */}
+            <SectionHeader
+              title="Machinery Management"
+              subtitle="Purchase, maintain, and manage your factory machines"
+            />
+
+            {/* Machine Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard
+                label="Total Machines"
+                value="0"
+                icon={<Cog className="w-5 h-5" />}
+                variant="default"
+              />
+              <StatCard
+                label="Total Capacity"
+                value="0 units"
+                icon={<Package className="w-5 h-5" />}
+                variant="default"
+              />
+              <StatCard
+                label="Maintenance Cost"
+                value="$0/round"
+                icon={<Wrench className="w-5 h-5" />}
+                variant="warning"
+              />
+              <StatCard
+                label="Operating Cost"
+                value="$0/round"
+                icon={<DollarSign className="w-5 h-5" />}
+                variant="info"
+              />
+            </div>
+
+            {/* Machine Categories */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Production Machines */}
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-lg text-white flex items-center gap-2">
+                    <Factory className="w-5 h-5 text-blue-400" />
+                    Production Machines
+                  </CardTitle>
+                  <CardDescription>Core manufacturing equipment</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {[
+                    { name: "Assembly Line", cost: "$5M", capacity: "10,000 units", type: "assembly_line" },
+                    { name: "CNC Machine", cost: "$8M", capacity: "3,000 units", type: "cnc_machine" },
+                    { name: "Welding Station", cost: "$4M", capacity: "5,000 units", type: "welding_station" },
+                    { name: "Injection Molder", cost: "$7M", capacity: "12,000 units", type: "injection_molder" },
+                    { name: "PCB Assembler", cost: "$10M", capacity: "6,000 units", type: "pcb_assembler" },
+                    { name: "Paint Booth", cost: "$3M", capacity: "8,000 units", type: "paint_booth" },
+                    { name: "Laser Cutter", cost: "$6M", capacity: "4,000 units", type: "laser_cutter" },
+                  ].map((machine) => (
+                    <div key={machine.type} className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg">
+                      <div>
+                        <p className="text-white font-medium">{machine.name}</p>
+                        <p className="text-slate-400 text-sm">{machine.capacity}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-emerald-400 font-medium">{machine.cost}</p>
+                        <Button size="sm" variant="outline" className="mt-1 h-7 text-xs">
+                          Purchase
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Automation & Quality Machines */}
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-lg text-white flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-purple-400" />
+                    Automation & Quality
+                  </CardTitle>
+                  <CardDescription>Efficiency and quality equipment</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {[
+                    { name: "Robotic Arm", cost: "$12M", benefit: "-20% labor", type: "robotic_arm" },
+                    { name: "Conveyor System", cost: "$3M", benefit: "+15,000 capacity", type: "conveyor_system" },
+                    { name: "Quality Scanner", cost: "$6M", benefit: "-3% defects", type: "quality_scanner" },
+                    { name: "Testing Rig", cost: "$4M", benefit: "-2% defects", type: "testing_rig" },
+                    { name: "3D Printer", cost: "$2M", benefit: "Prototyping", type: "3d_printer" },
+                    { name: "Clean Room Unit", cost: "$15M", benefit: "-4% defects", type: "clean_room_unit" },
+                    { name: "Packaging System", cost: "$2.5M", benefit: "-5% shipping", type: "packaging_system" },
+                    { name: "Forklift Fleet", cost: "$1M", benefit: "-10% shipping", type: "forklift_fleet" },
+                  ].map((machine) => (
+                    <div key={machine.type} className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg">
+                      <div>
+                        <p className="text-white font-medium">{machine.name}</p>
+                        <p className="text-slate-400 text-sm">{machine.benefit}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-emerald-400 font-medium">{machine.cost}</p>
+                        <Button size="sm" variant="outline" className="mt-1 h-7 text-xs">
+                          Purchase
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Owned Machines */}
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-lg text-white flex items-center gap-2">
+                  <Boxes className="w-5 h-5 text-emerald-400" />
+                  Owned Machines
+                </CardTitle>
+                <CardDescription>Your factory&apos;s current machinery</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-slate-400">
+                  <Cog className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No machines purchased yet</p>
+                  <p className="text-sm mt-2">Purchase machines above to increase production capacity</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Maintenance Schedule */}
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-lg text-white flex items-center gap-2">
+                  <Wrench className="w-5 h-5 text-yellow-400" />
+                  Maintenance Schedule
+                </CardTitle>
+                <CardDescription>Schedule preventive maintenance for your machines</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-slate-400">
+                  <Wrench className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No machines to maintain</p>
+                  <p className="text-sm mt-2">Machines will appear here once purchased</p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </TabsContent>
+
         {/* Upgrades Tab - ENHANCED */}
         <TabsContent value="upgrades" className="space-y-6">
           <motion.div
@@ -1632,83 +1935,271 @@ export default function FactoryPage({ params }: PageProps) {
             </div>
           )}
 
-          <div className="grid md:grid-cols-2 gap-6">
-            {upgrades.map((upgrade) => {
-              const { installed, pending } = isUpgradePurchased(upgrade.id);
-              return (
-                <Card
-                  key={upgrade.id}
-                  className={`bg-slate-800 border-slate-700 ${
-                    installed ? "border-green-700" : pending ? "border-orange-500" : ""
-                  }`}
-                >
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <upgrade.icon className={`w-6 h-6 ${installed ? "text-green-400" : pending ? "text-orange-400" : "text-slate-400"}`} />
-                        <div>
-                          <CardTitle className="text-white">{upgrade.name}</CardTitle>
-                          <Badge className="mt-1" variant="outline">
-                            {upgrade.category}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                    <CardDescription className="text-slate-400 mt-2">
-                      {upgrade.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {/* Benefits List */}
-                      <div>
-                        <p className="text-slate-400 text-sm font-medium mb-2">Benefits:</p>
-                        <ul className="space-y-1.5">
-                          {upgrade.benefits.map((benefit, idx) => (
-                            <li key={idx} className="flex items-start gap-2 text-sm">
-                              <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
-                              <span className="text-slate-300">{benefit}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+          {/* Tier Legend */}
+          <div className="flex flex-wrap gap-3 p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+            <span className="text-slate-400 text-sm font-medium">R&D Prerequisites:</span>
+            <Badge className="bg-green-600/20 text-green-400 border-green-600">Tier 1: No R&D</Badge>
+            <Badge className="bg-blue-600/20 text-blue-400 border-blue-600">Tier 2: Process Optimization</Badge>
+            <Badge className="bg-purple-600/20 text-purple-400 border-purple-600">Tier 3: Advanced Manufacturing</Badge>
+            <Badge className="bg-amber-600/20 text-amber-400 border-amber-600">Tier 4: Industry 4.0</Badge>
+            <Badge className="bg-red-600/20 text-red-400 border-red-600">Tier 5: Breakthrough Tech</Badge>
+          </div>
 
-                      {/* Cost & Action */}
-                      <div className="pt-4 border-t border-slate-700">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="text-slate-400 text-sm">Cost</span>
-                            <p className="text-xl font-bold text-white">
-                              {formatCurrency(upgrade.cost)}
-                            </p>
-                          </div>
-                          {installed ? (
-                            <Badge className="bg-green-600 px-4 py-2">
-                              <CheckCircle2 className="w-4 h-4 mr-2" />
-                              Installed
-                            </Badge>
-                          ) : pending ? (
-                            <Button
-                              className="bg-orange-600 hover:bg-orange-700"
-                              onClick={() => toggleUpgradePurchase(upgrade.id)}
-                            >
-                              Pending - Cancel
-                            </Button>
-                          ) : (
-                            <Button
-                              className="bg-orange-600 hover:bg-orange-700"
-                              onClick={() => toggleUpgradePurchase(upgrade.id)}
-                            >
-                              Purchase
-                            </Button>
-                          )}
-                        </div>
+          {/* Tier 1: No R&D Required */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Badge className="bg-green-600">Tier 1</Badge>
+              <h3 className="text-lg font-semibold text-white">Foundation Upgrades</h3>
+              <span className="text-green-400 text-sm">No R&D Required - Always Available</span>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              {upgrades.filter(u => u.tier === 1).map((upgrade) => {
+                const { installed, pending } = isUpgradePurchased(upgrade.id);
+                return (
+                  <Card key={upgrade.id} className={`bg-slate-800 border-slate-700 ${installed ? "border-green-700" : pending ? "border-orange-500" : ""}`}>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center gap-3">
+                        <upgrade.icon className={`w-5 h-5 ${installed ? "text-green-400" : pending ? "text-orange-400" : "text-green-400"}`} />
+                        <CardTitle className="text-white text-base">{upgrade.name}</CardTitle>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                      <CardDescription className="text-slate-400 text-sm">{upgrade.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <ul className="space-y-1 mb-3">
+                        {upgrade.benefits.map((benefit, idx) => (
+                          <li key={idx} className="flex items-center gap-2 text-xs text-slate-300">
+                            <CheckCircle2 className="w-3 h-3 text-green-400" />
+                            {benefit}
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-700">
+                        <span className="text-lg font-bold text-white">{formatCurrency(upgrade.cost)}</span>
+                        {installed ? (
+                          <Badge className="bg-green-600"><CheckCircle2 className="w-3 h-3 mr-1" />Installed</Badge>
+                        ) : pending ? (
+                          <Button size="sm" className="bg-orange-600 hover:bg-orange-700 h-8" onClick={() => toggleUpgradePurchase(upgrade.id)}>Cancel</Button>
+                        ) : (
+                          <Button size="sm" className="bg-orange-600 hover:bg-orange-700 h-8" onClick={() => toggleUpgradePurchase(upgrade.id)}>Purchase</Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Tier 2: Process Optimization Required */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Badge className="bg-blue-600">Tier 2</Badge>
+              <h3 className="text-lg font-semibold text-white">Process Optimization</h3>
+              {(state?.unlockedTechnologies || []).includes("process_optimization") ? (
+                <span className="text-blue-400 text-sm flex items-center gap-1"><CheckCircle2 className="w-4 h-4" />Unlocked</span>
+              ) : (
+                <span className="text-slate-500 text-sm flex items-center gap-1"><Lock className="w-4 h-4" />Requires R&D: Process Optimization</span>
+              )}
+            </div>
+            <div className={`grid md:grid-cols-2 gap-4 ${!(state?.unlockedTechnologies || []).includes("process_optimization") ? "opacity-60" : ""}`}>
+              {upgrades.filter(u => u.tier === 2).map((upgrade) => {
+                const { installed, pending } = isUpgradePurchased(upgrade.id);
+                const isLocked = !(state?.unlockedTechnologies || []).includes("process_optimization");
+                return (
+                  <Card key={upgrade.id} className={`bg-slate-800 ${isLocked ? "border-slate-600" : installed ? "border-green-700" : pending ? "border-orange-500" : "border-blue-700/50"}`}>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center gap-3">
+                        <upgrade.icon className={`w-5 h-5 ${isLocked ? "text-slate-500" : installed ? "text-green-400" : pending ? "text-orange-400" : "text-blue-400"}`} />
+                        <CardTitle className={`text-base ${isLocked ? "text-slate-400" : "text-white"}`}>{upgrade.name}</CardTitle>
+                        {isLocked && <Lock className="w-4 h-4 text-slate-500" />}
+                      </div>
+                      <CardDescription className="text-slate-400 text-sm">{upgrade.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <ul className="space-y-1 mb-3">
+                        {upgrade.benefits.map((benefit, idx) => (
+                          <li key={idx} className={`flex items-center gap-2 text-xs ${isLocked ? "text-slate-500" : "text-slate-300"}`}>
+                            <CheckCircle2 className={`w-3 h-3 ${isLocked ? "text-slate-500" : "text-blue-400"}`} />
+                            {benefit}
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-700">
+                        <span className={`text-lg font-bold ${isLocked ? "text-slate-500" : "text-white"}`}>{formatCurrency(upgrade.cost)}</span>
+                        {installed ? (
+                          <Badge className="bg-green-600"><CheckCircle2 className="w-3 h-3 mr-1" />Installed</Badge>
+                        ) : pending ? (
+                          <Button size="sm" className="bg-orange-600 hover:bg-orange-700 h-8" onClick={() => toggleUpgradePurchase(upgrade.id)}>Cancel</Button>
+                        ) : (
+                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-8" onClick={() => toggleUpgradePurchase(upgrade.id)} disabled={isLocked}>
+                            {isLocked ? "Locked" : "Purchase"}
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Tier 3: Advanced Manufacturing Required */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Badge className="bg-purple-600">Tier 3</Badge>
+              <h3 className="text-lg font-semibold text-white">Advanced Manufacturing</h3>
+              {(state?.unlockedTechnologies || []).includes("advanced_manufacturing") ? (
+                <span className="text-purple-400 text-sm flex items-center gap-1"><CheckCircle2 className="w-4 h-4" />Unlocked</span>
+              ) : (
+                <span className="text-slate-500 text-sm flex items-center gap-1"><Lock className="w-4 h-4" />Requires R&D: Advanced Manufacturing</span>
+              )}
+            </div>
+            <div className={`grid md:grid-cols-2 gap-4 ${!(state?.unlockedTechnologies || []).includes("advanced_manufacturing") ? "opacity-60" : ""}`}>
+              {upgrades.filter(u => u.tier === 3).map((upgrade) => {
+                const { installed, pending } = isUpgradePurchased(upgrade.id);
+                const isLocked = !(state?.unlockedTechnologies || []).includes("advanced_manufacturing");
+                return (
+                  <Card key={upgrade.id} className={`bg-slate-800 ${isLocked ? "border-slate-600" : installed ? "border-green-700" : pending ? "border-orange-500" : "border-purple-700/50"}`}>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center gap-3">
+                        <upgrade.icon className={`w-5 h-5 ${isLocked ? "text-slate-500" : installed ? "text-green-400" : pending ? "text-orange-400" : "text-purple-400"}`} />
+                        <CardTitle className={`text-base ${isLocked ? "text-slate-400" : "text-white"}`}>{upgrade.name}</CardTitle>
+                        {isLocked && <Lock className="w-4 h-4 text-slate-500" />}
+                      </div>
+                      <CardDescription className="text-slate-400 text-sm">{upgrade.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <ul className="space-y-1 mb-3">
+                        {upgrade.benefits.map((benefit, idx) => (
+                          <li key={idx} className={`flex items-center gap-2 text-xs ${isLocked ? "text-slate-500" : "text-slate-300"}`}>
+                            <CheckCircle2 className={`w-3 h-3 ${isLocked ? "text-slate-500" : "text-purple-400"}`} />
+                            {benefit}
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-700">
+                        <span className={`text-lg font-bold ${isLocked ? "text-slate-500" : "text-white"}`}>{formatCurrency(upgrade.cost)}</span>
+                        {installed ? (
+                          <Badge className="bg-green-600"><CheckCircle2 className="w-3 h-3 mr-1" />Installed</Badge>
+                        ) : pending ? (
+                          <Button size="sm" className="bg-orange-600 hover:bg-orange-700 h-8" onClick={() => toggleUpgradePurchase(upgrade.id)}>Cancel</Button>
+                        ) : (
+                          <Button size="sm" className="bg-purple-600 hover:bg-purple-700 h-8" onClick={() => toggleUpgradePurchase(upgrade.id)} disabled={isLocked}>
+                            {isLocked ? "Locked" : "Purchase"}
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Tier 4: Industry 4.0 Required */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Badge className="bg-amber-600">Tier 4</Badge>
+              <h3 className="text-lg font-semibold text-white">Industry 4.0</h3>
+              {(state?.unlockedTechnologies || []).includes("industry_4_0") ? (
+                <span className="text-amber-400 text-sm flex items-center gap-1"><CheckCircle2 className="w-4 h-4" />Unlocked</span>
+              ) : (
+                <span className="text-slate-500 text-sm flex items-center gap-1"><Lock className="w-4 h-4" />Requires R&D: Industry 4.0</span>
+              )}
+            </div>
+            <div className={`grid md:grid-cols-2 gap-4 ${!(state?.unlockedTechnologies || []).includes("industry_4_0") ? "opacity-60" : ""}`}>
+              {upgrades.filter(u => u.tier === 4).map((upgrade) => {
+                const { installed, pending } = isUpgradePurchased(upgrade.id);
+                const isLocked = !(state?.unlockedTechnologies || []).includes("industry_4_0");
+                return (
+                  <Card key={upgrade.id} className={`bg-slate-800 ${isLocked ? "border-slate-600" : installed ? "border-green-700" : pending ? "border-orange-500" : "border-amber-700/50"}`}>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center gap-3">
+                        <upgrade.icon className={`w-5 h-5 ${isLocked ? "text-slate-500" : installed ? "text-green-400" : pending ? "text-orange-400" : "text-amber-400"}`} />
+                        <CardTitle className={`text-base ${isLocked ? "text-slate-400" : "text-white"}`}>{upgrade.name}</CardTitle>
+                        {isLocked && <Lock className="w-4 h-4 text-slate-500" />}
+                      </div>
+                      <CardDescription className="text-slate-400 text-sm">{upgrade.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <ul className="space-y-1 mb-3">
+                        {upgrade.benefits.map((benefit, idx) => (
+                          <li key={idx} className={`flex items-center gap-2 text-xs ${isLocked ? "text-slate-500" : "text-slate-300"}`}>
+                            <CheckCircle2 className={`w-3 h-3 ${isLocked ? "text-slate-500" : "text-amber-400"}`} />
+                            {benefit}
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-700">
+                        <span className={`text-lg font-bold ${isLocked ? "text-slate-500" : "text-white"}`}>{formatCurrency(upgrade.cost)}</span>
+                        {installed ? (
+                          <Badge className="bg-green-600"><CheckCircle2 className="w-3 h-3 mr-1" />Installed</Badge>
+                        ) : pending ? (
+                          <Button size="sm" className="bg-orange-600 hover:bg-orange-700 h-8" onClick={() => toggleUpgradePurchase(upgrade.id)}>Cancel</Button>
+                        ) : (
+                          <Button size="sm" className="bg-amber-600 hover:bg-amber-700 h-8" onClick={() => toggleUpgradePurchase(upgrade.id)} disabled={isLocked}>
+                            {isLocked ? "Locked" : "Purchase"}
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Tier 5: Breakthrough Tech Required */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Badge className="bg-red-600">Tier 5</Badge>
+              <h3 className="text-lg font-semibold text-white">Breakthrough Technology</h3>
+              {(state?.unlockedTechnologies || []).includes("breakthrough_tech") ? (
+                <span className="text-red-400 text-sm flex items-center gap-1"><CheckCircle2 className="w-4 h-4" />Unlocked</span>
+              ) : (
+                <span className="text-slate-500 text-sm flex items-center gap-1"><Lock className="w-4 h-4" />Requires R&D: Breakthrough Technology</span>
+              )}
+            </div>
+            <div className={`grid md:grid-cols-2 gap-4 ${!(state?.unlockedTechnologies || []).includes("breakthrough_tech") ? "opacity-60" : ""}`}>
+              {upgrades.filter(u => u.tier === 5).map((upgrade) => {
+                const { installed, pending } = isUpgradePurchased(upgrade.id);
+                const isLocked = !(state?.unlockedTechnologies || []).includes("breakthrough_tech");
+                return (
+                  <Card key={upgrade.id} className={`bg-slate-800 ${isLocked ? "border-slate-600" : installed ? "border-green-700" : pending ? "border-orange-500" : "border-red-700/50"}`}>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center gap-3">
+                        <upgrade.icon className={`w-5 h-5 ${isLocked ? "text-slate-500" : installed ? "text-green-400" : pending ? "text-orange-400" : "text-red-400"}`} />
+                        <CardTitle className={`text-base ${isLocked ? "text-slate-400" : "text-white"}`}>{upgrade.name}</CardTitle>
+                        {isLocked && <Lock className="w-4 h-4 text-slate-500" />}
+                      </div>
+                      <CardDescription className="text-slate-400 text-sm">{upgrade.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <ul className="space-y-1 mb-3">
+                        {upgrade.benefits.map((benefit, idx) => (
+                          <li key={idx} className={`flex items-center gap-2 text-xs ${isLocked ? "text-slate-500" : "text-slate-300"}`}>
+                            <CheckCircle2 className={`w-3 h-3 ${isLocked ? "text-slate-500" : "text-red-400"}`} />
+                            {benefit}
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-700">
+                        <span className={`text-lg font-bold ${isLocked ? "text-slate-500" : "text-white"}`}>{formatCurrency(upgrade.cost)}</span>
+                        {installed ? (
+                          <Badge className="bg-green-600"><CheckCircle2 className="w-3 h-3 mr-1" />Installed</Badge>
+                        ) : pending ? (
+                          <Button size="sm" className="bg-orange-600 hover:bg-orange-700 h-8" onClick={() => toggleUpgradePurchase(upgrade.id)}>Cancel</Button>
+                        ) : (
+                          <Button size="sm" className="bg-red-600 hover:bg-red-700 h-8" onClick={() => toggleUpgradePurchase(upgrade.id)} disabled={isLocked}>
+                            {isLocked ? "Locked" : "Purchase"}
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
 
           {/* New Factory Construction */}
@@ -2251,7 +2742,7 @@ export default function FactoryPage({ params }: PageProps) {
           </motion.div>
         </TabsContent>
 
-        {/* ESG Tab */}
+        {/* ESG Tab - EXPANDED with Tiers */}
         <TabsContent value="esg" className="space-y-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -2259,19 +2750,26 @@ export default function FactoryPage({ params }: PageProps) {
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* ESG Overview Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatCard
+              label="ESG Score"
+              value={teamState?.esgScore ?? 0}
+              icon={<Leaf className="w-5 h-5" />}
+              variant={(teamState?.esgScore ?? 0) >= 500 ? "success" : (teamState?.esgScore ?? 0) >= 300 ? "warning" : "default"}
+            />
             <StatCard
               label="CO2 Emissions"
               value={selectedFactory.co2Emissions || 500}
               suffix="t"
-              icon={<Leaf className="w-5 h-5" />}
+              icon={<Activity className="w-5 h-5" />}
               variant="warning"
             />
             <StatCard
-              label="ESG Score Impact"
-              value={`+${Math.floor(esgInvestment / 100000)}`}
+              label="Tier Unlocked"
+              value={(teamState?.esgScore ?? 0) >= 500 ? "4" : (teamState?.esgScore ?? 0) >= 300 ? "3" : (teamState?.esgScore ?? 0) >= 100 ? "2" : "1"}
               icon={<TrendingUp className="w-5 h-5" />}
-              variant="success"
+              variant="info"
             />
             <StatCard
               label="Green Certification"
@@ -2281,94 +2779,200 @@ export default function FactoryPage({ params }: PageProps) {
             />
           </div>
 
-          <Card className="bg-slate-800/80 border-slate-700/50 backdrop-blur-sm">
+          {/* CO2 Reduction Investment */}
+          <Card className="bg-slate-800/80 border-slate-700/50">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <Leaf className="w-5 h-5 text-green-400" />
                 CO2 Reduction Investment
               </CardTitle>
-              <CardDescription className="text-slate-400">
-                Invest in sustainability initiatives to reduce CO2 emissions.
-                <span className="text-green-400"> 10 tons reduction per $100K invested.</span>
-              </CardDescription>
+              <CardDescription>10 tons reduction per $100K invested</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4 p-4 bg-slate-700/30 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <label className="text-slate-300 font-medium">Investment Amount</label>
-                  <span className="text-green-400 font-semibold">
-                    {formatCurrency(esgInvestment)}
-                  </span>
-                </div>
-                <Slider
-                  data-testid="slider-esg-investment"
-                  value={[esgInvestment]}
-                  onValueChange={(values) => setEsgInvestment(values[0])}
-                  max={5000000}
-                  step={100000}
-                  variant="success"
-                />
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Projected CO2 Reduction</span>
-                  <span className="text-green-400 font-medium">
-                    -{Math.floor(esgInvestment / 100000) * 10} tons
-                  </span>
-                </div>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-300">Investment Amount</span>
+                <span className="text-green-400 font-semibold">{formatCurrency(esgInvestment)}</span>
               </div>
-
-              <div className="border-t border-slate-700 pt-4">
-                <div className="flex justify-between items-center">
-                  <div className="text-center">
-                    <span className="text-slate-400 text-sm">Current Emissions</span>
-                    <p className="text-2xl font-bold text-yellow-400">{selectedFactory.co2Emissions}t</p>
-                  </div>
-                  <div className="flex-1 flex items-center justify-center">
-                    <div className="h-1 flex-1 mx-4 bg-gradient-to-r from-yellow-500 to-green-500 rounded-full" />
-                  </div>
-                  <div className="text-center">
-                    <span className="text-slate-400 text-sm">After Investment</span>
-                    <p className="text-2xl font-bold text-green-400">
-                      {Math.max(0, (selectedFactory.co2Emissions || 500) - Math.floor(esgInvestment / 100000) * 10)}t
-                    </p>
-                  </div>
-                </div>
+              <Slider
+                value={[esgInvestment]}
+                onValueChange={(values) => setEsgInvestment(values[0])}
+                max={5000000}
+                step={100000}
+                variant="success"
+              />
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Current: {selectedFactory.co2Emissions}t</span>
+                <span className="text-green-400">After: {Math.max(0, (selectedFactory.co2Emissions || 500) - Math.floor(esgInvestment / 100000) * 10)}t</span>
               </div>
             </CardContent>
           </Card>
 
-          {/* ESG Initiatives */}
-          <Card className="bg-slate-800 border-slate-700">
+          {/* Tier 1: Foundation Initiatives (Always Available) */}
+          <Card className="bg-slate-800 border-green-700/50">
             <CardHeader>
-              <CardTitle className="text-white">Sustainability Initiatives</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Badge className="bg-green-600">Tier 1</Badge>
+                  Foundation Initiatives
+                </CardTitle>
+                <Badge variant="outline" className="text-green-400 border-green-400">Unlocked</Badge>
+              </div>
+              <CardDescription>Basic ESG programs available from the start</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="p-4 bg-slate-700/50 rounded-lg">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Leaf className="w-5 h-5 text-green-400" />
-                    <span className="text-white font-medium">Solar Panel Installation</span>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {[
+                  { id: "charitableDonation", name: "Charitable Donation", desc: "Donate to charitable causes", cost: "Variable", points: "Based on % of income" },
+                  { id: "communityInvestment", name: "Community Investment", desc: "Invest in local communities", cost: "Variable", points: "Based on % of revenue" },
+                  { id: "codeOfEthics", name: "Code of Ethics", desc: "Adopt formal ethical guidelines", cost: "$0", points: "+200 ESG" },
+                  { id: "employeeWellness", name: "Employee Wellness", desc: "Health and wellness programs", cost: "$500K/yr", points: "+60 ESG, -10% turnover" },
+                  { id: "communityEducation", name: "Community Education", desc: "Support local education", cost: "Variable", points: "+1 ESG per $2K" },
+                ].map((init) => (
+                  <div key={init.id} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600 hover:border-green-500/50 transition-colors">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Leaf className="w-4 h-4 text-green-400" />
+                      <span className="text-white font-medium text-sm">{init.name}</span>
+                    </div>
+                    <p className="text-slate-400 text-xs mb-2">{init.desc}</p>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-500">{init.cost}</span>
+                      <span className="text-green-400">{init.points}</span>
+                    </div>
+                    <Button size="sm" variant="outline" className="w-full mt-2 h-7 text-xs">Activate</Button>
                   </div>
-                  <p className="text-slate-400 text-sm mb-3">
-                    Install solar panels to power factory operations
-                  </p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-green-400">-200t CO2/year</span>
-                    <span className="text-white">{formatCurrency(10_000_000)}</span>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tier 2: Growth Initiatives (ESG 100+ or Round 2+) */}
+          <Card className={`bg-slate-800 ${(teamState?.esgScore ?? 0) >= 100 ? "border-blue-700/50" : "border-slate-700/50 opacity-60"}`}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Badge className={(teamState?.esgScore ?? 0) >= 100 ? "bg-blue-600" : "bg-slate-600"}>Tier 2</Badge>
+                  Growth Initiatives
+                </CardTitle>
+                {(teamState?.esgScore ?? 0) >= 100 ? (
+                  <Badge variant="outline" className="text-blue-400 border-blue-400">Unlocked</Badge>
+                ) : (
+                  <Badge variant="outline" className="text-slate-400">Requires ESG 100+</Badge>
+                )}
+              </div>
+              <CardDescription>Enhanced ESG programs for growing companies</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {[
+                  { id: "workplaceHealthSafety", name: "Workplace Safety", desc: "Comprehensive safety programs", cost: "$2M/yr", points: "+200 ESG" },
+                  { id: "fairWageProgram", name: "Fair Wage Program", desc: "Above-market compensation", cost: "Varies", points: "+260 ESG" },
+                  { id: "carbonOffsetProgram", name: "Carbon Offset", desc: "Purchase carbon credits", cost: "$20/ton", points: "+1 ESG per 10 tons" },
+                  { id: "renewableEnergyCertificates", name: "Renewable Energy Certs", desc: "Green energy credits", cost: "Variable", points: "+1 ESG per $10K" },
+                  { id: "diversityInclusion", name: "Diversity & Inclusion", desc: "D&I programs and training", cost: "$1M/yr", points: "+90 ESG, +5% morale" },
+                  { id: "transparencyReport", name: "Transparency Report", desc: "Public sustainability reporting", cost: "$300K/yr", points: "+50 ESG" },
+                ].map((init) => (
+                  <div key={init.id} className={`p-3 rounded-lg border transition-colors ${(teamState?.esgScore ?? 0) >= 100 ? "bg-slate-700/50 border-slate-600 hover:border-blue-500/50" : "bg-slate-800/50 border-slate-700"}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Leaf className={`w-4 h-4 ${(teamState?.esgScore ?? 0) >= 100 ? "text-blue-400" : "text-slate-500"}`} />
+                      <span className={`font-medium text-sm ${(teamState?.esgScore ?? 0) >= 100 ? "text-white" : "text-slate-500"}`}>{init.name}</span>
+                    </div>
+                    <p className="text-slate-400 text-xs mb-2">{init.desc}</p>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-500">{init.cost}</span>
+                      <span className={(teamState?.esgScore ?? 0) >= 100 ? "text-blue-400" : "text-slate-500"}>{init.points}</span>
+                    </div>
+                    <Button size="sm" variant="outline" className="w-full mt-2 h-7 text-xs" disabled={(teamState?.esgScore ?? 0) < 100}>
+                      {(teamState?.esgScore ?? 0) >= 100 ? "Activate" : "Locked"}
+                    </Button>
                   </div>
-                </div>
-                <div className="p-4 bg-slate-700/50 rounded-lg">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Leaf className="w-5 h-5 text-green-400" />
-                    <span className="text-white font-medium">Waste Recycling Program</span>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tier 3: Leadership Initiatives (ESG 300+ or Round 4+) */}
+          <Card className={`bg-slate-800 ${(teamState?.esgScore ?? 0) >= 300 ? "border-purple-700/50" : "border-slate-700/50 opacity-60"}`}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Badge className={(teamState?.esgScore ?? 0) >= 300 ? "bg-purple-600" : "bg-slate-600"}>Tier 3</Badge>
+                  Leadership Initiatives
+                </CardTitle>
+                {(teamState?.esgScore ?? 0) >= 300 ? (
+                  <Badge variant="outline" className="text-purple-400 border-purple-400">Unlocked</Badge>
+                ) : (
+                  <Badge variant="outline" className="text-slate-400">Requires ESG 300+</Badge>
+                )}
+              </div>
+              <CardDescription>Advanced sustainability programs for industry leaders</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {[
+                  { id: "supplierEthicsProgram", name: "Supplier Ethics", desc: "Ethical supply chain audits", cost: "+20% material", points: "+150 ESG" },
+                  { id: "waterConservation", name: "Water Conservation", desc: "Closed-loop water systems", cost: "$1.5M/yr", points: "+80 ESG, -20% water" },
+                  { id: "zeroWasteCommitment", name: "Zero Waste", desc: "Zero landfill commitment", cost: "$2M/yr", points: "+100 ESG, -30% waste" },
+                  { id: "humanRightsAudit", name: "Human Rights Audit", desc: "Supply chain human rights", cost: "$800K/yr", points: "+70 ESG" },
+                  { id: "whistleblowerProtection", name: "Whistleblower Protection", desc: "Anonymous reporting system", cost: "$200K/yr", points: "+40 ESG" },
+                  { id: "biodiversityProtection", name: "Biodiversity Protection", desc: "Habitat restoration funding", cost: "Variable", points: "+1 ESG per $5K" },
+                ].map((init) => (
+                  <div key={init.id} className={`p-3 rounded-lg border transition-colors ${(teamState?.esgScore ?? 0) >= 300 ? "bg-slate-700/50 border-slate-600 hover:border-purple-500/50" : "bg-slate-800/50 border-slate-700"}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Leaf className={`w-4 h-4 ${(teamState?.esgScore ?? 0) >= 300 ? "text-purple-400" : "text-slate-500"}`} />
+                      <span className={`font-medium text-sm ${(teamState?.esgScore ?? 0) >= 300 ? "text-white" : "text-slate-500"}`}>{init.name}</span>
+                    </div>
+                    <p className="text-slate-400 text-xs mb-2">{init.desc}</p>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-500">{init.cost}</span>
+                      <span className={(teamState?.esgScore ?? 0) >= 300 ? "text-purple-400" : "text-slate-500"}>{init.points}</span>
+                    </div>
+                    <Button size="sm" variant="outline" className="w-full mt-2 h-7 text-xs" disabled={(teamState?.esgScore ?? 0) < 300}>
+                      {(teamState?.esgScore ?? 0) >= 300 ? "Activate" : "Locked"}
+                    </Button>
                   </div>
-                  <p className="text-slate-400 text-sm mb-3">
-                    Implement comprehensive recycling and waste reduction
-                  </p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-green-400">-100t CO2/year</span>
-                    <span className="text-white">{formatCurrency(5_000_000)}</span>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tier 4: Excellence Initiatives (ESG 500+ or Round 6+) */}
+          <Card className={`bg-slate-800 ${(teamState?.esgScore ?? 0) >= 500 ? "border-amber-700/50" : "border-slate-700/50 opacity-60"}`}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Badge className={(teamState?.esgScore ?? 0) >= 500 ? "bg-amber-600" : "bg-slate-600"}>Tier 4</Badge>
+                  Excellence Initiatives
+                </CardTitle>
+                {(teamState?.esgScore ?? 0) >= 500 ? (
+                  <Badge variant="outline" className="text-amber-400 border-amber-400">Unlocked</Badge>
+                ) : (
+                  <Badge variant="outline" className="text-slate-400">Requires ESG 500+</Badge>
+                )}
+              </div>
+              <CardDescription>Premium sustainability programs for ESG champions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-3 gap-3">
+                {[
+                  { id: "circularEconomy", name: "Circular Economy", desc: "Full product lifecycle management", cost: "$3M/yr", points: "+120 ESG, -20% material" },
+                  { id: "affordableHousing", name: "Affordable Housing", desc: "Employee housing assistance", cost: "Variable", points: "+1 ESG per $10K" },
+                  { id: "executivePayRatio", name: "Executive Pay Ratio", desc: "Cap exec pay at 50x average", cost: "$0", points: "+100 ESG" },
+                ].map((init) => (
+                  <div key={init.id} className={`p-3 rounded-lg border transition-colors ${(teamState?.esgScore ?? 0) >= 500 ? "bg-slate-700/50 border-slate-600 hover:border-amber-500/50" : "bg-slate-800/50 border-slate-700"}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Leaf className={`w-4 h-4 ${(teamState?.esgScore ?? 0) >= 500 ? "text-amber-400" : "text-slate-500"}`} />
+                      <span className={`font-medium text-sm ${(teamState?.esgScore ?? 0) >= 500 ? "text-white" : "text-slate-500"}`}>{init.name}</span>
+                    </div>
+                    <p className="text-slate-400 text-xs mb-2">{init.desc}</p>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-500">{init.cost}</span>
+                      <span className={(teamState?.esgScore ?? 0) >= 500 ? "text-amber-400" : "text-slate-500"}>{init.points}</span>
+                    </div>
+                    <Button size="sm" variant="outline" className="w-full mt-2 h-7 text-xs" disabled={(teamState?.esgScore ?? 0) < 500}>
+                      {(teamState?.esgScore ?? 0) >= 500 ? "Activate" : "Locked"}
+                    </Button>
                   </div>
-                </div>
+                ))}
               </div>
             </CardContent>
           </Card>

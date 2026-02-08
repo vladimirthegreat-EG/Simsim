@@ -16,6 +16,7 @@ import {
 import { createErrorResult } from "../utils";
 import { cloneTeamState } from "../utils/stateUtils";
 import type { EngineContext } from "../core/EngineContext";
+import { MachineryEngine } from "../machinery/MachineryEngine";
 
 export class FactoryModule {
   /**
@@ -171,6 +172,54 @@ export class FactoryModule {
       messages.push(...esgResult.messages);
     }
 
+    // Process machinery decisions
+    if (decisions.machineryDecisions) {
+      for (const factoryId of Object.keys(decisions.machineryDecisions)) {
+        const factory = newState.factories.find(f => f.id === factoryId);
+        if (!factory) continue;
+
+        const factoryDecisions = decisions.machineryDecisions[factoryId];
+        if (!factoryDecisions) continue;
+
+        // Initialize machinery state if not present
+        if (!newState.machineryStates) {
+          newState.machineryStates = {};
+        }
+        if (!newState.machineryStates[factoryId]) {
+          newState.machineryStates[factoryId] = {
+            machines: [],
+            totalCapacity: 0,
+            totalMaintenanceCost: 0,
+            totalOperatingCost: 0,
+            defectRateReduction: 0,
+            laborReduction: 0,
+            shippingReduction: 0,
+          };
+        }
+
+        const machineryState = newState.machineryStates[factoryId];
+
+        // Process machinery using MachineryEngine
+        const machineryResult = MachineryEngine.process(
+          machineryState,
+          factoryDecisions,
+          newState.round,
+          ctx
+        );
+
+        // Update machinery state
+        newState.machineryStates[factoryId] = machineryResult.newState;
+
+        // Apply machinery costs
+        totalCosts += machineryResult.result.costs;
+
+        // Apply machinery effects to factory
+        factory.defectRate = Math.max(0, factory.defectRate - machineryResult.newState.defectRateReduction);
+
+        messages.push(...machineryResult.result.messages);
+      }
+    }
+
     // Deduct costs from cash
     newState.cash -= totalCosts;
 
@@ -264,37 +313,126 @@ export class FactoryModule {
 
   /**
    * Apply effects of factory upgrades (PATCH 7: Added economic payoffs)
+   * Expanded: 5 -> 20 upgrades
    */
   static applyUpgradeEffects(factory: Factory, upgrade: FactoryUpgrade): void {
     switch (upgrade) {
+      // === EXISTING (5) ===
       case "sixSigma":
         // 40% defect reduction
         factory.defectRate *= 0.6;
-        // PATCH 7: Economic payoffs
-        factory.warrantyReduction = 0.50;       // 50% warranty cost reduction
-        factory.recallProbability *= 0.25;      // 75% recall risk reduction
+        factory.warrantyReduction = 0.50;
+        factory.recallProbability *= 0.25;
         break;
+
       case "automation":
         // 80% worker reduction needed (handled in HR module)
-        // Flag is stored in upgrades array
-        // PATCH 7: Economic payoff
-        factory.costVolatility *= 0.40;         // 60% cost variance reduction
+        factory.costVolatility *= 0.40;
         break;
+
       case "materialRefinement":
-        // +1 material level
         factory.materialLevel = Math.min(5, factory.materialLevel + 1);
         break;
+
       case "supplyChain":
-        // 70% shipping cost reduction
         factory.shippingCost *= 0.3;
-        // PATCH 7: Economic payoff
-        factory.stockoutReduction = 0.70;       // 70% stockout reduction (captures more demand)
+        factory.stockoutReduction = 0.70;
         break;
+
       case "warehousing":
-        // 90% storage cost reduction
         factory.storageCost *= 0.1;
-        // PATCH 7: Economic payoff
-        factory.demandSpikeCapture = 0.90;      // 90% demand spike handling
+        factory.demandSpikeCapture = 0.90;
+        break;
+
+      // === QUALITY & EFFICIENCY (5 new) ===
+      case "leanManufacturing":
+        // +15% efficiency, -10% operating costs
+        factory.efficiency = Math.min(1.0, factory.efficiency + 0.15);
+        factory.operatingCostReduction = (factory.operatingCostReduction ?? 0) + 0.10;
+        break;
+
+      case "digitalTwin":
+        // -20% maintenance costs, predictive alerts
+        factory.maintenanceCostReduction = (factory.maintenanceCostReduction ?? 0) + 0.20;
+        factory.predictiveMaintenanceEnabled = true;
+        break;
+
+      case "iotIntegration":
+        // Real-time monitoring, -15% breakdown probability
+        factory.breakdownReduction = (factory.breakdownReduction ?? 0) + 0.15;
+        factory.realTimeMonitoringEnabled = true;
+        break;
+
+      case "modularLines":
+        // -50% changeover time
+        factory.changeoverTimeReduction = (factory.changeoverTimeReduction ?? 0) + 0.50;
+        break;
+
+      case "continuousImprovement":
+        // +1% efficiency per round (tracked separately)
+        factory.continuousImprovementEnabled = true;
+        factory.continuousImprovementBonus = 0; // Starts at 0, grows each round
+        break;
+
+      // === SUSTAINABILITY (5 new) ===
+      case "solarPanels":
+        // -40% energy costs, +100 ESG
+        factory.energyCostReduction = (factory.energyCostReduction ?? 0) + 0.40;
+        factory.esgFromUpgrades = (factory.esgFromUpgrades ?? 0) + 100;
+        break;
+
+      case "waterRecycling":
+        // -30% water costs, +50 ESG
+        factory.waterCostReduction = (factory.waterCostReduction ?? 0) + 0.30;
+        factory.esgFromUpgrades = (factory.esgFromUpgrades ?? 0) + 50;
+        break;
+
+      case "wasteToEnergy":
+        // -20% waste disposal, +75 ESG
+        factory.wasteCostReduction = (factory.wasteCostReduction ?? 0) + 0.20;
+        factory.esgFromUpgrades = (factory.esgFromUpgrades ?? 0) + 75;
+        break;
+
+      case "smartGrid":
+        // -25% energy usage, +80 ESG
+        factory.energyCostReduction = (factory.energyCostReduction ?? 0) + 0.25;
+        factory.esgFromUpgrades = (factory.esgFromUpgrades ?? 0) + 80;
+        break;
+
+      case "carbonCapture":
+        // -50% CO2, +150 ESG
+        factory.co2Emissions *= 0.5;
+        factory.esgFromUpgrades = (factory.esgFromUpgrades ?? 0) + 150;
+        break;
+
+      // === CAPACITY & SPECIALIZATION (5 new) ===
+      case "cleanRoom":
+        // Enables high-purity production (+20% price for Professional)
+        factory.cleanRoomEnabled = true;
+        factory.professionalPriceBonus = (factory.professionalPriceBonus ?? 0) + 0.20;
+        break;
+
+      case "rapidPrototyping":
+        // -50% R&D prototype time
+        factory.rdSpeedBonus = (factory.rdSpeedBonus ?? 0) + 0.50;
+        break;
+
+      case "advancedRobotics":
+        // +50% capacity, -30% labor needs
+        factory.capacityMultiplier = (factory.capacityMultiplier ?? 1.0) * 1.50;
+        factory.laborReduction = (factory.laborReduction ?? 0) + 0.30;
+        break;
+
+      case "qualityLab":
+        // -50% defect rate, +30% QA speed
+        factory.defectRate *= 0.5;
+        factory.qaSpeedBonus = (factory.qaSpeedBonus ?? 0) + 0.30;
+        break;
+
+      case "flexibleManufacturing":
+        // Can produce all segments efficiently
+        factory.flexibleManufacturingEnabled = true;
+        factory.changeoverTimeReduction = (factory.changeoverTimeReduction ?? 0) + 0.30;
         break;
     }
   }
@@ -348,7 +486,7 @@ export class FactoryModule {
   }
 
   /**
-   * Process ESG initiatives
+   * Process ESG initiatives (Expanded: 6 -> 20)
    */
   static processESGInitiatives(
     state: TeamState,
@@ -357,6 +495,9 @@ export class FactoryModule {
     let esgGain = 0;
     let cost = 0;
     const messages: string[] = [];
+    const esgConfig = CONSTANTS.ESG_INITIATIVES;
+
+    // === EXISTING INITIATIVES (6) ===
 
     // Charitable Donation
     // ESG = Math.round((donation / netIncome) × 100 × 6.28)
@@ -396,17 +537,139 @@ export class FactoryModule {
     }
 
     // Fair Wage Program - ESG based on worker/supervisor wages above average
-    // Simplified: +220 for workers above avg, +40 for supervisors above avg
     if (initiatives.fairWageProgram) {
       esgGain += CONSTANTS.ESG_FAIR_WAGE_WORKER_POINTS + CONSTANTS.ESG_FAIR_WAGE_SUPERVISOR_POINTS;
       messages.push(`Fair Wage Program: +${CONSTANTS.ESG_FAIR_WAGE_WORKER_POINTS + CONSTANTS.ESG_FAIR_WAGE_SUPERVISOR_POINTS} ESG`);
     }
 
     // Supplier Ethics Program - +20% material costs but ESG benefit
-    // Cost handled in production calculations
     if (initiatives.supplierEthicsProgram) {
       esgGain += 150; // Base ESG for supplier ethics
       messages.push(`Supplier Ethics Program: +150 ESG (20% material cost increase)`);
+    }
+
+    // === ENVIRONMENTAL INITIATIVES (6 new) ===
+
+    // Carbon Offset Program - $20/ton CO2, +1 ESG per 10 tons offset
+    if (initiatives.carbonOffsetProgram && initiatives.carbonOffsetProgram > 0) {
+      const amount = initiatives.carbonOffsetProgram;
+      const tonsOffset = Math.floor(amount / esgConfig.carbonOffsetProgram.costPerTon);
+      const esg = Math.floor(tonsOffset / 10) * esgConfig.carbonOffsetProgram.pointsPer10Tons;
+      esgGain += esg;
+      cost += amount;
+      messages.push(`Carbon Offset: ${tonsOffset} tons offset → +${esg} ESG`);
+    }
+
+    // Renewable Energy Certificates - +1 ESG per $10K
+    if (initiatives.renewableEnergyCertificates && initiatives.renewableEnergyCertificates > 0) {
+      const amount = initiatives.renewableEnergyCertificates;
+      const esg = Math.floor(amount / 10_000) * esgConfig.renewableEnergyCertificates.pointsPer10K;
+      esgGain += esg;
+      cost += amount;
+      messages.push(`Renewable Energy Certs: $${(amount / 1_000_000).toFixed(2)}M → +${esg} ESG`);
+    }
+
+    // Water Conservation - $1.5M/year, +80 ESG
+    if (initiatives.waterConservation) {
+      const config = esgConfig.waterConservation;
+      esgGain += config.points;
+      cost += config.cost;
+      messages.push(`Water Conservation program: +${config.points} ESG, -20% water costs`);
+    }
+
+    // Zero Waste Commitment - $2M/year, +100 ESG
+    if (initiatives.zeroWasteCommitment) {
+      const config = esgConfig.zeroWasteCommitment;
+      esgGain += config.points;
+      cost += config.cost;
+      messages.push(`Zero Waste Commitment: +${config.points} ESG, -30% waste costs`);
+    }
+
+    // Circular Economy - $3M/year, +120 ESG, -20% material costs
+    if (initiatives.circularEconomy) {
+      const config = esgConfig.circularEconomy;
+      esgGain += config.points;
+      cost += config.cost;
+      messages.push(`Circular Economy program: +${config.points} ESG, -20% material costs`);
+    }
+
+    // Biodiversity Protection - Variable $, +1 ESG per $5K
+    if (initiatives.biodiversityProtection && initiatives.biodiversityProtection > 0) {
+      const amount = initiatives.biodiversityProtection;
+      const esg = Math.floor(amount / 5_000) * esgConfig.biodiversityProtection.pointsPer5K;
+      esgGain += esg;
+      cost += amount;
+      messages.push(`Biodiversity Protection: $${(amount / 1_000).toFixed(0)}K → +${esg} ESG`);
+    }
+
+    // === SOCIAL INITIATIVES (5 new) ===
+
+    // Diversity & Inclusion - $1M/year, +90 ESG, +5% morale
+    if (initiatives.diversityInclusion) {
+      const config = esgConfig.diversityInclusion;
+      esgGain += config.points;
+      cost += config.cost;
+      messages.push(`Diversity & Inclusion program: +${config.points} ESG, +5% employee morale`);
+    }
+
+    // Employee Wellness - $500K/year, +60 ESG, -10% turnover
+    if (initiatives.employeeWellness) {
+      const config = esgConfig.employeeWellness;
+      esgGain += config.points;
+      cost += config.cost;
+      messages.push(`Employee Wellness program: +${config.points} ESG, -10% turnover`);
+    }
+
+    // Community Education - Variable $, +1 ESG per $2K
+    if (initiatives.communityEducation && initiatives.communityEducation > 0) {
+      const amount = initiatives.communityEducation;
+      const esg = Math.floor(amount / 2_000) * esgConfig.communityEducation.pointsPer2K;
+      esgGain += esg;
+      cost += amount;
+      messages.push(`Community Education: $${(amount / 1_000).toFixed(0)}K → +${esg} ESG`);
+    }
+
+    // Affordable Housing - Variable $, +1 ESG per $10K
+    if (initiatives.affordableHousing && initiatives.affordableHousing > 0) {
+      const amount = initiatives.affordableHousing;
+      const esg = Math.floor(amount / 10_000) * esgConfig.affordableHousing.pointsPer10K;
+      esgGain += esg;
+      cost += amount;
+      messages.push(`Affordable Housing assistance: $${(amount / 1_000_000).toFixed(2)}M → +${esg} ESG`);
+    }
+
+    // Human Rights Audit - $800K/year, +70 ESG
+    if (initiatives.humanRightsAudit) {
+      const config = esgConfig.humanRightsAudit;
+      esgGain += config.points;
+      cost += config.cost;
+      messages.push(`Human Rights Audit: +${config.points} ESG`);
+    }
+
+    // === GOVERNANCE INITIATIVES (3 new) ===
+
+    // Transparency Report - $300K/year, +50 ESG, +10% investor trust
+    if (initiatives.transparencyReport) {
+      const config = esgConfig.transparencyReport;
+      esgGain += config.points;
+      cost += config.cost;
+      messages.push(`Transparency Report: +${config.points} ESG, +10% investor sentiment`);
+    }
+
+    // Whistleblower Protection - $200K/year, +40 ESG
+    if (initiatives.whistleblowerProtection) {
+      const config = esgConfig.whistleblowerProtection;
+      esgGain += config.points;
+      cost += config.cost;
+      messages.push(`Whistleblower Protection: +${config.points} ESG, -25% scandal risk`);
+    }
+
+    // Executive Pay Ratio - No cost, +100 ESG (limits exec compensation)
+    if (initiatives.executivePayRatio) {
+      const config = esgConfig.executivePayRatio;
+      esgGain += config.points;
+      cost += config.cost;
+      messages.push(`Executive Pay Ratio policy: +${config.points} ESG (exec pay capped at 50x avg)`);
     }
 
     return { esgGain, cost, messages };

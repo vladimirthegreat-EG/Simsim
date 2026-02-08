@@ -78,13 +78,32 @@ export const CONSTANTS = {
   EFFICIENCY_DIMINISH_THRESHOLD: 10_000_000,
   MAX_EFFICIENCY: 1.0,
 
-  // Upgrades
+  // Upgrades (Expanded: 5 -> 20)
   UPGRADE_COSTS: {
+    // Existing (5)
     sixSigma: 75_000_000,
     automation: 75_000_000,
     materialRefinement: 100_000_000,
     supplyChain: 200_000_000,
     warehousing: 100_000_000,
+    // Quality & Efficiency (5 new)
+    leanManufacturing: 40_000_000,
+    digitalTwin: 60_000_000,
+    iotIntegration: 50_000_000,
+    modularLines: 80_000_000,
+    continuousImprovement: 30_000_000,
+    // Sustainability (5 new)
+    solarPanels: 45_000_000,
+    waterRecycling: 25_000_000,
+    wasteToEnergy: 35_000_000,
+    smartGrid: 55_000_000,
+    carbonCapture: 70_000_000,
+    // Capacity & Specialization (5 new)
+    cleanRoom: 120_000_000,
+    rapidPrototyping: 40_000_000,
+    advancedRobotics: 100_000_000,
+    qualityLab: 60_000_000,
+    flexibleManufacturing: 90_000_000,
   } as Record<FactoryUpgrade, number>,
 
   // HR
@@ -137,13 +156,153 @@ export const CONSTANTS = {
   FX_VOLATILITY_MAX: 0.25,
   BOARD_MEETINGS_PER_YEAR: 2,
 
-  // ESG
+  // ESG (Existing)
   ESG_WORKPLACE_SAFETY_COST: 2_000_000,
   ESG_WORKPLACE_SAFETY_POINTS: 200,
   ESG_CODE_OF_ETHICS_POINTS: 200,
   ESG_FAIR_WAGE_WORKER_POINTS: 220,
   ESG_FAIR_WAGE_SUPERVISOR_POINTS: 40,
   ESG_SUPPLIER_ETHICS_COST_MULTIPLIER: 1.20,
+
+  // ESG Initiatives (Expanded: 6 -> 20) with Tier System
+  ESG_INITIATIVES: {
+    // Environmental (6 new)
+    carbonOffsetProgram: { costPerTon: 20, pointsPer10Tons: 1 },
+    renewableEnergyCertificates: { pointsPer10K: 1 },
+    waterConservation: { cost: 1_500_000, points: 80, waterCostReduction: 0.20 },
+    zeroWasteCommitment: { cost: 2_000_000, points: 100, wasteCostReduction: 0.30 },
+    circularEconomy: { cost: 3_000_000, points: 120, materialCostReduction: 0.20 },
+    biodiversityProtection: { pointsPer5K: 1 },
+
+    // Social (5 new)
+    diversityInclusion: { cost: 1_000_000, points: 90, moraleBonus: 0.05 },
+    employeeWellness: { cost: 500_000, points: 60, turnoverReduction: 0.10 },
+    communityEducation: { pointsPer2K: 1 },
+    affordableHousing: { pointsPer10K: 1, localTurnoverReduction: 0.15 },
+    humanRightsAudit: { cost: 800_000, points: 70 },
+
+    // Governance (3 new)
+    transparencyReport: { cost: 300_000, points: 50, investorTrustBonus: 0.10 },
+    whistleblowerProtection: { cost: 200_000, points: 40, scandalRiskReduction: 0.25 },
+    executivePayRatio: { cost: 0, points: 100 },  // No direct cost, limits exec pay
+  },
+
+  // ESG Initiative Tiers (unlocked based on ESG score or round)
+  ESG_TIERS: {
+    // Tier 1: Available from start
+    tier1: {
+      requiredScore: 0,
+      requiredRound: 1,
+      initiatives: [
+        "charitableDonation",
+        "communityInvestment",
+        "codeOfEthics",
+        "employeeWellness",
+        "communityEducation",
+      ],
+    },
+    // Tier 2: ESG score 100+ or round 2+
+    tier2: {
+      requiredScore: 100,
+      requiredRound: 2,
+      initiatives: [
+        "workplaceHealthSafety",
+        "fairWageProgram",
+        "carbonOffsetProgram",
+        "renewableEnergyCertificates",
+        "diversityInclusion",
+        "transparencyReport",
+      ],
+    },
+    // Tier 3: ESG score 300+ or round 4+
+    tier3: {
+      requiredScore: 300,
+      requiredRound: 4,
+      initiatives: [
+        "supplierEthicsProgram",
+        "waterConservation",
+        "zeroWasteCommitment",
+        "humanRightsAudit",
+        "whistleblowerProtection",
+        "biodiversityProtection",
+      ],
+    },
+    // Tier 4: ESG score 500+ or round 6+
+    tier4: {
+      requiredScore: 500,
+      requiredRound: 6,
+      initiatives: [
+        "circularEconomy",
+        "affordableHousing",
+        "executivePayRatio",
+      ],
+    },
+  },
+
+  // Factory Upgrade Tiers with R&D Prerequisites
+  UPGRADE_TIERS: {
+    // Tier 1: No prerequisites (basic upgrades)
+    tier1: {
+      rdLevel: 0,
+      rdTechRequired: null,
+      upgrades: ["sixSigma", "warehousing", "leanManufacturing", "continuousImprovement"],
+    },
+    // Tier 2: R&D Level 1 required (process improvements)
+    tier2: {
+      rdLevel: 1,
+      rdTechRequired: "process_optimization",
+      upgrades: ["automation", "materialRefinement", "modularLines", "waterRecycling", "solarPanels"],
+    },
+    // Tier 3: R&D Level 2 required (advanced technology)
+    tier3: {
+      rdLevel: 2,
+      rdTechRequired: "advanced_manufacturing",
+      upgrades: ["supplyChain", "digitalTwin", "iotIntegration", "wasteToEnergy", "smartGrid", "rapidPrototyping"],
+    },
+    // Tier 4: R&D Level 3 required (cutting-edge)
+    tier4: {
+      rdLevel: 3,
+      rdTechRequired: "industry_4_0",
+      upgrades: ["advancedRobotics", "qualityLab", "carbonCapture", "flexibleManufacturing"],
+    },
+    // Tier 5: R&D Level 4 required (breakthrough tech)
+    tier5: {
+      rdLevel: 4,
+      rdTechRequired: "breakthrough_tech",
+      upgrades: ["cleanRoom"],
+    },
+  },
+
+  // R&D Technology Tree (prerequisites for upgrades)
+  RD_TECH_TREE: {
+    process_optimization: {
+      name: "Process Optimization",
+      cost: 5_000_000,
+      rdPointsRequired: 100,
+      description: "Systematic approach to improving manufacturing processes",
+    },
+    advanced_manufacturing: {
+      name: "Advanced Manufacturing",
+      cost: 15_000_000,
+      rdPointsRequired: 300,
+      prerequisite: "process_optimization",
+      description: "Next-generation manufacturing techniques and systems",
+    },
+    industry_4_0: {
+      name: "Industry 4.0",
+      cost: 30_000_000,
+      rdPointsRequired: 600,
+      prerequisite: "advanced_manufacturing",
+      description: "Full digital integration with IoT, AI, and automation",
+    },
+    breakthrough_tech: {
+      name: "Breakthrough Technology",
+      cost: 50_000_000,
+      rdPointsRequired: 1000,
+      prerequisite: "industry_4_0",
+      description: "Cutting-edge innovations pushing the boundaries of manufacturing",
+    },
+  },
 
   // Market
   SEGMENTS: ["Budget", "General", "Enthusiast", "Professional", "Active Lifestyle"] as Segment[],

@@ -8,6 +8,7 @@ import type { Product } from "./product";
 import type { MaterialInventory, MaterialOrder, Region } from "../materials/types";
 import type { TariffState } from "../tariffs/types";
 import type { FinancialStatements } from "../finance/types";
+import type { FactoryMachineryState } from "../machinery/types";
 
 // ============================================
 // STATE VERSIONING (Required for compatibility)
@@ -153,4 +154,10 @@ export interface TeamState {
 
   // Game complexity settings (for filtering features)
   complexityLevel?: "simple" | "standard" | "advanced";
+
+  // Current round number
+  round: number;
+
+  // Machinery states per factory
+  machineryStates?: Record<string, FactoryMachineryState>;
 }

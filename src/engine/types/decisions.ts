@@ -4,6 +4,7 @@
 
 import type { EmployeeRole, BenefitsPackage } from "./employee";
 import type { Segment, Region, FactoryUpgrade } from "./factory";
+import type { MachineryDecisions } from "../machinery/types";
 
 // ============================================
 // FACTORY DECISIONS
@@ -26,14 +27,42 @@ export interface FactoryDecisions {
     segment: Segment;
     quantity: number;
   }[];
-  esgInitiatives?: {
-    charitableDonation?: number;
-    communityInvestment?: number;
-    workplaceHealthSafety?: boolean;
-    fairWageProgram?: boolean;
-    codeOfEthics?: boolean;
-    supplierEthicsProgram?: boolean;
-  };
+  esgInitiatives?: ESGInitiatives;
+  machineryDecisions?: MachineryDecisions;
+}
+
+// ============================================
+// ESG INITIATIVES (Expanded)
+// ============================================
+
+export interface ESGInitiatives {
+  // === EXISTING (6) ===
+  charitableDonation?: number;
+  communityInvestment?: number;
+  workplaceHealthSafety?: boolean;
+  fairWageProgram?: boolean;
+  codeOfEthics?: boolean;
+  supplierEthicsProgram?: boolean;
+
+  // === ENVIRONMENTAL (6 new) ===
+  carbonOffsetProgram?: number;        // $/ton CO2, +ESG per ton offset
+  renewableEnergyCertificates?: number; // $, purchase green energy credits
+  waterConservation?: boolean;          // $1.5M/year, +80 ESG
+  zeroWasteCommitment?: boolean;        // $2M/year, +100 ESG
+  circularEconomy?: boolean;            // $3M/year, +120 ESG, -20% material costs
+  biodiversityProtection?: number;      // $, habitat restoration funding
+
+  // === SOCIAL (5 new) ===
+  diversityInclusion?: boolean;         // $1M/year, +90 ESG, +5% morale
+  employeeWellness?: boolean;           // $500K/year, +60 ESG, -10% turnover
+  communityEducation?: number;          // $, local education programs
+  affordableHousing?: number;           // $, employee housing assistance
+  humanRightsAudit?: boolean;           // $800K/year, +70 ESG
+
+  // === GOVERNANCE (3 new) ===
+  transparencyReport?: boolean;         // $300K/year, +50 ESG, +investor trust
+  whistleblowerProtection?: boolean;    // $200K/year, +40 ESG
+  executivePayRatio?: boolean;          // Cap exec pay at 50x avg, +100 ESG
 }
 
 // ============================================
@@ -71,12 +100,47 @@ export interface FinanceDecisions {
   stockIssuance?: { shares: number; pricePerShare: number };
   sharesBuyback?: number;
   dividendPerShare?: number;
-  boardProposals?: string[];
+  boardProposals?: BoardProposal[];
   economicForecast?: {
     gdpForecast: number;
     inflationForecast: number;
     fxForecasts: Record<string, number>;
   };
+}
+
+// ============================================
+// BOARD PROPOSALS (Expanded)
+// ============================================
+
+export type BoardProposalType =
+  // === EXISTING (5) ===
+  | "dividend"           // Dividend payment
+  | "expansion"          // Major factory expansion
+  | "acquisition"        // Acquire another company
+  | "emergency_capital"  // Emergency funding request
+  | "stock_buyback"      // Share repurchase program
+
+  // === STRATEGIC (5 new) ===
+  | "rd_investment"      // Large R&D budget allocation
+  | "strategic_partnership" // Joint venture / partnership
+  | "market_entry"       // Enter new regional market
+  | "product_line_discontinue" // Kill underperforming product
+  | "vertical_integration" // Acquire supplier/distributor
+
+  // === FINANCIAL (3 new) ===
+  | "debt_refinancing"   // Restructure existing debt
+  | "share_split"        // Stock split (2:1, 3:1, etc.)
+  | "capital_allocation" // Set investment priorities
+
+  // === CORPORATE (2 new) ===
+  | "executive_compensation" // CEO/executive pay review
+  | "esg_policy";        // Adopt formal ESG policy
+
+export interface BoardProposal {
+  type: BoardProposalType;
+  amount?: number;        // For proposals with monetary values
+  details?: string;       // Additional context
+  rationale?: string;     // Why this proposal
 }
 
 // ============================================
@@ -124,3 +188,6 @@ export interface AllDecisions {
   marketing?: MarketingDecisions;
   rd?: RDDecisions;
 }
+
+// Re-export MachineryDecisions for convenience
+export type { MachineryDecisions } from "../machinery/types";

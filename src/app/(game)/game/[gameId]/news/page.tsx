@@ -143,8 +143,8 @@ export default function NewsPage({ params }: NewsPageProps) {
     <div className="space-y-6 pb-24">
       <PageHeader
         title="Market News"
-        description="Stay informed about market events, economic shifts, and industry developments"
-        icon={Radio}
+        subtitle="Stay informed about market events, economic shifts, and industry developments"
+        icon={<Radio className="h-6 w-6" />}
         iconColor="text-red-400"
       />
 
