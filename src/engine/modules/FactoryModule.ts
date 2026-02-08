@@ -326,8 +326,9 @@ export class FactoryModule {
         break;
 
       case "automation":
-        // 80% worker reduction needed (handled in HR module)
+        // v3.1.0: 80% worker reduction + 35% total unit cost reduction (Fix 4.1)
         factory.costVolatility *= 0.40;
+        factory.unitCostReduction = 0.35;
         break;
 
       case "materialRefinement":

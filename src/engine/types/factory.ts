@@ -97,6 +97,7 @@ export interface Factory {
   stockoutReduction: number;      // Supply Chain captures more demand
   demandSpikeCapture: number;     // Warehousing handles demand spikes
   costVolatility: number;         // Automation reduces cost variance
+  unitCostReduction?: number;     // v3.1.0: Automation total unit cost reduction (Fix 4.1)
 
   // Environmental
   co2Emissions: number;

@@ -188,7 +188,15 @@ export class EconomyEngine {
     const laborCost = LABOR_COST_PER_UNIT * efficiencyMultiplier;
     const overheadCost = OVERHEAD_COST_PER_UNIT;
 
-    return baseCost + laborCost + overheadCost;
+    let totalCost = baseCost + laborCost + overheadCost;
+
+    // v3.1.0: Automation reduces total unit cost by 35% (Fix 4.1)
+    const factory = state.factories?.[0];
+    if (factory?.upgrades?.includes("automation")) {
+      totalCost *= (1 - (factory.unitCostReduction ?? 0.35));
+    }
+
+    return totalCost;
   }
 
   /**

@@ -379,8 +379,12 @@ export const CONSTANTS = {
 
   // Brand - Rebalanced (v3.1.0, Fix 2.1)
   // Reduced decay so brand strategy can actually build value over time
-  BRAND_DECAY_RATE: 0.025,              // 2.5% brand decay per round (was 6.5%)
+  BRAND_DECAY_RATE: 0.04,               // 4.0% brand decay per round (v3.1.0 tuning: 6.5%→2.5%→4.0%)
   BRAND_MAX_GROWTH_PER_ROUND: 0.02,     // Max 2% brand growth per round
+
+  // v3.1.0: Tuning parameters (exposed for parameter sweep)
+  SOFTMAX_TEMPERATURE: 5,               // Market share allocation sharpness (lower = more winner-take-all)
+  SEGMENT_BRAND_WEIGHT_ACTIVE_LIFESTYLE: 18, // Brand weight in Active Lifestyle segment
 
   // Initial State Defaults
   DEFAULT_STARTING_CASH: 200_000_000,

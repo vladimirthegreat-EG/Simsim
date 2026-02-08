@@ -341,7 +341,7 @@ export class MarketSimulator {
       "General":         { price: 30, quality: 25, brand: 15, esg: 10, features: 20 }, // sum=100 — balanced's home segment
       "Enthusiast":      { price: 12, quality: 30, brand: 8, esg: 5, features: 45 },  // sum=100 — features dominant
       "Professional":    { price: 8, quality: 50, brand: 5, esg: 20, features: 17 },  // sum=100 — quality dominant
-      "Active Lifestyle": { price: 20, quality: 30, brand: 18, esg: 10, features: 22 },// sum=100 — brand elevated
+      "Active Lifestyle": { price: 20, quality: 30, brand: CONSTANTS.SEGMENT_BRAND_WEIGHT_ACTIVE_LIFESTYLE, esg: 10, features: 40 - CONSTANTS.SEGMENT_BRAND_WEIGHT_ACTIVE_LIFESTYLE },// sum=100 — brand tunable
     };
     return weights[segment];
   }
@@ -503,7 +503,7 @@ export class MarketSimulator {
     // - Close scores (70,65,60,55): ~46%, 28%, 17%, 10%
     // - Clear leader (80,60,55,50): ~79%, 11%, 6%, 4%
     // - Dominant (90,50,45,40): ~97%, 2%, 1%, 1%
-    const temperature = 5; // v3.1.0: Reduced from 10 to sharpen specialist segment dominance (Fix 1.1)
+    const temperature = CONSTANTS.SOFTMAX_TEMPERATURE; // v3.1.0: Read from CONSTANTS for tuning (Fix 1.1)
 
     // Calculate exp(score/temperature) for valid positions
     const maxScore = Math.max(...validPositions.map(p => p.totalScore));
