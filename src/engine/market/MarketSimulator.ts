@@ -336,12 +336,12 @@ export class MarketSimulator {
    */
   static getSegmentWeights(segment: Segment): { price: number; quality: number; brand: number; esg: number; features: number } {
     const weights: Record<Segment, { price: number; quality: number; brand: number; esg: number; features: number }> = {
-      // Brand weights: 8-12% (balanced for multi-strategy viability)
-      "Budget":          { price: 50, quality: 22, brand: 8, esg: 8, features: 12 },   // sum=100
-      "General":         { price: 32, quality: 28, brand: 10, esg: 10, features: 20 }, // sum=100
-      "Enthusiast":      { price: 20, quality: 40, brand: 10, esg: 10, features: 20 }, // sum=100
-      "Professional":    { price: 15, quality: 42, brand: 10, esg: 16, features: 17 }, // sum=100
-      "Active Lifestyle": { price: 25, quality: 32, brand: 12, esg: 10, features: 21 },// sum=100
+      // v3.1.0: Sharpened primary weights to reward specialization (Fix 1.2)
+      "Budget":          { price: 65, quality: 15, brand: 5, esg: 5, features: 10 },   // sum=100 — price dominant
+      "General":         { price: 30, quality: 25, brand: 15, esg: 10, features: 20 }, // sum=100 — balanced's home segment
+      "Enthusiast":      { price: 12, quality: 30, brand: 8, esg: 5, features: 45 },  // sum=100 — features dominant
+      "Professional":    { price: 8, quality: 50, brand: 5, esg: 20, features: 17 },  // sum=100 — quality dominant
+      "Active Lifestyle": { price: 20, quality: 30, brand: 18, esg: 10, features: 22 },// sum=100 — brand elevated
     };
     return weights[segment];
   }
@@ -503,7 +503,7 @@ export class MarketSimulator {
     // - Close scores (70,65,60,55): ~46%, 28%, 17%, 10%
     // - Clear leader (80,60,55,50): ~79%, 11%, 6%, 4%
     // - Dominant (90,50,45,40): ~97%, 2%, 1%, 1%
-    const temperature = 10;
+    const temperature = 5; // v3.1.0: Reduced from 10 to sharpen specialist segment dominance (Fix 1.1)
 
     // Calculate exp(score/temperature) for valid positions
     const maxScore = Math.max(...validPositions.map(p => p.totalScore));

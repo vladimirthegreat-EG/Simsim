@@ -377,9 +377,9 @@ export const CONSTANTS = {
   RUBBER_BAND_LEADING_PENALTY: 0.92,    // Penalty for leading teams
   RUBBER_BAND_THRESHOLD: 0.5,           // Trigger when share < avg * threshold
 
-  // Brand - Tuned for balance (v2.4.0)
-  // Fine-tuned decay and growth for competitive balance
-  BRAND_DECAY_RATE: 0.065,              // 6.5% brand decay per round
+  // Brand - Rebalanced (v3.1.0, Fix 2.1)
+  // Reduced decay so brand strategy can actually build value over time
+  BRAND_DECAY_RATE: 0.025,              // 2.5% brand decay per round (was 6.5%)
   BRAND_MAX_GROWTH_PER_ROUND: 0.02,     // Max 2% brand growth per round
 
   // Initial State Defaults

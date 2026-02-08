@@ -160,10 +160,10 @@ export class RDModule {
       }
     }
 
-    // Patent generation from R&D progress
-    if (newState.rdProgress >= 500) {
+    // Patent generation from R&D progress (v3.1.0: threshold 500→200, Fix 3.1)
+    while (newState.rdProgress >= 200) {
       newState.patents += 1;
-      newState.rdProgress -= 500;
+      newState.rdProgress -= 200;
       messages.push(`New patent acquired! (Total: ${newState.patents})`);
     }
 
@@ -392,10 +392,11 @@ export class RDModule {
     costReduction: number;
     marketShareBonus: number;
   } {
+    // v3.1.0: Boosted patent rewards to make R&D strategy viable (Fix 3.1)
     return {
-      qualityBonus: Math.min(10, patents * 2),      // Up to +10 quality
-      costReduction: Math.min(0.15, patents * 0.03), // Up to 15% cost reduction
-      marketShareBonus: Math.min(0.05, patents * 0.01), // Up to 5% market share bonus
+      qualityBonus: Math.min(25, patents * 5),       // Up to +25 quality (was +10, +2/patent)
+      costReduction: Math.min(0.25, patents * 0.05), // Up to 25% cost reduction (was 15%, 3%/patent)
+      marketShareBonus: Math.min(0.15, patents * 0.03), // Up to 15% market share bonus (was 5%, 1%/patent)
     };
   }
 

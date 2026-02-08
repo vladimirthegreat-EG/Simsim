@@ -175,7 +175,7 @@ export const DEFAULT_MARKETING_CONFIG: MarketingConfig = {
   brandingLogMultiplier: 2.5,              // Multiplier for log portion
 
   // Brand mechanics
-  brandDecayRate: 0.065,                   // 6.5% decay per round
+  brandDecayRate: 0.025,                   // 2.5% decay per round (v3.1.0: was 6.5%)
   brandMaxGrowthPerRound: 0.02,            // 2% max growth per round
 
   // Sponsorships
