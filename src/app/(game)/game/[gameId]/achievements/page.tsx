@@ -241,8 +241,8 @@ export default function AchievementsPage({ params }: AchievementsPageProps) {
         <AchievementGrid
           achievements={ALL_ACHIEVEMENTS}
           earnedIds={earnedIds}
-          earnedData={earnedData}
-          progressData={progressData}
+          earnedData={earnedData as any}
+          progressData={progressData as any}
           showFilters
           showSearch
           columns={2}
