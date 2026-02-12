@@ -974,9 +974,9 @@ export default function FactoryPage({ params }: PageProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {upgrades.filter(u => (selectedFactory.upgrades || []).includes(u.id as string)).length > 0 ? (
+              {upgrades.filter(u => (selectedFactory.upgrades || []).includes(u.id as any)).length > 0 ? (
                 <div className="grid md:grid-cols-3 gap-3">
-                  {upgrades.filter(u => (selectedFactory.upgrades || []).includes(u.id as string)).map((upgrade) => (
+                  {upgrades.filter(u => (selectedFactory.upgrades || []).includes(u.id as any)).map((upgrade) => (
                     <div
                       key={upgrade.id}
                       className="flex items-center gap-3 p-3 rounded-lg bg-green-900/30 border border-green-700"
@@ -1170,13 +1170,13 @@ export default function FactoryPage({ params }: PageProps) {
                   <div className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg">
                     <span className="text-slate-300">Equipment Age</span>
                     <span className="text-white font-medium">
-                      {Math.floor(((state?.currentRound || 1) * 3) / 12)} years
+                      {Math.floor(((state?.round || 1) * 3) / 12)} years
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg">
                     <span className="text-slate-300">Last Major Service</span>
                     <span className="text-white font-medium">
-                      {Math.max(1, (state?.currentRound || 1) - 2)} rounds ago
+                      {Math.max(1, (state?.round || 1) - 2)} rounds ago
                     </span>
                   </div>
                 </div>
@@ -1760,7 +1760,7 @@ export default function FactoryPage({ params }: PageProps) {
             {/* Machinery Overview */}
             <SectionHeader
               title="Machinery Management"
-              subtitle="Purchase, maintain, and manage your factory machines"
+              description="Purchase, maintain, and manage your factory machines"
             />
 
             {/* Machine Stats */}
