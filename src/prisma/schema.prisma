@@ -1,13 +1,14 @@
-// SQLite version of schema for local development
-// Switched from PostgreSQL for local dev
+// PostgreSQL version of schema for Vercel/Supabase production
+// To use: Copy this file to schema.prisma
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ============================================
