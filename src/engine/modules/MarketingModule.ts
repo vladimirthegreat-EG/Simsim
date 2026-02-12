@@ -192,18 +192,20 @@ export class MarketingModule {
     };
 
     const multiplier = segmentMultipliers[segment];
-    const baseImpact = 0.0015; // 0.15% per $1M (reduced from 0.25%)
+    const baseImpact = CONSTANTS.ADVERTISING_BASE_IMPACT;
+    const chunkSize = CONSTANTS.ADVERTISING_CHUNK_SIZE / 1_000_000; // Convert to millions
+    const decayKeep = 1 - CONSTANTS.ADVERTISING_DECAY; // Decay is "drop", keep is the remainder
 
-    // Apply diminishing returns more aggressively
+    // Apply diminishing returns via chunks
     let totalImpact = 0;
     let remaining = millions;
     let currentEffectiveness = 1.0;
 
     while (remaining > 0) {
-      const chunk = Math.min(remaining, 3); // Smaller chunks (3M vs 5M)
+      const chunk = Math.min(remaining, chunkSize);
       totalImpact += chunk * baseImpact * currentEffectiveness * multiplier;
       remaining -= chunk;
-      currentEffectiveness *= 0.4; // Drop to 40% effectiveness for next chunk (was 50%)
+      currentEffectiveness *= decayKeep; // Effectiveness drops each chunk
     }
 
     return totalImpact;
@@ -218,20 +220,20 @@ export class MarketingModule {
    */
   static calculateBrandingImpact(investment: number): number {
     const millions = investment / 1_000_000;
-    // Reduced from 0.4% to 0.25% per $1M with diminishing returns
-    const baseImpact = 0.0025; // 0.25% per $1M
+    const baseImpact = CONSTANTS.BRANDING_BASE_IMPACT;
+    const linearThreshold = CONSTANTS.BRANDING_LINEAR_THRESHOLD / 1_000_000; // Convert to millions
 
     // Apply logarithmic diminishing returns
-    // First $5M is most effective, then drops off
-    if (millions <= 5) {
+    // First chunk is most effective, then drops off
+    if (millions <= linearThreshold) {
       return millions * baseImpact;
     }
 
-    // Beyond $5M: use logarithmic scaling
-    const baseReturn = 5 * baseImpact;
-    const extraMillions = millions - 5;
-    // Each doubling of extra investment only adds 50% more benefit
-    const extraReturn = baseImpact * 2.5 * Math.log2(1 + extraMillions / 5);
+    // Beyond threshold: use logarithmic scaling
+    const baseReturn = linearThreshold * baseImpact;
+    const extraMillions = millions - linearThreshold;
+    // Each doubling of extra investment only adds diminished benefit
+    const extraReturn = baseImpact * CONSTANTS.BRANDING_LOG_MULTIPLIER * Math.log2(1 + extraMillions / linearThreshold);
 
     return baseReturn + extraReturn;
   }

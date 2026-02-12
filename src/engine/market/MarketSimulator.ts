@@ -264,14 +264,13 @@ export class MarketSimulator {
     esgScore: number,
     revenue: number
   ): { type: "bonus" | "penalty"; amount: number; message: string } | null {
-    // PATCH 4: Only penalize very low ESG (< 300) - represents actual regulatory/PR disasters
-    if (esgScore < 300) {
-      // Score 299 = 1% penalty, Score 0 = 8% penalty
-      // Linear interpolation: penalty = MAX - (score/300) * (MAX - MIN)
-      const MAX_PENALTY = 0.08; // 8%
-      const MIN_PENALTY = 0.01; // 1%
+    // PATCH 4: Only penalize very low ESG - represents actual regulatory/PR disasters
+    if (esgScore < CONSTANTS.ESG_PENALTY_THRESHOLD) {
+      // Linear interpolation: penalty = MAX - (score/threshold) * (MAX - MIN)
+      const MAX_PENALTY = CONSTANTS.ESG_PENALTY_MAX;
+      const MIN_PENALTY = CONSTANTS.ESG_PENALTY_MIN;
       const penaltyRange = MAX_PENALTY - MIN_PENALTY;
-      const scoreRatio = esgScore / 300; // 0 to ~1
+      const scoreRatio = esgScore / CONSTANTS.ESG_PENALTY_THRESHOLD; // 0 to ~1
       const penaltyRate = MAX_PENALTY - (scoreRatio * penaltyRange);
       const penalty = -revenue * penaltyRate;
 
@@ -335,15 +334,7 @@ export class MarketSimulator {
    * Brand scores still use sqrt() for diminishing returns.
    */
   static getSegmentWeights(segment: Segment): { price: number; quality: number; brand: number; esg: number; features: number } {
-    const weights: Record<Segment, { price: number; quality: number; brand: number; esg: number; features: number }> = {
-      // v3.1.0: Sharpened primary weights to reward specialization (Fix 1.2)
-      "Budget":          { price: 65, quality: 15, brand: 5, esg: 5, features: 10 },   // sum=100 — price dominant
-      "General":         { price: 30, quality: 25, brand: 15, esg: 10, features: 20 }, // sum=100 — balanced's home segment
-      "Enthusiast":      { price: 12, quality: 30, brand: 8, esg: 5, features: 45 },  // sum=100 — features dominant
-      "Professional":    { price: 8, quality: 50, brand: 5, esg: 20, features: 17 },  // sum=100 — quality dominant
-      "Active Lifestyle": { price: 20, quality: 30, brand: CONSTANTS.SEGMENT_BRAND_WEIGHT_ACTIVE_LIFESTYLE, esg: 10, features: 40 - CONSTANTS.SEGMENT_BRAND_WEIGHT_ACTIVE_LIFESTYLE },// sum=100 — brand tunable
-    };
-    return weights[segment];
+    return CONSTANTS.SEGMENT_WEIGHTS[segment];
   }
 
   /**
@@ -420,16 +411,22 @@ export class MarketSimulator {
     const qualityExpectation = this.getQualityExpectation(segment);
     const qualityRatio = product.quality / qualityExpectation;
     // Beyond 1.0, use sqrt for diminishing returns: sqrt(1.2) = 1.095, sqrt(1.5) = 1.22
+    // v4.0.2: Cap limits R&D-focused dominance
     const qualityMultiplier = qualityRatio <= 1.0
       ? qualityRatio
       : 1.0 + Math.sqrt(qualityRatio - 1) * 0.5; // 50% of excess via sqrt
-    const qualityScore = Math.min(1.3, qualityMultiplier) * weights.quality; // Cap at 1.3x
+    const qualityScore = Math.min(CONSTANTS.QUALITY_FEATURE_BONUS_CAP, qualityMultiplier) * weights.quality;
 
     // Brand Score: Brand value contribution (already 0-1)
-    // v2.2.0: Apply sqrt() for diminishing returns - high brand values give less incremental benefit
-    // This prevents brand-focused strategies from dominating
-    // sqrt(0.5) = 0.71, sqrt(0.7) = 0.84, sqrt(0.9) = 0.95
-    const brandScore = Math.sqrt(state.brandValue) * weights.brand;
+    // sqrt() for diminishing returns — high brand values give less incremental benefit
+    // v4.0.2: Gentle critical mass — modest bonus for brand investors
+    let brandMultiplier = 1.0;
+    if (state.brandValue > CONSTANTS.BRAND_CRITICAL_MASS_HIGH) {
+      brandMultiplier = CONSTANTS.BRAND_HIGH_MULTIPLIER;
+    } else if (state.brandValue < CONSTANTS.BRAND_CRITICAL_MASS_LOW) {
+      brandMultiplier = CONSTANTS.BRAND_LOW_MULTIPLIER;
+    }
+    const brandScore = Math.sqrt(state.brandValue) * weights.brand * brandMultiplier;
 
     // ESG Score: Sustainability premium (0-1 scale from 0-1000 score)
     const esgRatio = state.esgScore / 1000;
@@ -439,17 +436,32 @@ export class MarketSimulator {
     // Feature Score: Product features (0-100 normalized to 0-1)
     // v2.2.0: Allow features above 100 to provide bonus (R&D investment reward)
     const featureRatio = product.features / 100;
+    // v4.0.2: Feature cap
     const featureMultiplier = featureRatio <= 1.0
       ? featureRatio
       : 1.0 + Math.sqrt(featureRatio - 1) * 0.5; // 50% of excess via sqrt
-    const featureScore = Math.min(1.3, featureMultiplier) * weights.features; // Cap at 1.3x
+    const featureScore = Math.min(CONSTANTS.QUALITY_FEATURE_BONUS_CAP, featureMultiplier) * weights.features;
 
     // Total score (theoretical max = 100 with all weights summing to 100)
     let totalScore = priceScore + qualityScore + brandScore + esgScore + featureScore;
 
-    // PATCH 5: Quality market share bonus (0.1% per quality point)
-    const qualityMarketShareBonus = product.quality * 0.001;
+    // PATCH 5: Quality market share bonus
+    const qualityMarketShareBonus = product.quality * CONSTANTS.QUALITY_MARKET_SHARE_BONUS;
     totalScore += qualityMarketShareBonus;
+
+    // v4.0.2: Balanced flexibility bonus — reward diversified investment
+    const flexCriteria = [
+      state.rdBudget >= CONSTANTS.FLEXIBILITY_MIN_RD,
+      state.brandValue >= CONSTANTS.FLEXIBILITY_MIN_BRAND,
+      (state.factories?.[0]?.efficiency ?? 0) >= CONSTANTS.FLEXIBILITY_MIN_EFFICIENCY,
+      (state.products?.filter(p => p.quality >= 55)?.length ?? 0) >= CONSTANTS.FLEXIBILITY_MIN_PRODUCTS,
+    ];
+    const metCount = flexCriteria.filter(Boolean).length;
+    if (metCount >= 4) {
+      totalScore += totalScore * CONSTANTS.FLEXIBILITY_BONUS_FULL;
+    } else if (metCount >= 3) {
+      totalScore += totalScore * CONSTANTS.FLEXIBILITY_BONUS_PARTIAL;
+    }
 
     return {
       teamId,

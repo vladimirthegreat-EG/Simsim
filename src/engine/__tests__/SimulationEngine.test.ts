@@ -77,7 +77,7 @@ describe("SimulationEngine", () => {
     it("should create a valid initial team state", () => {
       const state = SimulationEngine.createInitialTeamState();
 
-      expect(state.cash).toBe(200_000_000);
+      expect(state.cash).toBe(CONSTANTS.DEFAULT_STARTING_CASH);
       expect(state.factories).toHaveLength(1);
       expect(state.factories[0].region).toBe("North America");
       expect(state.brandValue).toBe(0.5);
@@ -349,9 +349,9 @@ describe("MarketingModule", () => {
   });
 
   describe("calculateBrandingImpact", () => {
-    it("should return 0.4% brand increase per $1M", () => {
+    it("should return 0.3% brand increase per $1M", () => {
       const impact = MarketingModule.calculateBrandingImpact(1_000_000);
-      expect(impact).toBeCloseTo(0.004, 5);
+      expect(impact).toBeCloseTo(CONSTANTS.BRANDING_BASE_IMPACT, 5);
     });
   });
 
@@ -536,9 +536,9 @@ describe("RDModule", () => {
     it("should cap bonuses at max values", () => {
       const value = RDModule.calculatePatentValue(100); // Way more than needed
 
-      expect(value.qualityBonus).toBe(10);
-      expect(value.costReduction).toBe(0.15);
-      expect(value.marketShareBonus).toBe(0.05);
+      expect(value.qualityBonus).toBe(25);
+      expect(value.costReduction).toBe(0.25);
+      expect(value.marketShareBonus).toBe(0.15);
     });
 
     it("should scale bonuses with patent count", () => {

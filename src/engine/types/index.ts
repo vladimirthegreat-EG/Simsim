@@ -74,7 +74,7 @@ export const CONSTANTS = {
   // Factory
   NEW_FACTORY_COST: 50_000_000,
   MAX_PRODUCTION_LINES: 10,
-  EFFICIENCY_PER_MILLION: 0.01,
+  EFFICIENCY_PER_MILLION: 0.02,
   EFFICIENCY_DIMINISH_THRESHOLD: 10_000_000,
   MAX_EFFICIENCY: 1.0,
 
@@ -108,17 +108,17 @@ export const CONSTANTS = {
 
   // HR
   BASE_WORKER_OUTPUT: 100,
-  BASE_DEFECT_RATE: 0.05,
-  BASE_TURNOVER_RATE: 0.12,
-  WORKERS_PER_MACHINE: 2.5,
+  BASE_DEFECT_RATE: 0.06,
+  BASE_TURNOVER_RATE: 0.125,
+  WORKERS_PER_MACHINE: 2.75,
   WORKERS_PER_SUPERVISOR: 15,
   ENGINEERS_PER_FACTORY: 8,
-  BASE_RD_POINTS_PER_ENGINEER: 10,
-  RD_BUDGET_TO_POINTS_RATIO: 200_000,  // v3.1.0: $200K per rdProgress point (so $15M → 75 pts)
+  BASE_RD_POINTS_PER_ENGINEER: 5,
+  RD_BUDGET_TO_POINTS_RATIO: 100_000,  // Sweep v5: $100K per rdProgress point (so $15M → 150 pts)
   MAX_SALARY: 500_000,
   SALARY_MULTIPLIER_MIN: 0.8,
   SALARY_MULTIPLIER_MAX: 2.2,
-  HIRING_COST_MULTIPLIER: 0.15,
+  HIRING_COST_MULTIPLIER: 0.25,
 
   // Recruitment
   RECRUITMENT_COSTS: {
@@ -153,8 +153,8 @@ export const CONSTANTS = {
   } as Record<Region, number>,
 
   // Finance
-  FX_VOLATILITY_MIN: 0.15,
-  FX_VOLATILITY_MAX: 0.25,
+  FX_VOLATILITY_MIN: 0.05,
+  FX_VOLATILITY_MAX: 0.15,
   BOARD_MEETINGS_PER_YEAR: 2,
 
   // ESG (Existing)
@@ -310,8 +310,8 @@ export const CONSTANTS = {
   REGIONS: ["North America", "Europe", "Asia", "MENA"] as Region[],
 
   // Training
-  TRAINING_FATIGUE_THRESHOLD: 2,        // Programs per year before diminishing returns
-  TRAINING_FATIGUE_PENALTY: 0.2,        // 20% effectiveness reduction per extra program
+  TRAINING_FATIGUE_THRESHOLD: 1,        // Programs per year before diminishing returns
+  TRAINING_FATIGUE_PENALTY: 0.3,        // 30% effectiveness reduction per extra program
   TRAINING_COOLDOWN_ROUNDS: 2,          // Rounds between training for full effectiveness
 
   // Benefits
@@ -344,9 +344,9 @@ export const CONSTANTS = {
   },
 
   // Product Development
-  PRODUCT_DEV_BASE_ROUNDS: 2,           // Base rounds to develop a product
-  PRODUCT_DEV_QUALITY_FACTOR: 0.02,     // Extra rounds per quality point above 50
-  PRODUCT_DEV_ENGINEER_SPEEDUP: 0.05,   // Speedup per engineer (max 50%)
+  PRODUCT_DEV_BASE_ROUNDS: 1,           // Base rounds to develop a product
+  PRODUCT_DEV_QUALITY_FACTOR: 0.01,     // Extra rounds per quality point above 50
+  PRODUCT_DEV_ENGINEER_SPEEDUP: 0.08,   // Speedup per engineer (max 50%)
 
   // Inventory & COGS
   INVENTORY_HOLDING_COST: 0.02,         // 2% of value per round
@@ -370,25 +370,64 @@ export const CONSTANTS = {
   ESG_LOW_PENALTY_MIN: 0.01,            // Min 1% penalty at score 399
 
   // Price Floor - prevent "race to bottom" pricing
-  PRICE_FLOOR_PENALTY_THRESHOLD: 0.15,  // 15% below segment minimum = penalty zone
-  PRICE_FLOOR_PENALTY_MAX: 0.30,        // Max 30% score reduction at extreme low prices
+  PRICE_FLOOR_PENALTY_THRESHOLD: 0.08,  // 8% below segment minimum = penalty zone
+  PRICE_FLOOR_PENALTY_MAX: 0.10,        // Max 10% score reduction at extreme low prices
 
   // Rubber-banding (catch-up mechanics)
-  RUBBER_BAND_TRAILING_BOOST: 1.15,     // Boost for trailing teams
-  RUBBER_BAND_LEADING_PENALTY: 0.92,    // Penalty for leading teams
-  RUBBER_BAND_THRESHOLD: 0.5,           // Trigger when share < avg * threshold
+  RUBBER_BAND_TRAILING_BOOST: 1.0,      // No boost for trailing teams (sweep: neutral)
+  RUBBER_BAND_LEADING_PENALTY: 0.80,    // 20% penalty for leading teams
+  RUBBER_BAND_THRESHOLD: 0.3,           // Trigger when share < avg * threshold
 
   // Brand - Rebalanced (v3.1.0, Fix 2.1)
   // Reduced decay so brand strategy can actually build value over time
-  BRAND_DECAY_RATE: 0.045,              // 4.5% brand decay per round (sweep optimal: 6.5%→2.5%→4.0%→4.5%)
-  BRAND_MAX_GROWTH_PER_ROUND: 0.02,     // Max 2% brand growth per round
+  BRAND_DECAY_RATE: 0.01,               // 1% brand decay per round (sweep v5 cross-validation)
+  BRAND_MAX_GROWTH_PER_ROUND: 0.04,     // Max 4% brand growth per round (sweep v5)
+
+  // v4.0.0: Brand critical mass thresholds (values match MarketSimulator.ts v4.0.2)
+  BRAND_CRITICAL_MASS_LOW: 0.15,        // Below this, brand score gets penalty (sweep v5)
+  BRAND_CRITICAL_MASS_HIGH: 0.55,       // Above this, brand score gets bonus
+  BRAND_LOW_MULTIPLIER: 0.7,            // -30% brand score for weak brands (sweep v5 cross-val)
+  BRAND_HIGH_MULTIPLIER: 1.1,           // +10% brand score for strong brands
+
+  // v4.0.0: Balanced flexibility bonus (values match MarketSimulator.ts v4.0.2)
+  FLEXIBILITY_BONUS_FULL: 0.02,         // 2% score bonus for 4/4 diversification checks (sweep v5)
+  FLEXIBILITY_BONUS_PARTIAL: 0.005,     // 0.5% for 3/4 checks (sweep v5)
+  FLEXIBILITY_MIN_RD: 2_000_000,        // Minimum R&D budget to count (sweep v5)
+  FLEXIBILITY_MIN_BRAND: 0.45,          // Minimum brand value to count
+  FLEXIBILITY_MIN_EFFICIENCY: 0.70,     // Minimum factory efficiency to count (v4.0.1: lowered)
+  FLEXIBILITY_MIN_PRODUCTS: 4,          // Minimum products with quality >= 55
 
   // v3.1.0: Tuning parameters (exposed for parameter sweep)
-  SOFTMAX_TEMPERATURE: 10,              // Market share allocation sharpness (sweep2 optimal: 10→5→7→10)
-  SEGMENT_BRAND_WEIGHT_ACTIVE_LIFESTYLE: 14, // Brand weight in Active Lifestyle segment (sweep2 optimal: 18→12→14)
+  SOFTMAX_TEMPERATURE: 4,               // Market share allocation sharpness (v7: raised for balance)
+
+  // Marketing parameters (wired for sweep)
+  ADVERTISING_BASE_IMPACT: 0.0011,      // 0.11% brand per $1M advertising (sweep v5)
+  ADVERTISING_CHUNK_SIZE: 1_000_000,    // $1M chunks for diminishing returns (sweep v5)
+  ADVERTISING_DECAY: 0.2,               // 20% effectiveness drop per chunk (keeps 80%) (sweep v5)
+  BRANDING_BASE_IMPACT: 0.003,          // 0.3% brand per $1M branding investment (sweep v5)
+  BRANDING_LINEAR_THRESHOLD: 2_000_000, // Linear benefit up to $2M (sweep v5)
+  BRANDING_LOG_MULTIPLIER: 1.5,         // Log multiplier for amounts >$2M (sweep v5)
+
+  // Quality/Feature scoring caps
+  QUALITY_FEATURE_BONUS_CAP: 1.1,       // Max multiplier for quality/features above expectation (sweep v5)
+  QUALITY_MARKET_SHARE_BONUS: 0.0011,   // +0.11% market share per quality point (sweep v5)
+
+  // ESG penalty system (PATCH 4: penalty-only, no bonuses)
+  ESG_PENALTY_THRESHOLD: 300,           // Below this score = penalty
+  ESG_PENALTY_MAX: 0.12,               // 12% max penalty at score 0 (sweep v5)
+  ESG_PENALTY_MIN: 0.0133,             // 1.33% min penalty at score threshold-1 (sweep v5)
+
+  // Segment weights (all 5 segments × 5 dimensions)
+  SEGMENT_WEIGHTS: {
+    "Budget":           { price: 65, quality: 15, brand: 5,  esg: 5,  features: 10 },
+    "General":          { price: 28, quality: 23, brand: 17, esg: 10, features: 22 },
+    "Enthusiast":       { price: 12, quality: 30, brand: 8,  esg: 5,  features: 45 },
+    "Professional":     { price: 8,  quality: 48, brand: 7,  esg: 20, features: 17 },
+    "Active Lifestyle": { price: 20, quality: 34, brand: 10, esg: 10, features: 26 },
+  } as Record<Segment, { price: number; quality: number; brand: number; esg: number; features: number }>,
 
   // Initial State Defaults
-  DEFAULT_STARTING_CASH: 200_000_000,
+  DEFAULT_STARTING_CASH: 175_000_000,
   DEFAULT_MARKET_CAP: 500_000_000,
   DEFAULT_SHARES_ISSUED: 10_000_000,
   DEFAULT_RAW_MATERIALS: 5_000_000,

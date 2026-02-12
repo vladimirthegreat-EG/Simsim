@@ -156,8 +156,8 @@ describe("Factory Module Formulas", () => {
       );
 
       // Base: 10 workers * 100 units = 1000 units
-      // With 5% defect rate: 1000 * 0.95 = 950 units
-      expect(result.unitsProduced).toBeCloseTo(950, -1);
+      // With 6% defect rate: 1000 * 0.94 = 940 units
+      expect(result.unitsProduced).toBeCloseTo(940, -1);
     });
 
     it("should apply automation 5x multiplier", () => {
@@ -230,29 +230,24 @@ describe("HR Module Formulas", () => {
   });
 
   describe("Training Fatigue", () => {
-    it("should have full effectiveness for first 2 programs", () => {
+    it("should have full effectiveness for first program", () => {
       const employee = HRModule.createEmployee("worker", "factory-1", "factory-1");
       employee.trainingHistory.programsThisYear = 0;
 
       const result1 = HRModule.calculateTrainingEffectiveness(employee);
       expect(result1.effectiveness).toBe(1.0);
       expect(result1.fatigueApplied).toBe(false);
-
-      employee.trainingHistory.programsThisYear = 1;
-      const result2 = HRModule.calculateTrainingEffectiveness(employee);
-      expect(result2.effectiveness).toBe(1.0);
-      expect(result2.fatigueApplied).toBe(false);
     });
 
-    it("should apply 20% penalty per program after threshold", () => {
+    it("should apply 30% penalty per program after threshold", () => {
       const employee = HRModule.createEmployee("worker", "factory-1", "factory-1");
 
-      // At threshold (2), next training triggers fatigue
-      employee.trainingHistory.programsThisYear = 2;
+      // At threshold (1), next training triggers fatigue
+      employee.trainingHistory.programsThisYear = 1;
       const result = HRModule.calculateTrainingEffectiveness(employee);
 
-      // First program over threshold: effectiveness = 1.0 - (1 * 0.2) = 0.8
-      expect(result.effectiveness).toBeCloseTo(0.8, 2);
+      // First program over threshold: effectiveness = 1.0 - (1 * 0.3) = 0.7
+      expect(result.effectiveness).toBeCloseTo(0.7, 2);
       expect(result.fatigueApplied).toBe(true);
     });
 
@@ -304,9 +299,9 @@ describe("HR Module Formulas", () => {
 
       const output = HRModule.calculateEngineerRDOutput(stats);
 
-      // Base (10) * efficiency (1.0) * speed (1.0) * (1 + innovation/200)
-      // = 10 * 1.0 * 1.0 * 1.5 = 15
-      expect(output).toBe(15);
+      // Base (5) * efficiency (1.0) * speed (1.0) * (1 + innovation/200)
+      // = 5 * 1.0 * 1.0 * 1.5 = 7.5
+      expect(output).toBe(7.5);
     });
   });
 
@@ -391,17 +386,16 @@ describe("Marketing Module Formulas", () => {
   });
 
   describe("Branding Impact", () => {
-    it("should return 0.4% brand increase per $1M", () => {
+    it("should return 0.3% brand increase per $1M", () => {
       const impact = MarketingModule.calculateBrandingImpact(1_000_000);
-      expect(impact).toBeCloseTo(0.004, 4);
+      expect(impact).toBeCloseTo(CONSTANTS.BRANDING_BASE_IMPACT, 4);
 
+      // For amounts above BRANDING_LINEAR_THRESHOLD, uses logarithmic scaling
       const impact5M = MarketingModule.calculateBrandingImpact(5_000_000);
-      expect(impact5M).toBeCloseTo(0.02, 4);
+      expect(impact5M).toBeGreaterThan(impact);
     });
 
-    it("should be more efficient than advertising (50% better)", () => {
-      // Branding: 0.75% per $1M
-      // Advertising: ~0.5% per $1M (varies by segment)
+    it("should be more efficient than advertising", () => {
       const brandingImpact = MarketingModule.calculateBrandingImpact(5_000_000);
       const advertisingImpact = MarketingModule.calculateAdvertisingImpact(5_000_000, "General");
 
@@ -411,15 +405,15 @@ describe("Marketing Module Formulas", () => {
   });
 
   describe("Brand Decay", () => {
-    it("should decay brand by 2% of current value per round", () => {
+    it("should decay brand by 1% of current value per round", () => {
       const state = SimulationEngine.createInitialTeamState();
       state.brandValue = 0.5;
 
       const { newState } = MarketingModule.process(state, {});
 
-      // Brand decay is 2% of current value (proportional decay)
-      // 0.5 - (0.5 * 0.02) = 0.5 - 0.01 = 0.49
-      expect(newState.brandValue).toBeCloseTo(0.49, 2);
+      // Brand decay is 1% of current value (proportional decay)
+      // 0.5 - (0.5 * 0.01) = 0.5 - 0.005 = 0.495
+      expect(newState.brandValue).toBeCloseTo(0.495, 2);
     });
   });
 
@@ -441,7 +435,7 @@ describe("Marketing Module Formulas", () => {
   });
 
   describe("Brand Growth Cap", () => {
-    it("should cap brand growth at 3% per round", () => {
+    it("should cap brand growth at 6% per round", () => {
       const state = SimulationEngine.createInitialTeamState();
       state.brandValue = 0.3;
 
@@ -457,11 +451,10 @@ describe("Marketing Module Formulas", () => {
         brandingInvestment: 20_000_000,
       });
 
-      // With $70M in marketing, raw growth would far exceed 3%
-      // But capped growth + 2% decay means net growth should be around 0.98%
-      // (0.03 * 0.98) - decay adjustment ≈ 1% net
+      // With $70M in marketing, raw growth would far exceed 6%
+      // But capped growth + 2.5% decay means net growth should be under cap
       const netGrowth = newState.brandValue - state.brandValue;
-      expect(netGrowth).toBeLessThan(0.03); // Never more than cap before decay
+      expect(netGrowth).toBeLessThan(0.06); // Never more than cap before decay
       expect(result.messages.some(m => m.includes("capped"))).toBe(true);
     });
 
@@ -545,12 +538,12 @@ describe("R&D Module Formulas", () => {
     it("should cap bonuses at maximum values", () => {
       const value = RDModule.calculatePatentValue(100);
 
-      // Max quality bonus: 10
-      expect(value.qualityBonus).toBe(10);
-      // Max cost reduction: 15%
-      expect(value.costReduction).toBe(0.15);
-      // Max market share bonus: 5%
-      expect(value.marketShareBonus).toBe(0.05);
+      // Max quality bonus: 25 (v3.1.0: boosted from 10)
+      expect(value.qualityBonus).toBe(25);
+      // Max cost reduction: 25% (v3.1.0: boosted from 15%)
+      expect(value.costReduction).toBe(0.25);
+      // Max market share bonus: 15% (v3.1.0: boosted from 5%)
+      expect(value.marketShareBonus).toBe(0.15);
     });
 
     it("should scale bonuses with patent count", () => {
@@ -584,7 +577,7 @@ describe("R&D Module Formulas", () => {
 
       // Should match engineer R&D output formula
       expect(output).toBeGreaterThan(0);
-      expect(output).toBe(15); // 10 * 1.0 * 1.0 * 1.5
+      expect(output).toBe(7.5); // 5 * 1.0 * 1.0 * 1.5
     });
 
     it("should reduce output with burnout", () => {
@@ -633,13 +626,13 @@ describe("Market Simulator Formulas", () => {
     });
 
     it("should apply gradient penalty for LOW ESG (< 300) - crisis risk", () => {
-      // At score 0, penalty should be max (8%)
+      // At score 0, penalty should be max (12%)
       const resultZero = MarketSimulator.applyESGEvents(0, 10_000_000);
       expect(resultZero).not.toBeNull();
       expect(resultZero!.type).toBe("penalty");
-      expect(resultZero!.amount).toBe(-10_000_000 * 0.08); // 8% max penalty
+      expect(resultZero!.amount).toBe(-10_000_000 * CONSTANTS.ESG_PENALTY_MAX); // 12% max penalty
 
-      // At score 299, penalty should be close to min (1%)
+      // At score 299, penalty should be close to min
       const resultNearThreshold = MarketSimulator.applyESGEvents(299, 10_000_000);
       expect(resultNearThreshold).not.toBeNull();
       expect(resultNearThreshold!.type).toBe("penalty");
@@ -720,16 +713,16 @@ describe("Market Simulator Formulas", () => {
   });
 
   describe("Rubber-Banding", () => {
-    it("should apply 15% boost to trailing teams", () => {
-      expect(CONSTANTS.RUBBER_BAND_TRAILING_BOOST).toBe(1.15);
+    it("should apply no boost to trailing teams (sweep: neutral)", () => {
+      expect(CONSTANTS.RUBBER_BAND_TRAILING_BOOST).toBe(1.0);
     });
 
-    it("should apply 8% penalty to leading teams", () => {
-      expect(CONSTANTS.RUBBER_BAND_LEADING_PENALTY).toBe(0.92);
+    it("should apply 20% penalty to leading teams", () => {
+      expect(CONSTANTS.RUBBER_BAND_LEADING_PENALTY).toBe(0.80);
     });
 
-    it("should trigger when share < avg * 0.5", () => {
-      expect(CONSTANTS.RUBBER_BAND_THRESHOLD).toBe(0.5);
+    it("should trigger when share < avg * 0.3", () => {
+      expect(CONSTANTS.RUBBER_BAND_THRESHOLD).toBe(0.3);
     });
 
     it("should not activate before round 3", () => {
@@ -851,7 +844,7 @@ describe("Edge Cases", () => {
 
 describe("Constants Verification", () => {
   it("should have documented efficiency per million", () => {
-    expect(CONSTANTS.EFFICIENCY_PER_MILLION).toBe(0.01);
+    expect(CONSTANTS.EFFICIENCY_PER_MILLION).toBe(0.02);
   });
 
   it("should have documented diminishing returns threshold", () => {
@@ -859,18 +852,18 @@ describe("Constants Verification", () => {
   });
 
   it("should have documented brand decay rate", () => {
-    expect(CONSTANTS.BRAND_DECAY_RATE).toBe(0.02);
+    expect(CONSTANTS.BRAND_DECAY_RATE).toBe(0.01);
   });
 
   it("should have documented training fatigue parameters", () => {
-    expect(CONSTANTS.TRAINING_FATIGUE_THRESHOLD).toBe(2);
-    expect(CONSTANTS.TRAINING_FATIGUE_PENALTY).toBe(0.2);
+    expect(CONSTANTS.TRAINING_FATIGUE_THRESHOLD).toBe(1);
+    expect(CONSTANTS.TRAINING_FATIGUE_PENALTY).toBe(0.3);
   });
 
   it("should have documented product development parameters", () => {
-    expect(CONSTANTS.PRODUCT_DEV_BASE_ROUNDS).toBe(2);
-    expect(CONSTANTS.PRODUCT_DEV_QUALITY_FACTOR).toBe(0.02);
-    expect(CONSTANTS.PRODUCT_DEV_ENGINEER_SPEEDUP).toBe(0.05);
+    expect(CONSTANTS.PRODUCT_DEV_BASE_ROUNDS).toBe(1);
+    expect(CONSTANTS.PRODUCT_DEV_QUALITY_FACTOR).toBe(0.01);
+    expect(CONSTANTS.PRODUCT_DEV_ENGINEER_SPEEDUP).toBe(0.08);
   });
 
   it("should have documented ESG thresholds (3-tier gradient system)", () => {

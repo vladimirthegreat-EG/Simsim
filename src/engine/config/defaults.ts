@@ -175,8 +175,8 @@ export const DEFAULT_MARKETING_CONFIG: MarketingConfig = {
   brandingLogMultiplier: 2.5,              // Multiplier for log portion
 
   // Brand mechanics
-  brandDecayRate: 0.045,                   // 4.5% decay per round (sweep optimal: 6.5%→2.5%→4.0%→4.5%)
-  brandMaxGrowthPerRound: 0.02,            // 2% max growth per round
+  brandDecayRate: 0.020,                   // 2% decay per round (v4.0.6 Fano sweep: 7/7 viable)
+  brandMaxGrowthPerRound: 0.06,            // 6% max growth per round (v4: raised from 0.02)
 
   // Sponsorships
   sponsorships: {
@@ -294,18 +294,18 @@ export const DEFAULT_MARKET_CONFIG: MarketConfig = {
 
   // Segment weights (v2.4.0 balanced)
   segmentWeights: {
-    Budget: { price: 50, quality: 22, brand: 8, esg: 8, features: 12 },
-    General: { price: 32, quality: 28, brand: 10, esg: 10, features: 20 },
-    Enthusiast: { price: 20, quality: 40, brand: 10, esg: 10, features: 20 },
-    Professional: { price: 15, quality: 42, brand: 10, esg: 16, features: 17 },
-    "Active Lifestyle": { price: 25, quality: 32, brand: 12, esg: 10, features: 21 },
+    Budget:           { price: 65, quality: 15, brand: 5,  esg: 5,  features: 10 },
+    General:          { price: 28, quality: 23, brand: 17, esg: 10, features: 22 },
+    Enthusiast:       { price: 12, quality: 30, brand: 8,  esg: 5,  features: 45 },
+    Professional:     { price: 8,  quality: 48, brand: 7,  esg: 20, features: 17 },
+    "Active Lifestyle": { price: 20, quality: 34, brand: 10, esg: 10, features: 26 },
   },
 
   // Softmax
-  softmaxTemperature: 10,
+  softmaxTemperature: 4,                    // v4.0.6 Fano sweep (7/7 viable)
 
   // Quality/feature bonuses
-  qualityFeatureBonusCap: 1.3,             // Max 1.3x multiplier
+  qualityFeatureBonusCap: 1.2,             // Max 1.2x multiplier (v4.0.2: reduced to limit R&D compounding)
   qualityFeatureBonusFormula: "sqrt",       // sqrt(ratio - 1) * 0.5
 
   // Price floor

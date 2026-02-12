@@ -14,7 +14,7 @@
  * BALANCE RULE: No single strategy should win >60% of the time.
  */
 
-import type { TeamState, MarketState, AllDecisions } from "../types";
+import type { TeamState, MarketState, AllDecisions } from "../../src/engine/types";
 
 // ============================================
 // STRATEGY ARCHETYPES
@@ -59,10 +59,10 @@ export const volumeStrategy: StrategyDecisionMaker = (state, market, round) => {
     decisions.factory = {
       efficiencyInvestments: {
         [state.factories[0]?.id || "factory-1"]: {
-          workers: Math.min(2_000_000, cashAvailable * 0.08),
-          machinery: Math.min(1_500_000, cashAvailable * 0.06),
+          workers: Math.min(2_000_000, cashAvailable * 0.06),
+          machinery: Math.min(2_000_000, cashAvailable * 0.06),
           supervisors: 0,
-          engineers: 0,
+          engineers: Math.min(1_000_000, cashAvailable * 0.03),
           factory: 0,
         },
       },
@@ -73,35 +73,38 @@ export const volumeStrategy: StrategyDecisionMaker = (state, market, round) => {
     };
   }
 
-  // Marketing: Aggressive pricing + ads on Budget/General
+  // Marketing: Competitive pricing + ads on Budget/General/Active
+  // v5.0: Less extreme undercutting to avoid price floor penalties
   decisions.marketing = {
     advertisingBudget: {
-      Budget: Math.min(4_000_000, cashAvailable * 0.07),
+      Budget: Math.min(3_500_000, cashAvailable * 0.06),
       General: Math.min(3_000_000, cashAvailable * 0.05),
       Enthusiast: 0,
       Professional: 0,
-      "Active Lifestyle": Math.min(1_000_000, cashAvailable * 0.02),
+      "Active Lifestyle": Math.min(2_000_000, cashAvailable * 0.03),
     },
-    brandingInvestment: Math.min(1_500_000, cashAvailable * 0.03),
+    brandingInvestment: Math.min(2_000_000, cashAvailable * 0.04),
     promotions: [
-      { segment: "Budget", discountPercent: 8, duration: 1 },
+      { segment: "Budget", discountPercent: 5, duration: 1 },
     ],
     sponsorships: [],
-    // v3.1.0: Undercut on Budget and General
+    // v5.0: Modest undercut — stay above price floor penalty threshold
     productPricing: [
-      { productId: "budget-product", newPrice: 170 },
-      { productId: "initial-product", newPrice: 390 },
+      { productId: "budget-product", newPrice: 175 },
+      { productId: "initial-product", newPrice: 400 },
       { productId: "active-product", newPrice: 530 },
     ],
   };
 
-  // R&D: Moderate — keep products competitive
+  // R&D: Meaningful investment — quality matters even for volume
+  // v5.0: Doubled from $3M to $6M, more product improvements
   decisions.rd = {
-    rdBudget: Math.min(3_000_000, cashAvailable * 0.05),
+    rdBudget: Math.min(6_000_000, cashAvailable * 0.09),
     newProducts: [],
     productImprovements: [
-      { productId: "budget-product", qualityIncrease: 1, featuresIncrease: 2 },
-      { productId: "initial-product", qualityIncrease: 1, featuresIncrease: 1 },
+      { productId: "budget-product", qualityIncrease: 2, featuresIncrease: 2 },
+      { productId: "initial-product", qualityIncrease: 2, featuresIncrease: 2 },
+      { productId: "active-product", qualityIncrease: 1, featuresIncrease: 1 },
     ],
   };
 
@@ -133,11 +136,14 @@ export const premiumStrategy: StrategyDecisionMaker = (state, market, round) => 
       greenInvestments: {},
       upgradePurchases: [],
       newFactories: [],
-      esgInitiatives: {},
+      // v4.0.6: Small ESG — leverages Professional's 20% ESG weight
+      esgInitiatives: {
+        workplaceSafety: Math.min(1_500_000, cashAvailable * 0.02),
+      },
     };
   }
 
-  // Marketing: Focus on premium segments with premium pricing
+  // Marketing: Focus on premium segments with competitive pricing
   decisions.marketing = {
     advertisingBudget: {
       Budget: 0,
@@ -149,21 +155,22 @@ export const premiumStrategy: StrategyDecisionMaker = (state, market, round) => 
     brandingInvestment: Math.min(3_000_000, cashAvailable * 0.05),
     promotions: [],
     sponsorships: [],
-    // v3.1.0: Premium pricing — quality justifies higher prices
+    // v4.0.6: Competitive pricing — slightly below defaults, quality justifies the value
     productPricing: [
-      { productId: "professional-product", newPrice: 1400 },
-      { productId: "enthusiast-product", newPrice: 900 },
-      { productId: "active-product", newPrice: 680 },
+      { productId: "professional-product", newPrice: 1200 },
+      { productId: "enthusiast-product", newPrice: 780 },
+      { productId: "active-product", newPrice: 580 },
     ],
   };
 
-  // R&D: Heavy investment for quality improvements
+  // R&D: Heavy investment — focused on high-end segments
+  // v4.0.6: Reduced per-product amounts (diminishing returns at Q90+ waste cash)
   decisions.rd = {
-    rdBudget: Math.min(10_000_000, cashAvailable * 0.15),
+    rdBudget: Math.min(8_000_000, cashAvailable * 0.12),
     newProducts: [],
     productImprovements: [
-      { productId: "professional-product", qualityIncrease: 3, featuresIncrease: 2 },
-      { productId: "enthusiast-product", qualityIncrease: 3, featuresIncrease: 3 },
+      { productId: "professional-product", qualityIncrease: 2, featuresIncrease: 1 },
+      { productId: "enthusiast-product", qualityIncrease: 2, featuresIncrease: 2 },
       { productId: "active-product", qualityIncrease: 1, featuresIncrease: 1 },
     ],
   };
@@ -181,14 +188,14 @@ export const brandStrategy: StrategyDecisionMaker = (state, market, round) => {
   const cashAvailable = state.cash;
   const decisions: AllDecisions = {};
 
-  // Factory: Minimal investment
+  // Factory: Moderate investment — need good production foundation
   decisions.factory = {
     efficiencyInvestments: {
       [state.factories[0]?.id || "factory-1"]: {
-        workers: Math.min(500_000, cashAvailable * 0.02),
-        machinery: Math.min(500_000, cashAvailable * 0.02),
+        workers: Math.min(1_000_000, cashAvailable * 0.02),
+        machinery: Math.min(1_000_000, cashAvailable * 0.02),
         supervisors: 0,
-        engineers: 0,
+        engineers: Math.min(1_000_000, cashAvailable * 0.02),
         factory: 0,
       },
     },
@@ -198,30 +205,40 @@ export const brandStrategy: StrategyDecisionMaker = (state, market, round) => {
     esgInitiatives: {},
   };
 
-  // Marketing: HEAVY investment — brand is the core strategy
+  // Marketing: HEAVY investment — brand + quality compound advantage
+  // Focus on General (brand:17%), Active Lifestyle (brand:10%), Enthusiast (brand:8%)
+  // Skip Budget (brand:5%, price:65% — brand can't win on price)
   decisions.marketing = {
     advertisingBudget: {
-      Budget: Math.min(3_000_000, cashAvailable * 0.06),
-      General: Math.min(5_000_000, cashAvailable * 0.10),
-      Enthusiast: Math.min(3_000_000, cashAvailable * 0.06),
-      Professional: Math.min(2_000_000, cashAvailable * 0.04),
-      "Active Lifestyle": Math.min(3_000_000, cashAvailable * 0.06),
+      Budget: 0,
+      General: Math.min(6_000_000, cashAvailable * 0.10),
+      Enthusiast: Math.min(3_000_000, cashAvailable * 0.05),
+      Professional: Math.min(2_000_000, cashAvailable * 0.03),
+      "Active Lifestyle": Math.min(5_000_000, cashAvailable * 0.08),
     },
-    brandingInvestment: Math.min(8_000_000, cashAvailable * 0.15),
+    brandingInvestment: Math.min(8_000_000, cashAvailable * 0.12),
     promotions: [],
     sponsorships: [
       { name: "Major Sports Event", cost: Math.min(2_000_000, cashAvailable * 0.04), brandImpact: 0.02 },
     ],
-    // Keep standard pricing — brand premium comes from brand value score
-    productPricing: [],
+    // v5.1: Premium prices justified by strong brand reputation
+    productPricing: [
+      { productId: "budget-product", newPrice: 190 },
+      { productId: "initial-product", newPrice: 440 },
+      { productId: "active-product", newPrice: 580 },
+    ],
   };
 
-  // R&D: Moderate
+  // R&D: Strong investment — brand × quality compound scoring advantage
+  // v5.1: $8M — match premium strategy on R&D, differentiate on brand
   decisions.rd = {
-    rdBudget: Math.min(3_000_000, cashAvailable * 0.05),
+    rdBudget: Math.min(8_000_000, cashAvailable * 0.10),
     newProducts: [],
     productImprovements: [
-      { productId: "initial-product", qualityIncrease: 1, featuresIncrease: 1 },
+      { productId: "initial-product", qualityIncrease: 2, featuresIncrease: 2 },
+      { productId: "active-product", qualityIncrease: 2, featuresIncrease: 2 },
+      { productId: "budget-product", qualityIncrease: 1, featuresIncrease: 1 },
+      { productId: "enthusiast-product", qualityIncrease: 2, featuresIncrease: 1 },
     ],
   };
 
@@ -338,28 +355,36 @@ export const balancedStrategy: StrategyDecisionMaker = (state, market, round) =>
     },
   };
 
-  // Marketing: Balanced across segments
+  // Marketing: Balanced across segments with competitive pricing
+  // v7.0: Same as v6.4 baseline
   decisions.marketing = {
     advertisingBudget: {
       Budget: Math.min(1_500_000, cashAvailable * 0.03),
-      General: Math.min(2_000_000, cashAvailable * 0.04),
+      General: Math.min(2_500_000, cashAvailable * 0.04),
       Enthusiast: Math.min(1_500_000, cashAvailable * 0.03),
       Professional: Math.min(1_000_000, cashAvailable * 0.02),
-      "Active Lifestyle": Math.min(1_000_000, cashAvailable * 0.02),
+      "Active Lifestyle": Math.min(2_000_000, cashAvailable * 0.03),
     },
-    brandingInvestment: Math.min(2_000_000, cashAvailable * 0.04),
+    brandingInvestment: Math.min(3_000_000, cashAvailable * 0.05),
     promotions: [],
     sponsorships: [],
-    productPricing: [], // Keep default pricing
+    // v7.2: Competitive General/Active pricing for T=4
+    productPricing: [
+      { productId: "budget-product", newPrice: 185 },
+      { productId: "initial-product", newPrice: 415 },
+      { productId: "active-product", newPrice: 550 },
+    ],
   };
 
-  // R&D: Moderate with improvements across products
+  // R&D: Moderate-strong — General product focus + decent Active
+  // v7.2: $5.5M R&D with General features focus
   decisions.rd = {
-    rdBudget: Math.min(4_000_000, cashAvailable * 0.07),
+    rdBudget: Math.min(5_500_000, cashAvailable * 0.07),
     newProducts: [],
     productImprovements: [
       { productId: "initial-product", qualityIncrease: 2, featuresIncrease: 2 },
-      { productId: "enthusiast-product", qualityIncrease: 1, featuresIncrease: 1 },
+      { productId: "active-product", qualityIncrease: 1, featuresIncrease: 1 },
+      { productId: "budget-product", qualityIncrease: 1, featuresIncrease: 1 },
     ],
   };
 
@@ -437,14 +462,15 @@ export const costCutterStrategy: StrategyDecisionMaker = (state, market, round) 
   const cashAvailable = state.cash;
   const decisions: AllDecisions = {};
 
-  // Factory: Minimal investment
+  // Factory: Lean but functional — enough to maintain production
+  // v5.0: Slight increase to keep products from falling apart
   decisions.factory = {
     efficiencyInvestments: {
       [state.factories[0]?.id || "factory-1"]: {
-        workers: Math.min(500_000, cashAvailable * 0.01),
-        machinery: Math.min(500_000, cashAvailable * 0.01),
+        workers: Math.min(1_000_000, cashAvailable * 0.02),
+        machinery: Math.min(1_000_000, cashAvailable * 0.02),
         supervisors: 0,
-        engineers: 0,
+        engineers: Math.min(500_000, cashAvailable * 0.01),
         factory: 0,
       },
     },
@@ -454,35 +480,38 @@ export const costCutterStrategy: StrategyDecisionMaker = (state, market, round) 
     esgInitiatives: {},
   };
 
-  // Marketing: Aggressive pricing + promotions on price-sensitive segments
+  // Marketing: Budget specialist + decent General
+  // v6.2: Dominate Budget through lowest price, competitive in General
   decisions.marketing = {
     advertisingBudget: {
-      Budget: Math.min(1_500_000, cashAvailable * 0.03),
-      General: Math.min(1_500_000, cashAvailable * 0.03),
+      Budget: Math.min(3_000_000, cashAvailable * 0.04),
+      General: Math.min(2_000_000, cashAvailable * 0.03),
       Enthusiast: 0,
       Professional: 0,
-      "Active Lifestyle": 0,
+      "Active Lifestyle": Math.min(1_500_000, cashAvailable * 0.02),
     },
-    brandingInvestment: Math.min(500_000, cashAvailable * 0.01),
+    brandingInvestment: Math.min(1_500_000, cashAvailable * 0.02),
     promotions: [
-      { segment: "Budget", discountPercent: 12, duration: 1 },
-      { segment: "General", discountPercent: 8, duration: 1 },
+      { segment: "Budget", discountPercent: 5, duration: 1 },
     ],
     sponsorships: [],
-    // v3.1.0: Aggressive undercutting
+    // v6.4: Low Budget + moderate General/Active
     productPricing: [
-      { productId: "budget-product", newPrice: 155 },
-      { productId: "initial-product", newPrice: 370 },
-      { productId: "active-product", newPrice: 500 },
+      { productId: "budget-product", newPrice: 165 },
+      { productId: "initial-product", newPrice: 395 },
+      { productId: "active-product", newPrice: 530 },
     ],
   };
 
-  // R&D: Minimal — just enough to not fall behind
+  // R&D: Moderate — maintain quality on key products
+  // v6.3: $4.5M R&D for Budget/General/Active quality
   decisions.rd = {
-    rdBudget: Math.min(2_000_000, cashAvailable * 0.03),
+    rdBudget: Math.min(4_500_000, cashAvailable * 0.06),
     newProducts: [],
     productImprovements: [
-      { productId: "budget-product", qualityIncrease: 1, featuresIncrease: 1 },
+      { productId: "budget-product", qualityIncrease: 2, featuresIncrease: 1 },
+      { productId: "initial-product", qualityIncrease: 1, featuresIncrease: 1 },
+      { productId: "active-product", qualityIncrease: 1, featuresIncrease: 0 },
     ],
   };
 

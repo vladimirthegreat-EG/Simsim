@@ -12,10 +12,10 @@
  * Usage: npx tsx src/engine/balance/parameter-sweep.ts
  */
 
-import { SimulationEngine } from "../core/SimulationEngine";
-import type { SimulationInput } from "../core/SimulationEngine";
-import type { TeamState, MarketState } from "../types";
-import { CONSTANTS } from "../types";
+import { SimulationEngine } from "../../src/engine/core/SimulationEngine";
+import type { SimulationInput } from "../../src/engine/core/SimulationEngine";
+import type { TeamState, MarketState } from "../../src/engine/types";
+import { CONSTANTS } from "../../src/engine/types";
 import {
   STRATEGIES,
   type StrategyArchetype,
@@ -33,14 +33,21 @@ const SWEEP = {
   alBrandWeight: [8, 10, 12, 14, 18],
 
   // Simulation settings (reduced for speed)
-  SIMS_PER_COMBO: 30,
+  SIMS_PER_COMBO: 20,
   ROUNDS: 8,
 
-  // Key matchups to test (covers the critical dynamics)
+  // v4.0.6: 7 matchups — Fano plane complement (balanced incomplete block design)
+  // Each strategy appears in exactly 4 matchups. Every PAIR of strategies meets exactly 2 times.
+  // This eliminates structural advantage — no strategy faces a dominant opponent 3 times.
+  // Mapping: 1=vol 2=pre 3=bra 4=aut 5=bal 6=rd 7=cos
+  // Fano complement blocks: {3,5,6,7} {1,4,6,7} {1,2,5,7} {1,2,3,6} {2,3,4,7} {1,3,4,5} {2,4,5,6}
   MATCHUPS: [
-    ["volume", "premium", "brand", "balanced"] as StrategyArchetype[],
-    ["brand", "automation", "balanced", "cost-cutter"] as StrategyArchetype[],
-    ["volume", "brand", "rd-focused", "cost-cutter"] as StrategyArchetype[],
+    ["brand", "balanced", "rd-focused", "cost-cutter"] as StrategyArchetype[],
+    ["volume", "automation", "rd-focused", "cost-cutter"] as StrategyArchetype[],
+    ["volume", "premium", "balanced", "cost-cutter"] as StrategyArchetype[],
+    ["volume", "premium", "brand", "rd-focused"] as StrategyArchetype[],
+    ["premium", "brand", "automation", "cost-cutter"] as StrategyArchetype[],
+    ["volume", "brand", "automation", "balanced"] as StrategyArchetype[],
     ["premium", "automation", "balanced", "rd-focused"] as StrategyArchetype[],
   ],
 };
@@ -210,6 +217,15 @@ async function main() {
         (CONSTANTS as any).BRAND_DECAY_RATE = brandDecay;
         (CONSTANTS as any).SOFTMAX_TEMPERATURE = temperature;
         (CONSTANTS as any).SEGMENT_BRAND_WEIGHT_ACTIVE_LIFESTYLE = alBrandWeight;
+        // Also update SEGMENT_WEIGHTS for Active Lifestyle brand weight
+        if ((CONSTANTS as any).SEGMENT_WEIGHTS) {
+          const alWeights = (CONSTANTS as any).SEGMENT_WEIGHTS["Active Lifestyle"];
+          const oldBrand = alWeights.brand;
+          const diff = alBrandWeight - oldBrand;
+          alWeights.brand = alBrandWeight;
+          // Compensate by adjusting quality weight to keep sum at 100
+          alWeights.quality = Math.max(5, alWeights.quality - diff);
+        }
 
         // Run all matchups
         const allStrategies = new Set<string>();

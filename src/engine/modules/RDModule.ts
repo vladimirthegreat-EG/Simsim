@@ -147,17 +147,21 @@ export class RDModule {
         if (product) {
           const improvementCost = this.calculateImprovementCost(
             improvement.qualityIncrease || 0,
-            improvement.featuresIncrease || 0
+            improvement.featuresIncrease || 0,
+            product.quality,    // v4.0.0: Pass current quality for progressive costing
+            product.features    // v4.0.0: Pass current features for progressive costing
           );
 
-          if (newState.cash >= improvementCost && newState.rdProgress >= (improvement.qualityIncrease || 0) * 10) {
+          // v4.0.0: rdProgress requirement (kept simple — cost scaling handles diminishing returns)
+          const rdPointsRequired = (improvement.qualityIncrease || 0) * 10;
+          if (newState.cash >= improvementCost && newState.rdProgress >= rdPointsRequired) {
             if (improvement.qualityIncrease) {
               product.quality = Math.min(100, product.quality + improvement.qualityIncrease);
             }
             if (improvement.featuresIncrease) {
               product.features = Math.min(100, product.features + improvement.featuresIncrease);
             }
-            newState.rdProgress -= (improvement.qualityIncrease || 0) * 10;
+            newState.rdProgress -= rdPointsRequired;
             totalCosts += improvementCost;
             messages.push(`Improved ${product.name}: Q+${improvement.qualityIncrease || 0}, F+${improvement.featuresIncrease || 0}`);
           } else {
@@ -242,11 +246,39 @@ export class RDModule {
   }
 
   /**
-   * Calculate improvement cost
+   * Calculate improvement cost with diminishing returns at high levels (v4.0.0)
+   * Quality/feature improvements become progressively more expensive above 70
+   * This prevents R&D-focused strategies from endlessly scaling quality
    */
-  static calculateImprovementCost(qualityIncrease: number, featuresIncrease: number): number {
-    // $1M per quality point, $500K per feature point
-    return qualityIncrease * 1_000_000 + featuresIncrease * 500_000;
+  static calculateImprovementCost(
+    qualityIncrease: number,
+    featuresIncrease: number,
+    currentQuality: number = 50,
+    currentFeatures: number = 50
+  ): number {
+    // Quality cost: progressive scaling (v4.0.2: steeper thresholds at 70/80/90)
+    let qualityCost = 0;
+    for (let i = 0; i < qualityIncrease; i++) {
+      const level = currentQuality + i;
+      let costPerPoint = 1_000_000; // Base: $1M per point
+      if (level >= 90) costPerPoint = 5_000_000;
+      else if (level >= 80) costPerPoint = 2_500_000;
+      else if (level >= 70) costPerPoint = 1_500_000;
+      qualityCost += costPerPoint;
+    }
+
+    // Feature cost: progressive scaling (same thresholds, half base cost)
+    let featuresCost = 0;
+    for (let i = 0; i < featuresIncrease; i++) {
+      const level = currentFeatures + i;
+      let costPerPoint = 500_000; // Base: $500K per point
+      if (level >= 90) costPerPoint = 2_500_000;
+      else if (level >= 80) costPerPoint = 1_250_000;
+      else if (level >= 70) costPerPoint = 750_000;
+      featuresCost += costPerPoint;
+    }
+
+    return qualityCost + featuresCost;
   }
 
   /**

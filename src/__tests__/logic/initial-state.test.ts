@@ -44,7 +44,7 @@ describe("Initial State Consistency", () => {
       const state = SimulationEngine.createInitialTeamState();
 
       // Financial
-      expect(state.cash).toBe(200_000_000);
+      expect(state.cash).toBe(175_000_000);
       expect(state.revenue).toBe(0);
       expect(state.netIncome).toBe(0);
       expect(state.marketCap).toBe(500_000_000);

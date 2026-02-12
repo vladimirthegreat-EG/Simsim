@@ -417,10 +417,11 @@ describe("10-Round Strategy Tests", () => {
         // With EXTREME strategies (deliberately different), larger spreads are expected
         // This is a stress test, not a balance test
         // For realistic balance, see: __tests__/e2e/realistic-gameplay.test.ts
-        expect(spread).toBeLessThan(20); // Was 382x before fix!
+        // Sweep v5: sharper softmax (temp=3) amplifies extreme strategy differences
+        expect(spread).toBeLessThan(100); // Was 382x before fix, ~55x with sweep v5
 
         // Log for monitoring
-        console.log(`Extreme strategy spread: ${spread.toFixed(1)}x (expected 10-15x)`);
+        console.log(`Extreme strategy spread: ${spread.toFixed(1)}x (expected 30-60x with sweep v5)`);
       }
     });
   });
@@ -469,11 +470,11 @@ describe("10-Round Strategy Tests", () => {
       const finalShare = Object.values(trailingTeam.state.marketShare).reduce((sum, s) => sum + s, 0);
       expect(finalShare).toBeGreaterThan(0);
 
-      // Should be within 10x of the leader (or have meaningful share)
+      // Should be within 50x of the leader (sweep v5: sharper softmax amplifies gaps)
       const revenues = result.teams.map(t => t.state.revenue).filter(r => r > 0);
       if (revenues.length > 0 && finalRevenue > 0) {
         const maxRevenue = Math.max(...revenues);
-        expect(maxRevenue / finalRevenue).toBeLessThan(10);
+        expect(maxRevenue / finalRevenue).toBeLessThan(50);
       }
     });
 
@@ -566,7 +567,8 @@ describe("10-Round Strategy Tests", () => {
       const maxRev = sorted[0].state.revenue;
       const minRev = sorted[sorted.length - 1].state.revenue;
       if (minRev > 0) {
-        expect(maxRev / minRev).toBeLessThan(20);
+        // Sweep v5: sharper softmax (temp=3) amplifies extreme strategy differences
+        expect(maxRev / minRev).toBeLessThan(100);
       }
     });
 
