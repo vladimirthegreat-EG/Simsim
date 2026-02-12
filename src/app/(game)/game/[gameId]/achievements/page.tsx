@@ -184,7 +184,7 @@ export default function AchievementsPage({ params }: AchievementsPageProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {leaderboard.slice(0, 5).map((team, index) => (
+              {leaderboard.slice(0, 5).map((team: { rank: number; teamId: string; teamName: string; achievementPoints: number; totalEarned: number }, index: number) => (
                 <div
                   key={team.teamId}
                   className={cn(
