@@ -32,31 +32,31 @@ export default function AchievementsPage({ params }: AchievementsPageProps) {
   const { data: leaderboard } = trpc.achievement.getLeaderboard.useQuery({ gameId });
 
   // Process achievement data
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const earned = (achievementData as any)?.earned as Array<{ achievementId: string; earnedAt: Date; earnedRound: number }> | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const progress = (achievementData as any)?.progress as Array<{ achievementId: string; percentComplete: number }> | undefined;
+
   const earnedIds = useMemo(() => {
-    if (!achievementData?.earned) return new Set<string>();
-    return new Set(achievementData.earned.map((e: { achievementId: string }) => e.achievementId));
-  }, [achievementData]);
+    if (!earned) return new Set<string>();
+    return new Set<string>(earned.map((e) => e.achievementId));
+  }, [earned]);
 
   const earnedData = useMemo(() => {
-    if (!achievementData?.earned) return new Map();
-    return new Map(
-      achievementData.earned.map((e: { achievementId: string; earnedAt: Date | null; earnedRound: number | null }) => [
-        e.achievementId,
-        { earnedAt: e.earnedAt, earnedRound: e.earnedRound },
-      ])
-    );
-  }, [achievementData]);
+    if (!earned) return new Map<string, { earnedAt: Date; earnedRound: number }>();
+    return new Map(earned.map((e) => [e.achievementId, { earnedAt: e.earnedAt, earnedRound: e.earnedRound }] as const));
+  }, [earned]);
 
   const progressData = useMemo(() => {
-    if (!achievementData?.progress) return new Map();
-    return new Map(
-      achievementData.progress.map((p: { achievementId: string; [key: string]: unknown }) => [p.achievementId, p])
-    );
-  }, [achievementData]);
+    if (!progress) return new Map<string, { achievementId: string; percentComplete: number }>();
+    return new Map(progress.map((p) => [p.achievementId, p] as const));
+  }, [progress]);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adata = achievementData as any;
   // Stats
   const stats = useMemo(() => {
-    if (!achievementData) {
+    if (!adata) {
       return {
         earned: 0,
         total: TOTAL_ACHIEVEMENT_COUNT,
@@ -69,22 +69,22 @@ export default function AchievementsPage({ params }: AchievementsPageProps) {
     }
 
     return {
-      earned: achievementData.stats?.totalEarned ?? 0,
+      earned: adata.stats?.totalEarned ?? 0,
       total: TOTAL_ACHIEVEMENT_COUNT,
-      points: achievementData.team?.achievementPoints ?? 0,
-      positiveCount: achievementData.stats?.positiveCount ?? 0,
-      infamyCount: achievementData.stats?.infamyCount ?? 0,
-      secretCount: achievementData.stats?.secretCount ?? 0,
-      percentComplete: achievementData.stats?.percentComplete ?? 0,
+      points: adata.team?.achievementPoints ?? 0,
+      positiveCount: adata.stats?.positiveCount ?? 0,
+      infamyCount: adata.stats?.infamyCount ?? 0,
+      secretCount: adata.stats?.secretCount ?? 0,
+      percentComplete: adata.stats?.percentComplete ?? 0,
     };
-  }, [achievementData]);
+  }, [adata]);
 
   // Tier breakdown
   const tierBreakdown = useMemo(() => {
     const breakdown: Record<string, { earned: number; total: number }> = {};
     for (const [tier, count] of Object.entries(ACHIEVEMENT_COUNTS_BY_TIER)) {
-      const earnedInTier = achievementData?.earned?.filter(
-        (e: { achievementId: string }) => {
+      const earnedInTier = earned?.filter(
+        (e) => {
           const achievement = ALL_ACHIEVEMENTS.find((a) => a.id === e.achievementId);
           return achievement?.tier === tier;
         }
