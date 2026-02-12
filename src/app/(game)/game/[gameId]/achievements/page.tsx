@@ -23,7 +23,8 @@ interface AchievementsPageProps {
 export default function AchievementsPage({ params }: AchievementsPageProps) {
   const { gameId } = use(params);
 
-  const { data: teamData } = trpc.team.getCurrent.useQuery({ gameId });
+  const { data: session } = trpc.team.checkSession.useQuery();
+  const teamData = session?.hasSession ? session.team : undefined;
   const { data: achievementData, isLoading } = trpc.achievement.getTeamAchievements.useQuery(
     { teamId: teamData?.id ?? "" },
     { enabled: !!teamData?.id }
