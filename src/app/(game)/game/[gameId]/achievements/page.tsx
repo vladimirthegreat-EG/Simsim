@@ -34,13 +34,13 @@ export default function AchievementsPage({ params }: AchievementsPageProps) {
   // Process achievement data
   const earnedIds = useMemo(() => {
     if (!achievementData?.earned) return new Set<string>();
-    return new Set(achievementData.earned.map((e) => e.achievementId));
+    return new Set(achievementData.earned.map((e: { achievementId: string }) => e.achievementId));
   }, [achievementData]);
 
   const earnedData = useMemo(() => {
     if (!achievementData?.earned) return new Map();
     return new Map(
-      achievementData.earned.map((e) => [
+      achievementData.earned.map((e: { achievementId: string; earnedAt: Date | null; earnedRound: number | null }) => [
         e.achievementId,
         { earnedAt: e.earnedAt, earnedRound: e.earnedRound },
       ])
@@ -50,7 +50,7 @@ export default function AchievementsPage({ params }: AchievementsPageProps) {
   const progressData = useMemo(() => {
     if (!achievementData?.progress) return new Map();
     return new Map(
-      achievementData.progress.map((p) => [p.achievementId, p])
+      achievementData.progress.map((p: { achievementId: string; [key: string]: unknown }) => [p.achievementId, p])
     );
   }, [achievementData]);
 
@@ -84,7 +84,7 @@ export default function AchievementsPage({ params }: AchievementsPageProps) {
     const breakdown: Record<string, { earned: number; total: number }> = {};
     for (const [tier, count] of Object.entries(ACHIEVEMENT_COUNTS_BY_TIER)) {
       const earnedInTier = achievementData?.earned?.filter(
-        (e) => {
+        (e: { achievementId: string }) => {
           const achievement = ALL_ACHIEVEMENTS.find((a) => a.id === e.achievementId);
           return achievement?.tier === tier;
         }
