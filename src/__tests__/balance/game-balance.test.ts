@@ -347,6 +347,8 @@ describe("Exploit Detection", () => {
 
   it("should not allow instant product development without timeline feature", () => {
     const state = createInitialTeamState();
+    // Remove engineers so speedup doesn't reduce rounds below 2
+    state.employees = state.employees.filter(e => e.role !== "engineer");
 
     // Use high quality target (100) to ensure > 1 round of development
     // With base=1, quality_factor=0.01: (1 + 50*0.01) = 1.5 → rounds to 2

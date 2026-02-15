@@ -100,14 +100,20 @@ export default function OverviewPage({ params }: PageProps) {
     ? JSON.parse(teamState.state)
     : teamState?.state) as TeamStateData | null;
 
-  // Calculate employee counts from the employees array
-  const employeeCounts = companyState?.employees?.reduce(
-    (acc, emp) => {
-      acc[emp.role] = (acc[emp.role] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>
-  ) || { worker: 0, engineer: 0, supervisor: 0 };
+  // Calculate employee counts from the employees array, with factory-level fallback
+  const employeeCounts = companyState?.employees?.length
+    ? companyState.employees.reduce(
+        (acc, emp) => {
+          acc[emp.role] = (acc[emp.role] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      )
+    : {
+        worker: companyState?.factories?.reduce((sum, f) => sum + (f.workers || 0), 0) || 0,
+        engineer: companyState?.factories?.reduce((sum, f) => sum + (f.engineers || 0), 0) || 0,
+        supervisor: companyState?.factories?.reduce((sum, f) => sum + (f.supervisors || 0), 0) || 0,
+      };
 
   const totalEmployees = companyState?.workforce?.totalHeadcount ||
     companyState?.employees?.length || 0;

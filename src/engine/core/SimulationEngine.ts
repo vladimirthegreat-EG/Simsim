@@ -18,6 +18,11 @@ import {
   RoundResults,
   ModuleResult,
   CONSTANTS,
+  Employee,
+  EmployeeStats,
+  EngineerStats,
+  SupervisorStats,
+  EmployeeRole,
 } from "../types";
 import { FactoryModule } from "../modules/FactoryModule";
 import { HRModule } from "../modules/HRModule";
@@ -669,6 +674,45 @@ export class SimulationEngine {
       workInProgress: 0,
     };
 
+    // Generate initial employees matching factory workforce
+    const initialEmployees: Employee[] = [];
+    const factoryId = defaultFactory.id;
+
+    const createInitialEmployee = (role: EmployeeRole, index: number): Employee => {
+      const baseStats: EmployeeStats = {
+        efficiency: 65, accuracy: 65, speed: 65, stamina: 65,
+        discipline: 65, loyalty: 65, teamCompatibility: 65, health: 65,
+      };
+      let stats: EmployeeStats | EngineerStats | SupervisorStats = baseStats;
+      if (role === "engineer") {
+        stats = { ...baseStats, innovation: 65, problemSolving: 65 };
+      } else if (role === "supervisor") {
+        stats = { ...baseStats, leadership: 65, tacticalPlanning: 65 };
+      }
+      // Salary with avgStat=65: multiplier = 0.8 + 0.65 * 1.4 = 1.71
+      const baseSalaries: Record<EmployeeRole, number> = { worker: 45_000, engineer: 85_000, supervisor: 75_000 };
+      const multiplier = CONSTANTS.SALARY_MULTIPLIER_MIN +
+        (65 / 100) * (CONSTANTS.SALARY_MULTIPLIER_MAX - CONSTANTS.SALARY_MULTIPLIER_MIN);
+      const salary = Math.min(CONSTANTS.MAX_SALARY, Math.round(baseSalaries[role] * multiplier));
+
+      return {
+        id: `initial-${role}-${index}`,
+        role,
+        name: `${role.charAt(0).toUpperCase() + role.slice(1)} ${index + 1}`,
+        stats,
+        salary,
+        hiredRound: 0,
+        factoryId,
+        morale: 75,
+        burnout: 0,
+        trainingHistory: { programsThisYear: 0, lastTrainingRound: 0, totalProgramsCompleted: 0 },
+      };
+    };
+
+    for (let i = 0; i < workers; i++) initialEmployees.push(createInitialEmployee("worker", i));
+    for (let i = 0; i < engineers; i++) initialEmployees.push(createInitialEmployee("engineer", i));
+    for (let i = 0; i < supervisors; i++) initialEmployees.push(createInitialEmployee("supervisor", i));
+
     const startingCash = config?.cash ?? CONSTANTS.DEFAULT_STARTING_CASH;
 
     return {
@@ -703,7 +747,7 @@ export class SimulationEngine {
       tariffs: TariffEngine.initializeTariffState(),
       factories: [defaultFactory],
       products: config?.products ?? (includeProducts ? initialProducts : []),
-      employees: [],
+      employees: initialEmployees,
       workforce: {
         totalHeadcount: workers + engineers + supervisors,
         averageMorale: (workers + engineers + supervisors) > 0 ? 75 : 0,
