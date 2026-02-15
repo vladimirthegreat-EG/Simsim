@@ -747,19 +747,24 @@ export class FactoryModule {
     const recommended = this.calculateRecommendedStaffing(factory);
     let penalty = 0;
 
+    // Guard: if no machines/workers recommended, no staffing penalty
+    if (recommended.workers === 0 && recommended.supervisors === 0) {
+      return 0;
+    }
+
     // Worker understaffing: -5% to -15%
-    if (actualStaff.workers < recommended.workers) {
+    if (recommended.workers > 0 && actualStaff.workers < recommended.workers) {
       const ratio = actualStaff.workers / recommended.workers;
       penalty += (1 - ratio) * 0.15;
     }
     // Worker overstaffing: -3% to -8%
-    else if (actualStaff.workers > recommended.workers * 1.2) {
+    else if (recommended.workers > 0 && actualStaff.workers > recommended.workers * 1.2) {
       const overRatio = (actualStaff.workers - recommended.workers) / recommended.workers;
       penalty += Math.min(0.08, overRatio * 0.04);
     }
 
     // Similar for other roles (smaller impact)
-    if (actualStaff.supervisors < recommended.supervisors) {
+    if (recommended.supervisors > 0 && actualStaff.supervisors < recommended.supervisors) {
       const ratio = actualStaff.supervisors / recommended.supervisors;
       penalty += (1 - ratio) * 0.05;
     }

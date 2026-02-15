@@ -11,6 +11,7 @@ import { formatCurrency } from "@/lib/utils";
 import { EnhancedProgress } from "@/components/ui/enhanced-progress";
 import { PageHeader } from "@/components/ui/section-header";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/api/trpc";
 import { useDecisionStore } from "@/lib/stores/decisionStore";
 import { DecisionSubmitBar } from "@/components/game/DecisionSubmitBar";
@@ -576,7 +577,12 @@ export default function MarketingPage({ params }: PageProps) {
               <div className="p-4 bg-slate-700/30 rounded-lg space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-slate-300 font-medium">Investment Amount</span>
-                  <span className="text-pink-400 font-semibold text-xl">{formatCurrency(brandInvestment)}</span>
+                  <Input
+                    type="number"
+                    value={brandInvestment}
+                    onChange={(e) => setBrandInvestment(Math.max(0, Math.min(50000000, Number(e.target.value) || 0)))}
+                    className="w-36 h-8 text-right bg-slate-700 border-slate-600 text-pink-400 font-semibold"
+                  />
                 </div>
                 <Slider
                   data-testid="slider-brand-investment"

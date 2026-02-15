@@ -1445,9 +1445,15 @@ export default function FactoryPage({ params }: PageProps) {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="text-slate-300 text-sm font-medium">Investment Amount</label>
-                    <span className="text-blue-400 font-semibold text-lg">
-                      {formatCurrency(efficiencyInvestment.workers)}
-                    </span>
+                    <Input
+                      type="number"
+                      value={efficiencyInvestment.workers}
+                      onChange={(e) => {
+                        const v = Math.max(0, Math.min(20000000, Number(e.target.value) || 0));
+                        setEfficiencyInvestment(prev => ({ ...prev, workers: v }));
+                      }}
+                      className="w-32 h-8 text-right bg-slate-700 border-slate-600 text-blue-400 font-semibold"
+                    />
                   </div>
                   <Slider
                     data-testid="slider-efficiency-workers"
@@ -1481,9 +1487,15 @@ export default function FactoryPage({ params }: PageProps) {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="text-slate-300 text-sm font-medium">Investment Amount</label>
-                    <span className="text-purple-400 font-semibold text-lg">
-                      {formatCurrency(efficiencyInvestment.engineers)}
-                    </span>
+                    <Input
+                      type="number"
+                      value={efficiencyInvestment.engineers}
+                      onChange={(e) => {
+                        const v = Math.max(0, Math.min(20000000, Number(e.target.value) || 0));
+                        setEfficiencyInvestment(prev => ({ ...prev, engineers: v }));
+                      }}
+                      className="w-32 h-8 text-right bg-slate-700 border-slate-600 text-purple-400 font-semibold"
+                    />
                   </div>
                   <Slider
                     data-testid="slider-efficiency-engineers"
@@ -1517,9 +1529,15 @@ export default function FactoryPage({ params }: PageProps) {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="text-slate-300 text-sm font-medium">Investment Amount</label>
-                    <span className="text-orange-400 font-semibold text-lg">
-                      {formatCurrency(efficiencyInvestment.equipment)}
-                    </span>
+                    <Input
+                      type="number"
+                      value={efficiencyInvestment.equipment}
+                      onChange={(e) => {
+                        const v = Math.max(0, Math.min(20000000, Number(e.target.value) || 0));
+                        setEfficiencyInvestment(prev => ({ ...prev, equipment: v }));
+                      }}
+                      className="w-32 h-8 text-right bg-slate-700 border-slate-600 text-orange-400 font-semibold"
+                    />
                   </div>
                   <Slider
                     data-testid="slider-efficiency-equipment"
@@ -1662,9 +1680,12 @@ export default function FactoryPage({ params }: PageProps) {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="text-slate-300 text-sm font-medium">Investment Amount</label>
-                    <span className="text-blue-400 font-semibold text-lg">
-                      {formatCurrency(maintenanceInvestment)}
-                    </span>
+                    <Input
+                      type="number"
+                      value={maintenanceInvestment}
+                      onChange={(e) => setMaintenanceInvestment(Math.max(0, Math.min(5000000, Number(e.target.value) || 0)))}
+                      className="w-32 h-8 text-right bg-slate-700 border-slate-600 text-blue-400 font-semibold"
+                    />
                   </div>
                   <Slider
                     value={[maintenanceInvestment]}
@@ -1811,20 +1832,32 @@ export default function FactoryPage({ params }: PageProps) {
                     { name: "PCB Assembler", cost: "$10M", capacity: "6,000 units", type: "pcb_assembler" },
                     { name: "Paint Booth", cost: "$3M", capacity: "8,000 units", type: "paint_booth" },
                     { name: "Laser Cutter", cost: "$6M", capacity: "4,000 units", type: "laser_cutter" },
-                  ].map((machine) => (
-                    <div key={machine.type} className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg">
-                      <div>
-                        <p className="text-white font-medium">{machine.name}</p>
-                        <p className="text-slate-400 text-sm">{machine.capacity}</p>
+                  ].map((machine) => {
+                    const { installed, pending } = isUpgradePurchased(machine.type);
+                    return (
+                      <div key={machine.type} className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg">
+                        <div>
+                          <p className="text-white font-medium">{machine.name}</p>
+                          <p className="text-slate-400 text-sm">{machine.capacity}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-emerald-400 font-medium">{machine.cost}</p>
+                          {installed ? (
+                            <Badge className="mt-1 bg-green-500/20 text-green-400 text-xs">Owned</Badge>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant={pending ? "destructive" : "outline"}
+                              className="mt-1 h-7 text-xs"
+                              onClick={() => toggleUpgradePurchase(machine.type)}
+                            >
+                              {pending ? "Cancel" : "Purchase"}
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-emerald-400 font-medium">{machine.cost}</p>
-                        <Button size="sm" variant="outline" className="mt-1 h-7 text-xs">
-                          Purchase
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </CardContent>
               </Card>
 
@@ -1847,20 +1880,32 @@ export default function FactoryPage({ params }: PageProps) {
                     { name: "Clean Room Unit", cost: "$15M", benefit: "-4% defects", type: "clean_room_unit" },
                     { name: "Packaging System", cost: "$2.5M", benefit: "-5% shipping", type: "packaging_system" },
                     { name: "Forklift Fleet", cost: "$1M", benefit: "-10% shipping", type: "forklift_fleet" },
-                  ].map((machine) => (
-                    <div key={machine.type} className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg">
-                      <div>
-                        <p className="text-white font-medium">{machine.name}</p>
-                        <p className="text-slate-400 text-sm">{machine.benefit}</p>
+                  ].map((machine) => {
+                    const { installed, pending } = isUpgradePurchased(machine.type);
+                    return (
+                      <div key={machine.type} className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg">
+                        <div>
+                          <p className="text-white font-medium">{machine.name}</p>
+                          <p className="text-slate-400 text-sm">{machine.benefit}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-emerald-400 font-medium">{machine.cost}</p>
+                          {installed ? (
+                            <Badge className="mt-1 bg-green-500/20 text-green-400 text-xs">Owned</Badge>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant={pending ? "destructive" : "outline"}
+                              className="mt-1 h-7 text-xs"
+                              onClick={() => toggleUpgradePurchase(machine.type)}
+                            >
+                              {pending ? "Cancel" : "Purchase"}
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-emerald-400 font-medium">{machine.cost}</p>
-                        <Button size="sm" variant="outline" className="mt-1 h-7 text-xs">
-                          Purchase
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </CardContent>
               </Card>
             </div>
@@ -2791,7 +2836,12 @@ export default function FactoryPage({ params }: PageProps) {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-slate-300">Investment Amount</span>
-                <span className="text-green-400 font-semibold">{formatCurrency(esgInvestment)}</span>
+                <Input
+                  type="number"
+                  value={esgInvestment}
+                  onChange={(e) => setEsgInvestment(Math.max(0, Math.min(5000000, Number(e.target.value) || 0)))}
+                  className="w-32 h-8 text-right bg-slate-700 border-slate-600 text-green-400 font-semibold"
+                />
               </div>
               <Slider
                 value={[esgInvestment]}

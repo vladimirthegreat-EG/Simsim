@@ -192,7 +192,9 @@ export class MarketSimulator {
         return { teamId: t.id, totalShare };
       });
 
-      const avgShare = teamTotalShares.reduce((sum, t) => sum + t.totalShare, 0) / teamTotalShares.length;
+      const avgShare = teamTotalShares.length > 0
+        ? teamTotalShares.reduce((sum, t) => sum + t.totalShare, 0) / teamTotalShares.length
+        : 0;
 
       // Check if rubber-banding should be applied
       const needsRubberBanding = teamTotalShares.some(

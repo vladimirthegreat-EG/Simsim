@@ -12,6 +12,8 @@ import { trpc } from "@/lib/api/trpc";
 import { toast } from "sonner";
 import { ComplexitySelector } from "@/components/facilitator/ComplexitySelector";
 import { GameComplexitySettings, getComplexitySettings } from "@/engine/types";
+import { PRESET_LIST, type GamePreset } from "@/engine/config/gamePresets";
+import { Zap, Settings, Rocket } from "lucide-react";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -20,6 +22,7 @@ export default function AdminDashboard() {
   const [complexitySettings, setComplexitySettings] = useState<GameComplexitySettings>(
     getComplexitySettings("standard")
   );
+  const [selectedPreset, setSelectedPreset] = useState<GamePreset | null>(null);
 
   const { data: session, isLoading: sessionLoading } = trpc.facilitator.checkSession.useQuery();
   const { data: stats, isLoading: statsLoading } = trpc.facilitator.getDashboardStats.useQuery(
@@ -33,6 +36,7 @@ export default function AdminDashboard() {
       setIsCreateDialogOpen(false);
       setNewGameName("");
       setComplexitySettings(getComplexitySettings("standard")); // Reset
+      setSelectedPreset(null);
       router.push(`/admin/games/${data.game.id}`);
     },
     onError: (error) => {
@@ -68,6 +72,7 @@ export default function AdminDashboard() {
     createGame.mutate({
       name: newGameName.trim(),
       complexitySettings: complexitySettings,
+      ...(selectedPreset && { gamePresetId: selectedPreset.id }),
     });
   };
 
@@ -170,6 +175,42 @@ export default function AdminDashboard() {
                     onChange={(e) => setNewGameName(e.target.value)}
                     className="bg-slate-700 border-slate-600 text-white"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-slate-300">Game Mode</Label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {PRESET_LIST.map((preset) => {
+                      const isSelected = selectedPreset?.id === preset.id;
+                      const Icon = preset.id === "quick" ? Zap : preset.id === "full" ? Rocket : Settings;
+                      const borderColor = preset.id === "quick" ? "border-green-500" : preset.id === "full" ? "border-purple-500" : "border-blue-500";
+                      const iconColor = preset.id === "quick" ? "text-green-400" : preset.id === "full" ? "text-purple-400" : "text-blue-400";
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => setSelectedPreset(isSelected ? null : preset)}
+                          className={`p-3 rounded-lg border-2 text-left transition-all ${
+                            isSelected
+                              ? `${borderColor} bg-slate-700`
+                              : "border-slate-600 bg-slate-700/50 hover:border-slate-500"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <Icon className={`w-4 h-4 ${iconColor}`} />
+                            <span className="text-white text-sm font-medium">{preset.name}</span>
+                          </div>
+                          <p className="text-slate-400 text-xs">{preset.rounds} rounds</p>
+                          <p className="text-slate-500 text-xs mt-1 line-clamp-2">{preset.description}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedPreset && (
+                    <div className="text-xs text-slate-400 mt-1">
+                      {selectedPreset.details.join(" · ")}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">

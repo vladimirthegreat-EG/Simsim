@@ -437,6 +437,6 @@ export class BalanceSheetEngine {
     statement: BalanceSheet,
     sharesOutstanding: number
   ): number {
-    return statement.equity.total / sharesOutstanding;
+    return sharesOutstanding > 0 ? statement.equity.total / sharesOutstanding : 0;
   }
 }
