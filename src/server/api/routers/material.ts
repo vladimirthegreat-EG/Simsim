@@ -16,7 +16,7 @@ export const materialRouter = createTRPCRouter({
    * Get current materials state for the team
    */
   getMaterialsState: teamProcedure.query(async ({ ctx }) => {
-    const state = ctx.team.currentState as unknown as TeamState;
+    const state = JSON.parse(ctx.team.currentState as string) as TeamState;
 
     // Initialize materials state if it doesn't exist
     if (!state.materials) {
@@ -63,7 +63,7 @@ export const materialRouter = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
-      const state = ctx.team.currentState as unknown as TeamState;
+      const state = JSON.parse(ctx.team.currentState as string) as TeamState;
       const currentRound = ctx.game.currentRound;
       const inventory = state.materials?.inventory || [];
 
@@ -113,7 +113,7 @@ export const materialRouter = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
-      const state = ctx.team.currentState as unknown as TeamState;
+      const state = JSON.parse(ctx.team.currentState as string) as TeamState;
       const currentRound = ctx.game.currentRound;
       const tariffState = state.tariffs || TariffEngine.initializeTariffState();
 
@@ -149,7 +149,7 @@ export const materialRouter = createTRPCRouter({
         });
       }
 
-      const state = ctx.team.currentState as unknown as TeamState;
+      const state = JSON.parse(ctx.team.currentState as string) as TeamState;
       const currentRound = ctx.game.currentRound;
       const teamRegion = state.materials?.region || "North America";
 
@@ -200,7 +200,7 @@ export const materialRouter = createTRPCRouter({
       // Save updated state
       await ctx.prisma.team.update({
         where: { id: ctx.team.id },
-        data: { currentState: state as any },
+        data: { currentState: JSON.stringify(state) },
       });
 
       return {
@@ -223,7 +223,7 @@ export const materialRouter = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
-      const state = ctx.team.currentState as unknown as TeamState;
+      const state = JSON.parse(ctx.team.currentState as string) as TeamState;
       const currentRound = ctx.game.currentRound;
       const tariffState = state.tariffs || TariffEngine.initializeTariffState();
 
