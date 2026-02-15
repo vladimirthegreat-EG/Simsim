@@ -246,10 +246,10 @@ describe("E2E Game Flow", () => {
 
   describe("Initial State Verification", () => {
     it("should initialize all teams with equal starting conditions", () => {
-      expect(alphaState.cash).toBe(200_000_000);
-      expect(betaState.cash).toBe(200_000_000);
-      expect(gammaState.cash).toBe(200_000_000);
-      expect(deltaState.cash).toBe(200_000_000);
+      expect(alphaState.cash).toBe(175_000_000);
+      expect(betaState.cash).toBe(175_000_000);
+      expect(gammaState.cash).toBe(175_000_000);
+      expect(deltaState.cash).toBe(175_000_000);
 
       // All teams should have 1 factory
       expect(alphaState.factories).toHaveLength(1);
@@ -549,7 +549,7 @@ describe("Simulation Engine Unit Tests", () => {
     it("should create valid initial team state", () => {
       const state = SimulationEngine.createInitialTeamState();
 
-      expect(state.cash).toBe(200_000_000);
+      expect(state.cash).toBe(175_000_000);
       expect(state.factories).toHaveLength(1);
       expect(state.factories[0].workers).toBe(50);
       expect(state.factories[0].supervisors).toBe(5);
