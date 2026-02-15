@@ -249,10 +249,12 @@ export const teamRouter = createTRPCRouter({
       },
     });
 
-    // Get all teams' latest results for rankings
+    // Get all teams' results from the last completed round for rankings
+    // After processing round N, currentRound becomes N+1, so we look at N
+    const lastCompletedRound = Math.max(1, ctx.game.currentRound - 1);
     const allTeamsResults = await ctx.prisma.roundResult.findMany({
       where: {
-        round: { roundNumber: ctx.game.currentRound, gameId: ctx.game.id },
+        round: { roundNumber: lastCompletedRound, gameId: ctx.game.id },
       },
       include: {
         team: {

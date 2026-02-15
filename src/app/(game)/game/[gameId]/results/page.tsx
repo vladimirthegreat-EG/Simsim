@@ -387,18 +387,18 @@ export default function ResultsPage({ params }: PageProps) {
                     <div>
                       <div className="flex justify-between mb-1">
                         <span className="text-slate-400 text-sm">Factory Efficiency</span>
-                        <span className="text-white text-sm">{(operationalMetrics?.avgEfficiency || 0).toFixed(0)}%</span>
+                        <span className="text-white text-sm">{((operationalMetrics?.avgEfficiency || 0) * 100).toFixed(0)}%</span>
                       </div>
-                      <Progress value={operationalMetrics?.avgEfficiency || 0} className="h-2" />
+                      <Progress value={(operationalMetrics?.avgEfficiency || 0) * 100} className="h-2" />
                     </div>
                     <div>
                       <div className="flex justify-between mb-1">
                         <span className="text-slate-400 text-sm">Quality (Defect Rate)</span>
-                        <span className={`text-sm ${(operationalMetrics?.avgDefectRate || 0) <= 3 ? 'text-green-400' : 'text-yellow-400'}`}>
-                          {(operationalMetrics?.avgDefectRate || 0).toFixed(1)}%
+                        <span className={`text-sm ${(operationalMetrics?.avgDefectRate || 0) <= 0.03 ? 'text-green-400' : 'text-yellow-400'}`}>
+                          {((operationalMetrics?.avgDefectRate || 0) * 100).toFixed(1)}%
                         </span>
                       </div>
-                      <Progress value={100 - (operationalMetrics?.avgDefectRate || 0) * 10} className="h-2" />
+                      <Progress value={100 - (operationalMetrics?.avgDefectRate || 0) * 100} className="h-2" />
                     </div>
                   </CardContent>
                 </Card>

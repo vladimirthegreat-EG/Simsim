@@ -120,7 +120,7 @@ export default function OverviewPage({ params }: PageProps) {
 
   // Calculate factory metrics
   const totalCapacity = companyState?.factories?.reduce((sum, f) => {
-    const lineCapacity = f.productionLines?.reduce((lsum, line) => lsum + (line.capacity || 0), 0) || 50000;
+    const lineCapacity = f.productionLines?.reduce((lsum, line) => lsum + (line.capacity || 0), 0) || 0;
     return sum + lineCapacity;
   }, 0) || 0;
 
