@@ -56,51 +56,60 @@ export default function ResultsPage({ params }: PageProps) {
     rank: number;
   }
 
-  // Get history data (use mock data if no real data yet)
+  // Get history data from real performance data
   const historyData: HistoryDataPoint[] = performanceData?.history?.length
-    ? performanceData.history.map((h) => ({
-        round: h.round,
-        revenue: (h as unknown as Record<string, number>).revenue || 0,
-        netIncome: (h as unknown as Record<string, number>).netIncome || 0,
-        cash: (h as unknown as Record<string, number>).cash || 0,
-        marketShare: (h as unknown as Record<string, number>).marketShare || 0,
-        rank: h.rank,
-      }))
-    : Array.from({ length: Math.max(1, currentRound - 1) }, (_, i) => ({
-        round: i + 1,
-        revenue: 50_000_000 + i * 15_000_000 + Math.random() * 10_000_000,
-        netIncome: 5_000_000 + i * 2_000_000 + Math.random() * 3_000_000,
-        cash: 200_000_000 - i * 10_000_000 + Math.random() * 20_000_000,
-        marketShare: 0.15 + i * 0.02 + Math.random() * 0.03,
-        rank: Math.max(1, 3 - i),
-      }));
+    ? performanceData.history.map((h) => {
+        const metrics = h as unknown as Record<string, unknown>;
+        const ms = typeof metrics.marketShare === 'object' && metrics.marketShare
+          ? Object.values(metrics.marketShare as Record<string, number>).reduce((a, b) => a + b, 0) /
+            Math.max(1, Object.keys(metrics.marketShare as Record<string, number>).length)
+          : (metrics.marketShare as number) || 0;
+        return {
+          round: h.round,
+          revenue: (metrics.revenue as number) || 0,
+          netIncome: (metrics.netIncome as number) || 0,
+          cash: (metrics.cash as number) || 0,
+          marketShare: ms,
+          rank: h.rank,
+        };
+      })
+    : [];
 
   // Current rankings
   const rankings = performanceData?.currentRankings?.length
-    ? performanceData.currentRankings.map((r) => ({
-        id: r.teamId,
-        name: r.teamName,
-        color: r.teamColor,
-        rank: r.rank,
-        marketShare: r.metrics?.marketShare || 0.2,
-        revenue: r.metrics?.revenue || 50_000_000,
-      }))
+    ? performanceData.currentRankings.map((r) => {
+        const metrics = typeof r.metrics === 'string' ? JSON.parse(r.metrics) : (r.metrics || {});
+        const ms = typeof metrics.marketShare === 'object' && metrics.marketShare
+          ? Object.values(metrics.marketShare as Record<string, number>).reduce((a, b) => a + b, 0) /
+            Math.max(1, Object.keys(metrics.marketShare as Record<string, number>).length)
+          : (metrics.marketShare as number) || 0;
+        return {
+          id: r.teamId,
+          name: r.teamName,
+          color: r.teamColor,
+          rank: r.rank,
+          marketShare: ms,
+          revenue: (metrics.revenue as number) || 0,
+        };
+      })
     : teamState?.game.teams?.map((t: { id: string; name: string; color: string }, idx: number) => ({
         id: t.id,
         name: t.name,
         color: t.color,
-        rank: idx + 1,
-        marketShare: 0.15 + Math.random() * 0.1,
-        revenue: 50_000_000 + Math.random() * 100_000_000,
+        rank: 0,
+        marketShare: 0,
+        revenue: 0,
         isCurrentTeam: t.id === teamState.team.id,
       })) || [];
 
-  // Market share pie data
-  const marketShareData = rankings.map((t) => ({
-    name: t.name,
-    value: t.marketShare,
-    color: t.color,
-  }));
+  // Market share pie data (only teams with actual share)
+  const marketShareData = rankings
+    .filter((t) => t.marketShare > 0)
+    .map((t) => ({
+      name: t.name,
+      value: t.marketShare,
+      color: t.color,
+    }));
 
   // Round-over-round comparison
   const roundComparison = historyData.map((r, idx) => ({

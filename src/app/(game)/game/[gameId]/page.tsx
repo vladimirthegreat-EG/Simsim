@@ -90,6 +90,10 @@ export default function OverviewPage({ params }: PageProps) {
   const { gameId } = use(params);
 
   const { data: teamState, isLoading } = trpc.team.getMyState.useQuery();
+  const { data: performanceData } = trpc.team.getPerformanceHistory.useQuery(
+    undefined,
+    { enabled: !!teamState }
+  );
 
   // Parse the team's current state from JSON with proper typing
   const companyState = (typeof teamState?.state === 'string'
@@ -112,11 +116,11 @@ export default function OverviewPage({ params }: PageProps) {
   const totalCapacity = companyState?.factories?.reduce((sum, f) => {
     const lineCapacity = f.productionLines?.reduce((lsum, line) => lsum + (line.capacity || 0), 0) || 50000;
     return sum + lineCapacity;
-  }, 0) || 50000;
+  }, 0) || 0;
 
   const avgEfficiency = companyState?.factories?.length
     ? companyState.factories.reduce((sum, f) => sum + f.efficiency, 0) / companyState.factories.length
-    : 0.7;
+    : 0;
 
   // Calculate total market share (average across segments)
   const totalMarketShare = companyState?.marketShare
@@ -137,45 +141,75 @@ export default function OverviewPage({ params }: PageProps) {
 
   const currentRound = teamState?.game.currentRound || 1;
 
-  // Mock historical data for demonstration (in production, this comes from roundResults)
-  const historicalData = Array.from({ length: currentRound }, (_, i) => ({
-    round: i + 1,
-    revenue: (companyState?.revenue || 0) * (0.5 + (i * 0.1)),
-    netIncome: (companyState?.netIncome || 0) * (0.3 + (i * 0.15)),
-    cash: (companyState?.cash || 200_000_000) * (0.8 + (i * 0.05)),
-    marketShare: totalMarketShare * (0.7 + (i * 0.1)),
-  }));
+  // Real historical data from round results
+  const historicalData = performanceData?.history?.length
+    ? performanceData.history.map((h: Record<string, unknown>) => ({
+        round: h.round as number,
+        revenue: (h.revenue as number) || 0,
+        netIncome: (h.netIncome as number) || 0,
+        cash: (h.cash as number) || (companyState?.cash || 0),
+        marketShare: typeof h.marketShare === 'object' && h.marketShare
+          ? Object.values(h.marketShare as Record<string, number>).reduce((a, b) => a + b, 0) /
+            Math.max(1, Object.keys(h.marketShare as Record<string, number>).length)
+          : (h.marketShare as number) || 0,
+      }))
+    : [];
 
-  // Current round result for display
+  // Real rank from most recent round result
+  const latestResult = teamState?.recentResults?.[0];
+  const latestMetrics = latestResult?.metrics
+    ? (typeof latestResult.metrics === 'string' ? JSON.parse(latestResult.metrics) : latestResult.metrics) as Record<string, unknown>
+    : null;
+
   const currentRoundResult = {
     round: currentRound,
     revenue: companyState?.revenue || 0,
     netIncome: companyState?.netIncome || 0,
     marketShare: totalMarketShare,
-    rank: 1, // Would come from API
-    totalTeams: teamState?.game.teams?.length || 3,
-    cashChange: (companyState?.revenue || 0) - (companyState?.totalLiabilities || 0) * 0.1,
-    stockPriceChange: 2.5,
+    rank: latestResult?.rank || 0,
+    totalTeams: teamState?.game.teams?.length || 1,
+    cashChange: (latestMetrics?.revenue as number) || 0,
+    stockPriceChange: 0,
   };
 
-  // Mock team rankings (in production, comes from game state)
-  const teamRankings = teamState?.game.teams?.map((t: { id: string; name: string; color: string }, idx: number) => ({
-    id: t.id,
-    name: t.name,
-    color: t.color,
-    rank: idx + 1,
-    previousRank: idx + 1,
-    marketShare: t.id === teamState.team.id ? totalMarketShare : 0.15 + Math.random() * 0.1,
-    revenue: t.id === teamState.team.id ? (companyState?.revenue || 0) : 50_000_000 + Math.random() * 100_000_000,
-    isCurrentTeam: t.id === teamState.team.id,
-  })) || [];
+  // Real team rankings from performance history
+  const teamRankings = performanceData?.currentRankings?.length
+    ? performanceData.currentRankings.map((r: { teamId: string; teamName: string; teamColor: string; rank: number; metrics: Record<string, unknown> }) => {
+        const metrics = typeof r.metrics === 'string' ? JSON.parse(r.metrics) : r.metrics;
+        const ms = typeof metrics.marketShare === 'object' && metrics.marketShare
+          ? Object.values(metrics.marketShare as Record<string, number>).reduce((a, b) => a + b, 0) /
+            Math.max(1, Object.keys(metrics.marketShare as Record<string, number>).length)
+          : (metrics.marketShare as number) || 0;
+        return {
+          id: r.teamId,
+          name: r.teamName,
+          color: r.teamColor,
+          rank: r.rank,
+          previousRank: r.rank,
+          marketShare: ms,
+          revenue: (metrics.revenue as number) || 0,
+          isCurrentTeam: r.teamId === teamState?.team.id,
+        };
+      })
+    : teamState?.game.teams?.map((t: { id: string; name: string; color: string }) => ({
+        id: t.id,
+        name: t.name,
+        color: t.color,
+        rank: 0,
+        previousRank: 0,
+        marketShare: t.id === teamState.team.id ? totalMarketShare : 0,
+        revenue: t.id === teamState.team.id ? (companyState?.revenue || 0) : 0,
+        isCurrentTeam: t.id === teamState.team.id,
+      })) || [];
 
-  // Market share data for pie chart
-  const marketShareData = teamRankings.map((t) => ({
-    name: t.name,
-    value: t.marketShare,
-    color: t.color,
-  }));
+  // Market share data for pie chart (real data)
+  const marketShareData = teamRankings
+    .filter((t) => t.marketShare > 0)
+    .map((t) => ({
+      name: t.name,
+      value: t.marketShare,
+      color: t.color,
+    }));
 
   // Loading state
   if (isLoading) {
@@ -216,19 +250,28 @@ export default function OverviewPage({ params }: PageProps) {
       {currentRound > 1 && (
         <RoundResultsCard
           result={currentRoundResult}
-          previousResult={currentRound > 2 ? { ...currentRoundResult, round: currentRound - 1, revenue: currentRoundResult.revenue * 0.9 } : undefined}
+          previousResult={historicalData.length >= 2 ? {
+            round: historicalData[historicalData.length - 2].round,
+            revenue: historicalData[historicalData.length - 2].revenue,
+            netIncome: historicalData[historicalData.length - 2].netIncome,
+            marketShare: historicalData[historicalData.length - 2].marketShare,
+            rank: 0,
+            totalTeams: currentRoundResult.totalTeams,
+            cashChange: 0,
+            stockPriceChange: 0,
+          } : undefined}
         />
       )}
 
       {/* ESG Notifications */}
-      <ESGNotification esgScore={companyState?.esgScore || 500} />
+      <ESGNotification esgScore={companyState?.esgScore || 0} />
 
       {/* Key Metrics Grid - Enhanced with StatCard */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div data-testid="stat-cash">
           <StatCard
             label="Cash"
-            value={formatCurrency(companyState?.cash || 200_000_000)}
+            value={formatCurrency(companyState?.cash || 0)}
             icon={<DollarSign className="w-5 h-5" />}
             variant="success"
           />
@@ -236,7 +279,7 @@ export default function OverviewPage({ params }: PageProps) {
         <div data-testid="stat-factories">
           <StatCard
             label="Factories"
-            value={companyState?.factories?.length || 1}
+            value={companyState?.factories?.length || 0}
             icon={<Factory className="w-5 h-5" />}
             variant="warning"
           />
@@ -252,7 +295,7 @@ export default function OverviewPage({ params }: PageProps) {
         <div data-testid="stat-esg">
           <StatCard
             label="ESG Score"
-            value={companyState?.esgScore || 100}
+            value={companyState?.esgScore || 0}
             suffix="/1000"
             icon={<Leaf className="w-5 h-5" />}
             variant="success"
@@ -327,7 +370,7 @@ export default function OverviewPage({ params }: PageProps) {
                 <span className="text-slate-300">Total Assets</span>
               </div>
               <span className="text-white font-medium" data-testid="stat-total-assets-value">
-                {formatCurrency(companyState?.totalAssets || 250_000_000)}
+                {formatCurrency(companyState?.totalAssets || 0)}
               </span>
             </div>
             <div data-testid="stat-total-liabilities" className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
@@ -351,7 +394,7 @@ export default function OverviewPage({ params }: PageProps) {
           </CardHeader>
           <CardContent className="space-y-5">
             <EnhancedProgress
-              value={(companyState?.brandValue || 0.5) * 100}
+              value={(companyState?.brandValue || 0) * 100}
               variant="gradient"
               size="md"
               showLabel
@@ -375,7 +418,7 @@ export default function OverviewPage({ params }: PageProps) {
               showLabel
               showValue
               label="ESG Rating"
-              formatValue={() => `${companyState?.esgScore || 100} / 1000`}
+              formatValue={() => `${companyState?.esgScore || 0} / 1000`}
             />
             <EnhancedProgress
               value={totalMarketShare * 100}
@@ -418,26 +461,17 @@ export default function OverviewPage({ params }: PageProps) {
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-400">Capacity</span>
                       <span className="text-blue-400">
-                        {(factory.productionLines?.reduce((sum, line) => sum + (line.capacity || 0), 0) || 50000).toLocaleString()} units
+                        {(factory.productionLines?.reduce((sum, line) => sum + (line.capacity || 0), 0) || 0).toLocaleString()} units
                       </span>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="p-3 bg-slate-700/50 rounded-lg">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-white font-medium">Main Factory</span>
-                  <span className="text-xs text-slate-400">North America</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Efficiency</span>
-                  <span className="text-green-400">70%</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Capacity</span>
-                  <span className="text-blue-400">50,000 units/day</span>
-                </div>
+              <div className="text-center py-8 text-slate-400">
+                <Factory className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>No factories yet</p>
+                <p className="text-sm mt-1">Visit Factory to build your first factory</p>
               </div>
             )}
             <div className="mt-4 pt-4 border-t border-slate-700">
@@ -528,7 +562,7 @@ export default function OverviewPage({ params }: PageProps) {
             </div>
             <div className="text-center p-4 bg-slate-700/50 rounded-lg">
               <div className="text-3xl font-bold text-green-400">
-                {companyState?.workforce?.averageMorale?.toFixed(0) || 75}%
+                {companyState?.workforce?.averageMorale?.toFixed(0) || 0}%
               </div>
               <div className="text-slate-400 text-sm">Avg Morale</div>
             </div>
