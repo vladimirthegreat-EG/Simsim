@@ -12,7 +12,7 @@ import { trpc } from "@/lib/api/trpc";
 import { toast } from "sonner";
 import { ComplexitySelector } from "@/components/facilitator/ComplexitySelector";
 import { GameComplexitySettings, getComplexitySettings } from "@/engine/types";
-import { PRESET_LIST, type GamePreset } from "@/engine/config/gamePresets";
+import { PRESET_LIST, GAME_PRESETS, type GamePreset } from "@/engine/config/gamePresets";
 import { Zap, Settings, Rocket } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -22,7 +22,7 @@ export default function AdminDashboard() {
   const [complexitySettings, setComplexitySettings] = useState<GameComplexitySettings>(
     getComplexitySettings("standard")
   );
-  const [selectedPreset, setSelectedPreset] = useState<GamePreset | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<GamePreset | null>(GAME_PRESETS.standard);
 
   const { data: session, isLoading: sessionLoading } = trpc.facilitator.checkSession.useQuery();
   const { data: stats, isLoading: statsLoading } = trpc.facilitator.getDashboardStats.useQuery(

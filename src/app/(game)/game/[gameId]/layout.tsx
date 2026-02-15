@@ -116,11 +116,9 @@ export default function GamePageLayout({ children, params }: LayoutProps) {
       const config = typeof teamState.game.config === 'string'
         ? JSON.parse(teamState.game.config)
         : teamState.game.config;
-      const depth = config?.tutorialDepth;
-      if (depth === "light" || depth === "medium" || depth === "full") {
-        tutorialStarted.current = true;
-        useTutorialStore.getState().startTutorial(depth);
-      }
+      const depth = config?.tutorialDepth || "medium"; // Default to medium if no preset was selected
+      tutorialStarted.current = true;
+      useTutorialStore.getState().startTutorial(depth);
     } catch {
       // Ignore parse errors
     }
