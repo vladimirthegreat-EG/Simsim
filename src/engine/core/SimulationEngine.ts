@@ -536,6 +536,7 @@ export class SimulationEngine {
       engineers?: number;
       supervisors?: number;
       includeProducts?: boolean;
+      startingSegments?: number;
       brandValue?: number;
     },
   ): TeamState {
@@ -543,106 +544,52 @@ export class SimulationEngine {
     const engineers = presetConfig?.engineers ?? 8;
     const supervisors = presetConfig?.supervisors ?? 5;
     const includeProducts = presetConfig?.includeProducts ?? true;
+    const numSegments = presetConfig?.startingSegments ?? 5;
     const brandVal = presetConfig?.brandValue ?? 0.5;
+
+    // All 5 segments in priority order (General & Budget first as entry-level)
+    const ALL_SEGMENT_DEFS = [
+      { segment: "General" as const, id: "initial-product", name: "Standard Phone", price: 450, quality: 65, features: 50, reliability: 70 },
+      { segment: "Budget" as const, id: "budget-product", name: "Budget Phone", price: 200, quality: 50, features: 30, reliability: 60 },
+      { segment: "Enthusiast" as const, id: "enthusiast-product", name: "Pro Phone", price: 800, quality: 80, features: 70, reliability: 75 },
+      { segment: "Professional" as const, id: "professional-product", name: "Enterprise Phone", price: 1250, quality: 90, features: 85, reliability: 90 },
+      { segment: "Active Lifestyle" as const, id: "active-product", name: "Active Phone", price: 600, quality: 70, features: 60, reliability: 80 },
+    ];
+
+    // Pick segments based on startingSegments count
+    const activeSegments = ALL_SEGMENT_DEFS.slice(0, numSegments);
 
     const defaultFactory = FactoryModule.createNewFactory("Main Factory", "North America", 0);
     defaultFactory.workers = workers;
     defaultFactory.supervisors = supervisors;
     defaultFactory.engineers = engineers;
 
-    // Add initial production line only if we have workers
-    defaultFactory.productionLines = workers > 0 ? [{
-      id: "line-1",
-      segment: "General",
-      productId: "initial-product",
-      capacity: 50000,  // 50K units per round
+    // Create one production line per active segment
+    defaultFactory.productionLines = activeSegments.map((seg, i) => ({
+      id: `line-${i + 1}`,
+      segment: seg.segment,
+      productId: seg.id,
+      capacity: 50000,
       efficiency: 0.7,
-    }] : [];
+    }));
 
-    // Create initial products for each segment so teams can compete in all markets
-    // All start as "launched" since they're starter products
-    const initialProducts = [
-      {
-        id: "initial-product",
-        name: "Standard Phone",
-        segment: "General" as const,
-        price: 450,
-        quality: 65,
-        features: 50,
-        reliability: 70,
-        developmentRound: 0,
-        developmentStatus: "launched" as const,
-        developmentProgress: 100,
-        targetQuality: 65,
-        targetFeatures: 50,
-        roundsRemaining: 0,
-        unitCost: CONSTANTS.RAW_MATERIAL_COST_PER_UNIT["General"] + CONSTANTS.LABOR_COST_PER_UNIT + CONSTANTS.OVERHEAD_COST_PER_UNIT,
-      },
-      {
-        id: "budget-product",
-        name: "Budget Phone",
-        segment: "Budget" as const,
-        price: 200,
-        quality: 50,
-        features: 30,
-        reliability: 60,
-        developmentRound: 0,
-        developmentStatus: "launched" as const,
-        developmentProgress: 100,
-        targetQuality: 50,
-        targetFeatures: 30,
-        roundsRemaining: 0,
-        unitCost: CONSTANTS.RAW_MATERIAL_COST_PER_UNIT["Budget"] + CONSTANTS.LABOR_COST_PER_UNIT + CONSTANTS.OVERHEAD_COST_PER_UNIT,
-      },
-      {
-        id: "enthusiast-product",
-        name: "Pro Phone",
-        segment: "Enthusiast" as const,
-        price: 800,
-        quality: 80,
-        features: 70,
-        reliability: 75,
-        developmentRound: 0,
-        developmentStatus: "launched" as const,
-        developmentProgress: 100,
-        targetQuality: 80,
-        targetFeatures: 70,
-        roundsRemaining: 0,
-        unitCost: CONSTANTS.RAW_MATERIAL_COST_PER_UNIT["Enthusiast"] + CONSTANTS.LABOR_COST_PER_UNIT + CONSTANTS.OVERHEAD_COST_PER_UNIT,
-      },
-      {
-        id: "professional-product",
-        name: "Enterprise Phone",
-        segment: "Professional" as const,
-        price: 1250,
-        quality: 90,
-        features: 85,
-        reliability: 90,
-        developmentRound: 0,
-        developmentStatus: "launched" as const,
-        developmentProgress: 100,
-        targetQuality: 90,
-        targetFeatures: 85,
-        roundsRemaining: 0,
-        unitCost: CONSTANTS.RAW_MATERIAL_COST_PER_UNIT["Professional"] + CONSTANTS.LABOR_COST_PER_UNIT + CONSTANTS.OVERHEAD_COST_PER_UNIT,
-      },
-      {
-        id: "active-product",
-        name: "Active Phone",
-        segment: "Active Lifestyle" as const,
-        price: 600,
-        quality: 70,
-        features: 60,
-        reliability: 80,
-        developmentRound: 0,
-        developmentStatus: "launched" as const,
-        developmentProgress: 100,
-        targetQuality: 70,
-        targetFeatures: 60,
-        roundsRemaining: 0,
-        unitCost: CONSTANTS.RAW_MATERIAL_COST_PER_UNIT["Active Lifestyle"] + CONSTANTS.LABOR_COST_PER_UNIT + CONSTANTS.OVERHEAD_COST_PER_UNIT,
-      },
-    ];
+    // Create products only for active segments
+    const initialProducts = activeSegments.map((seg) => ({
+      id: seg.id,
+      name: seg.name,
+      segment: seg.segment,
+      price: seg.price,
+      quality: seg.quality,
+      features: seg.features,
+      reliability: seg.reliability,
+      developmentRound: 0,
+      developmentStatus: "launched" as const,
+      developmentProgress: 100,
+      targetQuality: seg.quality,
+      targetFeatures: seg.features,
+      roundsRemaining: 0,
+      unitCost: CONSTANTS.RAW_MATERIAL_COST_PER_UNIT[seg.segment] + CONSTANTS.LABOR_COST_PER_UNIT + CONSTANTS.OVERHEAD_COST_PER_UNIT,
+    }));
 
     // Default benefits package
     const defaultBenefits = {

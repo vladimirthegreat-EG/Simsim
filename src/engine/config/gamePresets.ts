@@ -19,6 +19,8 @@ export interface GamePreset {
   startingSupervisors: number;
   starterMachines: boolean;
   starterProducts: "all" | "none";
+  /** How many segments the team starts with production lines & products for (0-5) */
+  startingSegments: number;
   startingBrandValue: number;
   tutorialDepth: "light" | "medium" | "full";
   immediateFirstRound: boolean;
@@ -32,8 +34,8 @@ export const GAME_PRESETS: Record<string, GamePreset> = {
     description: "Jump right into a running company. Focus on strategy and optimization.",
     details: [
       "16 rounds (~40-80 min)",
-      "Pre-built: 5 products, equipment, 63 workers",
-      "All market segments unlocked",
+      "Pre-built: 5 products, equipment, 63 staff",
+      "All 5 market segments active",
       "Brief overview tutorial",
     ],
     startingCash: 175_000_000,
@@ -42,6 +44,7 @@ export const GAME_PRESETS: Record<string, GamePreset> = {
     startingSupervisors: 5,
     starterMachines: true,
     starterProducts: "all",
+    startingSegments: 5,
     startingBrandValue: 0.5,
     tutorialDepth: "light",
     immediateFirstRound: true,
@@ -51,20 +54,21 @@ export const GAME_PRESETS: Record<string, GamePreset> = {
     id: "standard",
     name: "Standard Game",
     rounds: 24,
-    description: "Pre-built company with a guided introduction to all game systems.",
+    description: "Start with a small operation and grow into new segments.",
     details: [
       "24 rounds (~60-120 min)",
-      "Pre-built: 5 products, equipment, 63 workers",
-      "All market segments unlocked",
+      "Starter company: 2 products, 26 staff",
+      "General & Budget segments active",
       "Guided tutorial covering key mechanics",
     ],
     startingCash: 175_000_000,
-    startingWorkers: 50,
-    startingEngineers: 8,
-    startingSupervisors: 5,
+    startingWorkers: 20,
+    startingEngineers: 4,
+    startingSupervisors: 2,
     starterMachines: true,
     starterProducts: "all",
-    startingBrandValue: 0.5,
+    startingSegments: 2,
+    startingBrandValue: 0.3,
     tutorialDepth: "medium",
     immediateFirstRound: true,
   },
@@ -86,6 +90,7 @@ export const GAME_PRESETS: Record<string, GamePreset> = {
     startingSupervisors: 0,
     starterMachines: false,
     starterProducts: "none",
+    startingSegments: 0,
     startingBrandValue: 0,
     tutorialDepth: "full",
     immediateFirstRound: true,

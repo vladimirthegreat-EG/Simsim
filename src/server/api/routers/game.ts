@@ -305,7 +305,8 @@ export const gameRouter = createTRPCRouter({
         workers: gamePreset.startingWorkers,
         engineers: gamePreset.startingEngineers,
         supervisors: gamePreset.startingSupervisors,
-        includeProducts: gamePreset.starterProducts === "all",
+        includeProducts: gamePreset.starterProducts === "all" || gamePreset.startingSegments > 0,
+        startingSegments: gamePreset.startingSegments,
         brandValue: gamePreset.startingBrandValue,
       } : undefined;
 
