@@ -517,21 +517,42 @@ export class SimulationEngine {
 
   /**
    * Initialize a new team state with default values
+   *
+   * @param config - Optional partial TeamState overrides (e.g. custom starting cash)
+   * @param presetConfig - Optional preset configuration for different game modes:
+   *   - workers/engineers/supervisors: Starting headcount (0 for clean-slate)
+   *   - includeProducts: Whether to include starter products (false for clean-slate)
+   *   - brandValue: Starting brand value (0 for clean-slate, 0.5 for pre-built)
    */
-  static createInitialTeamState(config?: Partial<TeamState>): TeamState {
-    const defaultFactory = FactoryModule.createNewFactory("Main Factory", "North America", 0);
-    defaultFactory.workers = 50;
-    defaultFactory.supervisors = 5;
-    defaultFactory.engineers = 8;
+  static createInitialTeamState(
+    config?: Partial<TeamState>,
+    presetConfig?: {
+      workers?: number;
+      engineers?: number;
+      supervisors?: number;
+      includeProducts?: boolean;
+      brandValue?: number;
+    },
+  ): TeamState {
+    const workers = presetConfig?.workers ?? 50;
+    const engineers = presetConfig?.engineers ?? 8;
+    const supervisors = presetConfig?.supervisors ?? 5;
+    const includeProducts = presetConfig?.includeProducts ?? true;
+    const brandVal = presetConfig?.brandValue ?? 0.5;
 
-    // Add initial production line for the General segment
-    defaultFactory.productionLines = [{
+    const defaultFactory = FactoryModule.createNewFactory("Main Factory", "North America", 0);
+    defaultFactory.workers = workers;
+    defaultFactory.supervisors = supervisors;
+    defaultFactory.engineers = engineers;
+
+    // Add initial production line only if we have workers
+    defaultFactory.productionLines = workers > 0 ? [{
       id: "line-1",
       segment: "General",
       productId: "initial-product",
       capacity: 50000,  // 50K units per round
       efficiency: 0.7,
-    }];
+    }] : [];
 
     // Create initial products for each segment so teams can compete in all markets
     // All start as "launched" since they're starter products
@@ -681,16 +702,16 @@ export class SimulationEngine {
       // Initialize tariff state
       tariffs: TariffEngine.initializeTariffState(),
       factories: [defaultFactory],
-      products: config?.products ?? initialProducts,
+      products: config?.products ?? (includeProducts ? initialProducts : []),
       employees: [],
       workforce: {
-        totalHeadcount: 63,
-        averageMorale: 75,
-        averageEfficiency: 70,
-        laborCost: CONSTANTS.DEFAULT_LABOR_COST,
-        turnoverRate: CONSTANTS.BASE_TURNOVER_RATE,
+        totalHeadcount: workers + engineers + supervisors,
+        averageMorale: (workers + engineers + supervisors) > 0 ? 75 : 0,
+        averageEfficiency: (workers + engineers + supervisors) > 0 ? 70 : 0,
+        laborCost: (workers + engineers + supervisors) > 0 ? CONSTANTS.DEFAULT_LABOR_COST : 0,
+        turnoverRate: (workers + engineers + supervisors) > 0 ? CONSTANTS.BASE_TURNOVER_RATE : 0,
       },
-      brandValue: 0.5,
+      brandValue: brandVal,
       marketShare: {} as Record<string, number>,
       rdBudget: 0,
       rdProgress: 0,

@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { SimulationEngine, type SimulationInput } from "@/engine/core/SimulationEngine";
 import type { TeamState, MarketState, AllDecisions, ComplexityPreset } from "@/engine/types";
 import { COMPLEXITY_PRESETS } from "@/engine/types";
+import { GAME_PRESETS, type GamePreset } from "@/engine/config/gamePresets";
 import { GameStatus, RoundStatus } from "../shared/constants";
 
 /**
@@ -90,7 +91,8 @@ export const gameRouter = createTRPCRouter({
     .input(
       z.object({
         name: z.string().min(1).max(100),
-        maxRounds: z.number().min(4).max(20).default(8),
+        maxRounds: z.number().min(4).max(32).default(8),
+        gamePresetId: z.enum(["quick", "standard", "full"]).optional(),
         config: z.record(z.string(), z.any()).optional(),
         complexitySettings: z.object({
           preset: z.enum(["simple", "standard", "advanced", "custom"]),
@@ -155,18 +157,23 @@ export const gameRouter = createTRPCRouter({
         ...COMPLEXITY_PRESETS.standard,
       };
 
+      // If a game preset is specified, use its rounds and starting cash
+      const gamePreset = input.gamePresetId ? GAME_PRESETS[input.gamePresetId] : undefined;
+
       const gameConfig = {
         ...DEFAULT_GAME_CONFIG,
         ...input.config,
-        startingCash: complexitySettings.difficulty.startingCash,
+        startingCash: gamePreset?.startingCash ?? complexitySettings.difficulty.startingCash,
         complexitySettings,
+        ...(input.gamePresetId && { gamePresetId: input.gamePresetId }),
+        ...(gamePreset && { tutorialDepth: gamePreset.tutorialDepth }),
       };
 
       const game = await ctx.prisma.game.create({
         data: {
           name: input.name,
           joinCode,
-          maxRounds: input.maxRounds,
+          maxRounds: gamePreset?.rounds ?? input.maxRounds,
           config: JSON.stringify(gameConfig),
           facilitatorId: ctx.facilitator.id,
         },
@@ -270,7 +277,7 @@ export const gameRouter = createTRPCRouter({
         });
       }
 
-      const config = JSON.parse(game.config) as typeof DEFAULT_GAME_CONFIG;
+      const config = JSON.parse(game.config) as typeof DEFAULT_GAME_CONFIG & { gamePresetId?: string };
       const initialMarketState = SimulationEngine.createInitialMarketState();
 
       // Create round 1
@@ -283,12 +290,23 @@ export const gameRouter = createTRPCRouter({
         },
       });
 
+      // Determine preset config for team initialization
+      const gamePreset = config.gamePresetId ? GAME_PRESETS[config.gamePresetId] : undefined;
+      const presetConfig = gamePreset ? {
+        workers: gamePreset.startingWorkers,
+        engineers: gamePreset.startingEngineers,
+        supervisors: gamePreset.startingSupervisors,
+        includeProducts: gamePreset.starterProducts === "all",
+        brandValue: gamePreset.startingBrandValue,
+      } : undefined;
+
       // Initialize all team states using consistent SimulationEngine method
-      // Apply any config overrides (e.g., custom starting cash)
+      // Apply any config overrides (e.g., custom starting cash, preset config)
       for (const team of game.teams) {
-        const initialState = SimulationEngine.createInitialTeamState({
-          cash: config.startingCash,
-        });
+        const initialState = SimulationEngine.createInitialTeamState(
+          { cash: gamePreset?.startingCash ?? config.startingCash },
+          presetConfig,
+        );
         await ctx.prisma.team.update({
           where: { id: team.id },
           data: {

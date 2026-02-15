@@ -475,7 +475,7 @@ export default function MarketingPage({ params }: PageProps) {
                             type="number"
                             min="0"
                             max="10000000"
-                            step="100000"
+                            step="50000"
                             data-testid={`input-ad-${segment.id}-${channel.id}`}
                             value={adBudgets[segment.id]?.[channel.id] || 0}
                             onChange={(e) => {
@@ -583,7 +583,7 @@ export default function MarketingPage({ params }: PageProps) {
                   value={[brandInvestment]}
                   onValueChange={(values) => setBrandInvestment(values[0])}
                   max={50000000}
-                  step={1000000}
+                  step={500000}
                   variant="default"
                 />
                 <div className="flex justify-between text-xs text-slate-400">

@@ -31,6 +31,8 @@ import { useDecisionStore, GameModule } from "@/lib/stores/decisionStore";
 import { useComplexity } from "@/lib/contexts/ComplexityContext";
 import { ComplexityPreset } from "@/engine/types";
 import { NewsTicker } from "@/components/game/NewsTicker";
+import { TutorialGuide } from "@/components/game/TutorialGuide";
+import { useTutorialStore } from "@/lib/stores/tutorialStore";
 
 // Map module IDs to store keys
 const moduleToStoreKey: Record<string, GameModule> = {
@@ -148,6 +150,7 @@ export function GameLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const submissionStatus = useDecisionStore((state) => state.submissionStatus);
   const { isModuleEnabled } = useComplexity();
+  const tutorialActive = useTutorialStore((s) => s.isActive);
 
   // Support both /game/[gameId] and /demo routes
   const basePath = gameId === "demo" ? "/demo" : `/game/${gameId}`;
@@ -349,6 +352,9 @@ export function GameLayout({
           {children}
         </motion.div>
       </main>
+
+      {/* Tutorial Overlay */}
+      {tutorialActive && <TutorialGuide gameId={gameId} />}
 
       {/* News Ticker */}
       <NewsTicker

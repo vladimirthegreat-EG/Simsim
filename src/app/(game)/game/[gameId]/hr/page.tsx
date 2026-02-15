@@ -346,13 +346,13 @@ export default function HRPage({ params }: PageProps) {
             />
             <StatCard
               label="Avg Morale"
-              value={`${(state?.workforce?.averageMorale ?? 75).toFixed(0)}%`}
+              value={`${(state?.workforce?.averageMorale ?? 0).toFixed(0)}%`}
               icon={<Heart className="w-5 h-5" />}
               variant="purple"
             />
             <StatCard
               label="Turnover Rate"
-              value={`${((state?.workforce?.turnoverRate ?? 0.08) * 100).toFixed(0)}%`}
+              value={`${((state?.workforce?.turnoverRate ?? 0) * 100).toFixed(0)}%`}
               icon={<UserMinus className="w-5 h-5" />}
               variant="warning"
             />
@@ -411,7 +411,7 @@ export default function HRPage({ params }: PageProps) {
                   <div className="flex items-center gap-3">
                     <Zap className="w-5 h-5 text-yellow-400 flex-shrink-0" />
                     <EnhancedProgress
-                      value={state?.workforce?.averageEfficiency ?? 70}
+                      value={state?.workforce?.averageEfficiency ?? 0}
                       variant="warning"
                       size="md"
                       showLabel
@@ -431,7 +431,7 @@ export default function HRPage({ params }: PageProps) {
               </CardHeader>
               <CardContent className="space-y-3">
                 {/* Dynamic alerts based on state */}
-                {(state?.workforce?.averageMorale ?? 75) < 60 && (
+                {(state?.workforce?.averageMorale ?? 0) < 60 && (
                   <div className="p-3 bg-red-900/20 border border-red-800 rounded-lg flex items-start gap-3">
                     <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                     <div>
@@ -449,7 +449,7 @@ export default function HRPage({ params }: PageProps) {
                     </div>
                   </div>
                 )}
-                {(state?.workforce?.averageMorale ?? 75) >= 60 && (
+                {(state?.workforce?.averageMorale ?? 0) >= 60 && (
                   <div className="p-3 bg-green-900/20 border border-green-800 rounded-lg flex items-start gap-3">
                     <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
                     <div>
@@ -916,7 +916,7 @@ export default function HRPage({ params }: PageProps) {
                   <div className={`text-xl font-bold ${
                     salaryAdjustment > 0 ? 'text-green-400' : salaryAdjustment < 0 ? 'text-red-400' : 'text-white'
                   }`}>
-                    {Math.max(2, Math.min(25, ((state?.workforce?.turnoverRate ?? 0.08) * 100) - salaryAdjustment * 0.3)).toFixed(0)}%
+                    {Math.max(2, Math.min(25, ((state?.workforce?.turnoverRate ?? 0) * 100) - salaryAdjustment * 0.3)).toFixed(0)}%
                   </div>
                 </div>
               </div>

@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { ComplexityProvider } from "@/lib/contexts/ComplexityContext";
 import { getComplexitySettings, GameComplexitySettings } from "@/engine/types";
 import { useDecisionStore, type GameModule } from "@/lib/stores/decisionStore";
+import { useTutorialStore } from "@/lib/stores/tutorialStore";
 import {
   Users,
   Clock,
@@ -103,6 +104,27 @@ export default function GamePageLayout({ children, params }: LayoutProps) {
     // Default to standard complexity
     return getComplexitySettings("standard");
   }, [teamState?.game?.config]);
+
+  // Auto-start tutorial on first load if game config includes a tutorial depth
+  const tutorialStarted = useRef(false);
+  useEffect(() => {
+    if (tutorialStarted.current) return;
+    if (!teamState?.game?.config) return;
+    if (teamState.game.currentRound !== 1) return; // Only on round 1
+
+    try {
+      const config = typeof teamState.game.config === 'string'
+        ? JSON.parse(teamState.game.config)
+        : teamState.game.config;
+      const depth = config?.tutorialDepth;
+      if (depth === "medium" || depth === "full") {
+        tutorialStarted.current = true;
+        useTutorialStore.getState().startTutorial(depth);
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }, [teamState?.game?.config, teamState?.game?.currentRound]);
 
   if (sessionLoading || stateLoading) {
     return (
