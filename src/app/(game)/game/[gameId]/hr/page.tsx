@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { use } from "react";
+import { useTutorialStore } from "@/lib/stores/tutorialStore";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -170,6 +172,10 @@ const defaultBenefits: CompanyBenefits = {
 export default function HRPage({ params }: PageProps) {
   const { gameId } = use(params);
   const [activeTab, setActiveTab] = useState("overview");
+  const tutorialStep = useTutorialStore(s => s.isActive ? s.steps[s.currentStep] : null);
+  useEffect(() => {
+    if (tutorialStep?.targetTab) setActiveTab(tutorialStep.targetTab);
+  }, [tutorialStep?.targetTab]);
   const [selectedRecruitmentTier, setSelectedRecruitmentTier] = useState<string | null>(null);
   const [selectedPositionType, setSelectedPositionType] = useState<string>("worker");
   const [selectedCandidates, setSelectedCandidates] = useState<string[]>([]);
@@ -521,6 +527,7 @@ export default function HRPage({ params }: PageProps) {
               <CardTitle className="text-white flex items-center gap-2">
                 <UserPlus className="w-5 h-5" />
                 Start Recruitment Campaign
+                <HelpTooltip text="Higher tiers cost more but find better candidates. Workers run machines (~2.5 per machine), Engineers boost R&D, Supervisors improve team efficiency." />
               </CardTitle>
               <CardDescription className="text-slate-400">
                 Select a recruitment tier and position type to find candidates
@@ -869,6 +876,7 @@ export default function HRPage({ params }: PageProps) {
               <CardTitle className="text-white flex items-center gap-2">
                 <DollarSign className="w-5 h-5 text-blue-400" />
                 Salary Adjustment
+                <HelpTooltip text="Higher salaries improve morale and reduce turnover. Lower turnover means less recruitment costs and better productivity over time." />
               </CardTitle>
               <CardDescription className="text-slate-400">
                 Adjust company-wide salaries to affect morale and turnover

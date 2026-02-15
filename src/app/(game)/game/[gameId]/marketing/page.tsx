@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { use } from "react";
+import { useTutorialStore } from "@/lib/stores/tutorialStore";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -131,6 +133,10 @@ const promotionTypes = [
 export default function MarketingPage({ params }: PageProps) {
   const { gameId } = use(params);
   const [activeTab, setActiveTab] = useState("overview");
+  const tutorialStep = useTutorialStore(s => s.isActive ? s.steps[s.currentStep] : null);
+  useEffect(() => {
+    if (tutorialStep?.targetTab) setActiveTab(tutorialStep.targetTab);
+  }, [tutorialStep?.targetTab]);
 
   // Get decisions from store
   const { marketing, setMarketingDecisions } = useDecisionStore();
@@ -442,7 +448,7 @@ export default function MarketingPage({ params }: PageProps) {
         <TabsContent value="advertising" className="space-y-6">
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader>
-              <CardTitle className="text-white">Advertising Budget Allocation</CardTitle>
+              <CardTitle className="text-white">Advertising Budget Allocation <HelpTooltip text="Diminishing returns above $3M per segment. Focus on segments you're actively selling in. Digital and Social have higher reach per dollar." /></CardTitle>
               <CardDescription className="text-slate-400">
                 Allocate advertising budget across channels and market segments
               </CardDescription>
@@ -567,6 +573,7 @@ export default function MarketingPage({ params }: PageProps) {
               <CardTitle className="text-white flex items-center gap-2">
                 <Award className="w-5 h-5 text-pink-400" />
                 Brand Investment
+                <HelpTooltip text="Brand value decays 2% per round without investment. Higher brand = more market share and premium pricing. 5% increase per $10M invested." />
               </CardTitle>
               <CardDescription className="text-slate-400">
                 Invest in brand-building activities to increase brand value and premium pricing power.

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { use } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -517,7 +518,7 @@ export default function FinancePage({ params }: PageProps) {
 
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
-                <CardTitle className="text-white">Balance Sheet Summary</CardTitle>
+                <CardTitle className="text-white">Balance Sheet Summary <HelpTooltip text="Current Ratio above 1.5 is healthy. Debt-to-Equity below 0.5 means conservative financing. Watch cash flow to avoid running out of money." /></CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
@@ -1077,7 +1078,7 @@ export default function FinancePage({ params }: PageProps) {
               {/* Stock Information */}
               <Card className="bg-slate-800 border-slate-700">
                 <CardHeader>
-                  <CardTitle className="text-white">Stock Information</CardTitle>
+                  <CardTitle className="text-white">Stock Information <HelpTooltip text="EPS (Earnings Per Share) = Net Income / Shares Outstanding. Key ranking metric. Issuing stock raises cash but dilutes EPS." /></CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid md:grid-cols-4 gap-4">

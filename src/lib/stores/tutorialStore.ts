@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { TUTORIAL_STEPS_FULL, TUTORIAL_STEPS_MEDIUM } from "@/data/tutorialSteps";
+import { TUTORIAL_STEPS_FULL, TUTORIAL_STEPS_MEDIUM, TUTORIAL_STEPS_LIGHT } from "@/data/tutorialSteps";
 
 export interface TutorialStep {
   id: string;
@@ -19,7 +19,7 @@ interface TutorialState {
   currentStep: number;
   steps: TutorialStep[];
 
-  startTutorial: (depth: "medium" | "full") => void;
+  startTutorial: (depth: "light" | "medium" | "full") => void;
   nextStep: () => void;
   prevStep: () => void;
   skipTutorial: () => void;
@@ -33,7 +33,9 @@ export const useTutorialStore = create<TutorialState>((set, get) => ({
   steps: [],
 
   startTutorial: (depth) => {
-    const steps = depth === "full" ? TUTORIAL_STEPS_FULL : TUTORIAL_STEPS_MEDIUM;
+    const steps = depth === "full" ? TUTORIAL_STEPS_FULL
+      : depth === "medium" ? TUTORIAL_STEPS_MEDIUM
+      : TUTORIAL_STEPS_LIGHT;
     set({
       isActive: true,
       depth,

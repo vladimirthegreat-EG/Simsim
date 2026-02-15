@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { use } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -558,6 +559,7 @@ export default function RDPage({ params }: PageProps) {
               <CardTitle className="text-white flex items-center gap-2">
                 <Rocket className="w-5 h-5" />
                 Start New Product Development
+                <HelpTooltip text="Choose a segment to target. Quality improvements get exponentially more expensive above 90. Development takes 1-4 rounds depending on complexity." />
               </CardTitle>
               <CardDescription className="text-slate-400">
                 Choose a market segment and configure your new product
@@ -768,6 +770,7 @@ export default function RDPage({ params }: PageProps) {
               <CardTitle className="text-white flex items-center gap-2">
                 <Cpu className="w-5 h-5" />
                 Technology Upgrades
+                <HelpTooltip text="Technologies unlock factory upgrades and improve all products. Higher tech levels give competitive advantages in quality and production." />
               </CardTitle>
               <CardDescription className="text-slate-400">
                 Research new technologies to improve all your products

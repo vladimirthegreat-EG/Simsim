@@ -20,7 +20,7 @@ export function TutorialGuide({ gameId }: TutorialGuideProps) {
 
   // Auto-navigate to the target path when step changes
   useEffect(() => {
-    if (!step?.targetPath && step?.targetPath !== "") return;
+    if (step?.targetPath === undefined) return;
     const basePath = gameId === "demo" ? "/demo" : `/game/${gameId}`;
     const targetUrl = `${basePath}${step.targetPath}`;
     if (pathname !== targetUrl) {

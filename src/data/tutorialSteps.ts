@@ -1,6 +1,40 @@
 import type { TutorialStep } from "@/lib/stores/tutorialStore";
 
 /**
+ * Light Tutorial (16-round "Quick Game" mode)
+ * 3 quick overview steps for experienced players
+ */
+export const TUTORIAL_STEPS_LIGHT: TutorialStep[] = [
+  {
+    id: "welcome-quick",
+    title: "Welcome to SimCorp!",
+    description:
+      "Your company is already set up with 5 products, equipment, and 63 workers. Focus on strategy: optimize production, marketing, and finances to beat competing teams.",
+    targetPath: "",
+    position: "center",
+    tip: "This is a 16-round quick game. Each round = 1 quarter.",
+  },
+  {
+    id: "key-actions",
+    title: "Key Actions Each Round",
+    description:
+      "Each round: 1) Set production allocations in Factory, 2) Adjust advertising in Marketing, 3) Manage workforce in HR, 4) Monitor finances. Submit each module when ready.",
+    targetPath: "/factory",
+    position: "top-right",
+    tip: "You can submit modules independently — no need to do everything at once.",
+  },
+  {
+    id: "submit-overview",
+    title: "Submit & Compete",
+    description:
+      "Submit your decisions for each module using the button at the bottom of each page. The facilitator advances the round once all teams are ready. Check Results to see how you rank!",
+    targetPath: "",
+    position: "bottom-center",
+    tip: "Watch your cash — running out means limited options. Good luck!",
+  },
+];
+
+/**
  * Full Tutorial (32-round "Full Simulation" mode)
  * 12 steps walking through every major game mechanic
  */

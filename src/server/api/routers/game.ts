@@ -207,9 +207,18 @@ export const gameRouter = createTRPCRouter({
           },
           rounds: {
             orderBy: { roundNumber: "desc" },
-            take: 1,
             include: {
-              results: true,
+              results: {
+                select: {
+                  id: true,
+                  teamId: true,
+                  metrics: true,
+                  rank: true,
+                  team: {
+                    select: { id: true, name: true, color: true },
+                  },
+                },
+              },
             },
           },
         },

@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { use } from "react";
 import { motion } from "framer-motion";
+import { useTutorialStore } from "@/lib/stores/tutorialStore";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -379,6 +381,10 @@ const upgrades = [
 export default function FactoryPage({ params }: PageProps) {
   const { gameId } = use(params);
   const [activeTab, setActiveTab] = useState("overview");
+  const tutorialStep = useTutorialStore(s => s.isActive ? s.steps[s.currentStep] : null);
+  useEffect(() => {
+    if (tutorialStep?.targetTab) setActiveTab(tutorialStep.targetTab);
+  }, [tutorialStep?.targetTab]);
   const [selectedFactoryIndex, setSelectedFactoryIndex] = useState(0);
 
   // Feature flags
@@ -1096,6 +1102,7 @@ export default function FactoryPage({ params }: PageProps) {
               <CardTitle className="text-white flex items-center gap-2">
                 <Wrench className="w-5 h-5 text-orange-400" />
                 Equipment Status
+                <HelpTooltip text="Each machine adds production capacity. Assembly Lines are versatile, CNC Machines excel at precision. Workers needed: ~2.5 per machine." />
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1250,6 +1257,7 @@ export default function FactoryPage({ params }: PageProps) {
               <CardTitle className="text-white flex items-center gap-2">
                 <Boxes className="w-5 h-5 text-orange-400" />
                 Production Allocation
+                <HelpTooltip text="Set how many units to produce per segment. Limited by machine capacity and workforce size. Balance production based on your materials and market demand." />
               </CardTitle>
               <CardDescription className="text-slate-400">
                 Allocate production capacity across different market segments.
@@ -2796,6 +2804,10 @@ export default function FactoryPage({ params }: PageProps) {
             className="space-y-6"
           >
           {/* ESG Overview Stats */}
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="text-lg font-semibold text-white">ESG & Sustainability</h3>
+            <HelpTooltip text="ESG score 700+ gives +5% revenue bonus. Below 300 incurs -8% penalty. Free initiatives like Code of Ethics give easy points." />
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard
               label="ESG Score"

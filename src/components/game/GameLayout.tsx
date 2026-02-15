@@ -32,6 +32,7 @@ import { useComplexity } from "@/lib/contexts/ComplexityContext";
 import { ComplexityPreset } from "@/engine/types";
 import { NewsTicker } from "@/components/game/NewsTicker";
 import { TutorialGuide } from "@/components/game/TutorialGuide";
+import { WorkflowGuide } from "@/components/game/WorkflowGuide";
 import { useTutorialStore } from "@/lib/stores/tutorialStore";
 
 // Map module IDs to store keys
@@ -313,6 +314,11 @@ export function GameLayout({
             );
           })}
         </nav>
+
+        {/* Workflow Guide */}
+        {!sidebarCollapsed && (
+          <WorkflowGuide basePath={basePath} gameStatus={gameStatus} />
+        )}
 
         {/* Collapse button */}
         <button

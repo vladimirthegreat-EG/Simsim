@@ -188,22 +188,34 @@ export default function GameControlPage({ params }: PageProps) {
   const maxSubmissions = game.teams.length * totalModules;
   const overallProgress = maxSubmissions > 0 ? (totalSubmissions / maxSubmissions) * 100 : 0;
 
-  // Mock round history for now - would come from actual data
-  const roundHistory = game.rounds?.slice(1).map((round) => ({
-    roundNumber: round.roundNumber,
-    rankings: game.teams.map((team, idx) => ({
-      teamId: team.id,
-      teamName: team.name,
-      teamColor: team.color,
-      rank: idx + 1,
-      revenue: 50_000_000 + Math.random() * 30_000_000,
-      netIncome: 5_000_000 + Math.random() * 10_000_000,
-      marketShare: 0.2 + Math.random() * 0.15,
-      eps: 2 + Math.random() * 3,
-    })),
-    events: JSON.parse(round.events || "[]") as Array<{ type: string; title: string }>,
-    processedAt: round.processedAt,
-  })) || [];
+  // Build round history from real RoundResult data
+  const roundHistory = (game.rounds ?? [])
+    .filter((round) => round.status === "COMPLETED" && round.results.length > 0)
+    .sort((a, b) => a.roundNumber - b.roundNumber)
+    .map((round) => ({
+      roundNumber: round.roundNumber,
+      rankings: round.results
+        .map((result) => {
+          const metrics = JSON.parse(result.metrics) as Record<string, unknown>;
+          const ms = typeof metrics.marketShare === "object" && metrics.marketShare
+            ? Object.values(metrics.marketShare as Record<string, number>).reduce((a, b) => a + b, 0) /
+              Math.max(1, Object.keys(metrics.marketShare as Record<string, number>).length)
+            : (metrics.marketShare as number) || 0;
+          return {
+            teamId: result.teamId,
+            teamName: result.team.name,
+            teamColor: result.team.color,
+            rank: result.rank,
+            revenue: (metrics.revenue as number) || 0,
+            netIncome: (metrics.netIncome as number) || 0,
+            marketShare: ms,
+            eps: (metrics.eps as number) || 0,
+          };
+        })
+        .sort((a, b) => a.rank - b.rank),
+      events: JSON.parse(round.events || "[]") as Array<{ type: string; title: string }>,
+      processedAt: round.processedAt,
+    }));
 
   return (
     <div className="min-h-screen bg-slate-900">
