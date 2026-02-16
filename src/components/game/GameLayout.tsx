@@ -26,6 +26,7 @@ import {
   Rocket,
   Radio,
   Trophy,
+  GraduationCap,
 } from "lucide-react";
 import { useDecisionStore, GameModule } from "@/lib/stores/decisionStore";
 import { useComplexity } from "@/lib/contexts/ComplexityContext";
@@ -318,6 +319,21 @@ export function GameLayout({
         {/* Workflow Guide */}
         {!sidebarCollapsed && (
           <WorkflowGuide basePath={basePath} gameStatus={gameStatus} />
+        )}
+
+        {/* Replay Tutorial */}
+        {!sidebarCollapsed && !tutorialActive && (
+          <button
+            onClick={() => {
+              const depth = useTutorialStore.getState().depth;
+              useTutorialStore.getState().startTutorial(depth);
+            }}
+            className="mx-2 mt-2 mb-1 flex items-center gap-1.5 px-3 py-1.5 text-[11px] text-slate-500 hover:text-slate-300 bg-transparent border-none cursor-pointer rounded hover:bg-slate-700/50 transition-colors w-[calc(100%-1rem)]"
+            type="button"
+          >
+            <GraduationCap className="w-3.5 h-3.5" />
+            Replay Tutorial
+          </button>
         )}
 
         {/* Collapse button */}

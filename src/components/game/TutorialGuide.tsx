@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useTutorialStore } from "@/lib/stores/tutorialStore";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, X, Lightbulb } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Lightbulb, Target } from "lucide-react";
 
 interface TutorialGuideProps {
   gameId: string;
@@ -39,10 +39,24 @@ export function TutorialGuide({ gameId }: TutorialGuideProps) {
     <div
       className="fixed inset-0 z-50 flex"
       style={{
-        background: isCenter ? "rgba(0,0,0,0.7)" : "transparent",
+        background: isCenter ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.35)",
         pointerEvents: isCenter ? "auto" : "none",
       }}
     >
+      {/* Click-through backdrop dismissal for non-center */}
+      {!isCenter && (
+        <div
+          className="absolute inset-0"
+          style={{ pointerEvents: "auto" }}
+          onClick={(e) => {
+            // Only dismiss if clicking the backdrop, not the card
+            if (e.target === e.currentTarget) {
+              nextStep();
+            }
+          }}
+        />
+      )}
+
       {/* Tooltip Card */}
       <div
         className="absolute"
@@ -54,7 +68,7 @@ export function TutorialGuide({ gameId }: TutorialGuideProps) {
         <div
           className="rounded-xl p-5 space-y-3 shadow-2xl border border-slate-600"
           style={{
-            width: isCenter ? 520 : 380,
+            width: isCenter ? 520 : 400,
             background: "rgb(15 23 42)", // slate-900
           }}
         >
@@ -89,6 +103,17 @@ export function TutorialGuide({ gameId }: TutorialGuideProps) {
           <div className="text-[13px] leading-relaxed text-slate-300">
             {step.description}
           </div>
+
+          {/* Objective callout */}
+          {step.objective && (
+            <div className="rounded-lg p-3 text-[12px] bg-cyan-500/10 border-l-[3px] border-cyan-500 text-slate-200">
+              <Target className="w-3 h-3 inline mr-1 text-cyan-400" />
+              <span className="font-bold text-cyan-400">
+                Objective:{" "}
+              </span>
+              {step.objective}
+            </div>
+          )}
 
           {/* Tip box */}
           {step.tip && (

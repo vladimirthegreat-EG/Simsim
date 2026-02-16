@@ -9,6 +9,8 @@ export interface TutorialStep {
   targetPath: string;
   /** Optional tab within the page */
   targetTab?: string;
+  /** Key game objective highlighted in this step */
+  objective?: string;
   tip?: string;
   position: "center" | "top-right" | "bottom-right" | "bottom-center";
 }

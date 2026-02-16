@@ -2,124 +2,220 @@ import type { TutorialStep } from "@/lib/stores/tutorialStore";
 
 /**
  * Light Tutorial (16-round "Quick Game" mode)
- * 3 quick overview steps for experienced players
+ * 4 fast steps for experienced players — company is fully operational
  */
 export const TUTORIAL_STEPS_LIGHT: TutorialStep[] = [
   {
     id: "welcome-quick",
     title: "Welcome to SimCorp!",
     description:
-      "Your company is already set up with 5 products, equipment, and 63 workers. Focus on strategy: optimize production, marketing, and finances to beat competing teams.",
+      "You're CEO of a fully operational phone company with $175M in cash, 63 staff, and 5 product lines covering every market segment. Your goal: maximize Earnings Per Share (EPS) over 16 rounds to finish #1 on the leaderboard.",
     targetPath: "",
     position: "center",
-    tip: "This is a 16-round quick game. Each round = 1 quarter.",
+    objective: "Highest EPS at the end of the game wins.",
+    tip: "Each round = 1 quarter. You compete against other teams in real time.",
   },
   {
-    id: "key-actions",
-    title: "Key Actions Each Round",
+    id: "key-decisions",
+    title: "Your Key Decisions",
     description:
-      "Each round: 1) Set production allocations in Factory, 2) Adjust advertising in Marketing, 3) Manage workforce in HR, 4) Monitor finances. Submit each module when ready.",
+      "Each round you manage 5 modules: Factory (production volume & upgrades), HR (hiring & training), Marketing (ad budgets & brand), Finance (debt, stock, cash flow), and R&D (quality & new products). Submit each module independently when ready.",
+    targetPath: "",
+    position: "center",
+    tip: "Focus on the modules that matter most for your strategy — you don't have to change everything every round.",
+  },
+  {
+    id: "factory-quick",
+    title: "Production & Sales",
+    description:
+      "In Factory, set how many units to produce per segment. Your production is limited by machine capacity and workforce. Units are sold automatically based on your price, quality, brand value, and advertising — check Results after each round to see your market share.",
     targetPath: "/factory",
+    targetTab: "production",
     position: "top-right",
-    tip: "You can submit modules independently — no need to do everything at once.",
+    tip: "Don't overproduce — unsold inventory ties up cash. Match production to demand.",
   },
   {
-    id: "submit-overview",
-    title: "Submit & Compete",
+    id: "workflow-quick",
+    title: "Ready to Compete!",
     description:
-      "Submit your decisions for each module using the button at the bottom of each page. The facilitator advances the round once all teams are ready. Check Results to see how you rank!",
+      "Use the Round Checklist in the sidebar to track which modules you've submitted. Once all teams submit, the facilitator advances the round. After each round, check Results to see your revenue, EPS, and market position. Good luck!",
     targetPath: "",
     position: "bottom-center",
-    tip: "Watch your cash — running out means limited options. Good luck!",
+    tip: "Watch your cash flow — if you run out of cash, your options become very limited.",
+  },
+];
+
+/**
+ * Medium Tutorial (24-round "Standard" mode)
+ * 8 guided steps — company starts with 2 segments (General & Budget), 26 staff
+ */
+export const TUTORIAL_STEPS_MEDIUM: TutorialStep[] = [
+  {
+    id: "welcome",
+    title: "Welcome to SimCorp!",
+    description:
+      "You're CEO of a small phone company with $175M in cash, 26 staff, and 2 product lines (General and Budget phones). Over 24 rounds, grow your company by expanding into new segments, hiring more staff, and outperforming the competition.",
+    targetPath: "",
+    position: "center",
+    objective: "Highest Earnings Per Share (EPS) at the end wins. Revenue and market share also matter.",
+    tip: "You start small — but you have the cash and time to grow into all 5 segments.",
+  },
+  {
+    id: "overview-dashboard",
+    title: "Your Company Dashboard",
+    description:
+      "This is your Overview page. It shows your cash, revenue, net income, workforce, factory capacity, and market position at a glance. Check here each round to see how your company is performing before making decisions.",
+    targetPath: "",
+    position: "top-right",
+    tip: "The key numbers to watch: Cash (don't run out!), Revenue (growing?), and EPS (your ranking metric).",
+  },
+  {
+    id: "factory-overview",
+    title: "Your Factory",
+    description:
+      "The Factory manages production. You currently have 2 production lines (General & Budget). Use the Production tab to set how many units to build, Equipment to buy more machines, and Upgrades to improve efficiency. To sell in new segments, you'll need to develop products in R&D first.",
+    targetPath: "/factory",
+    targetTab: "overview",
+    position: "top-right",
+    tip: "Your production capacity is limited by machines and workers. Check Total Capacity before allocating.",
+  },
+  {
+    id: "hr-overview",
+    title: "Human Resources",
+    description:
+      "Manage your 26 staff through hiring, training, and benefits. Workers operate machines (you'll need more as you expand), Engineers drive R&D, and Supervisors boost team performance. Keep morale high with training and fair benefits — unhappy workers quit.",
+    targetPath: "/hr",
+    targetTab: "overview",
+    position: "top-right",
+    tip: "Premium recruitment finds better candidates. Training improves existing staff.",
+  },
+  {
+    id: "marketing-strategy",
+    title: "Marketing & Brand",
+    description:
+      "Set advertising budgets per market segment to build brand value. Higher brand = more market share = more sales. Brand value decays 2% per round without investment, so keep spending! Focus budget on segments you're actively selling in.",
+    targetPath: "/marketing",
+    targetTab: "advertising",
+    position: "top-right",
+    tip: "Start with $500K-$1M per active segment. Diminishing returns kick in above $3M.",
+  },
+  {
+    id: "rd-innovation",
+    title: "R&D & New Products",
+    description:
+      "R&D lets you improve existing product quality, develop new products for other segments, and unlock technologies. To expand beyond General and Budget, start developing products for Enthusiast, Professional, or Active Lifestyle segments here.",
+    targetPath: "/rnd",
+    position: "top-right",
+    tip: "Development takes 1-4 rounds. Plan ahead — start R&D early to enter new segments on time.",
+  },
+  {
+    id: "finance-overview",
+    title: "Finance & Cash Flow",
+    description:
+      "Monitor your financial health: cash, revenue, net income, and EPS. If you need more capital to fund expansion, you can issue corporate bonds (debt) or stock (dilutes EPS). Balance growth investment with profitability.",
+    targetPath: "/finance",
+    position: "top-right",
+    tip: "EPS = Net Income / Shares Outstanding. Issuing stock lowers EPS — use debt strategically instead.",
+  },
+  {
+    id: "submit",
+    title: "Start Growing!",
+    description:
+      "Use the Round Checklist in the sidebar to track which modules you've submitted. Once all teams submit, the facilitator advances the round. Check Results to see your revenue, market share, and ranking against other teams.",
+    targetPath: "",
+    position: "bottom-center",
+    objective: "Expand from 2 segments to 5, grow your workforce, and maximize EPS to win!",
+    tip: "Each round = 1 quarter. Think long-term — invest now, profit later!",
   },
 ];
 
 /**
  * Full Tutorial (32-round "Full Simulation" mode)
- * 12 steps walking through every major game mechanic
+ * 12 detailed steps — building everything from scratch
  */
 export const TUTORIAL_STEPS_FULL: TutorialStep[] = [
   {
     id: "welcome",
     title: "Welcome to SimCorp!",
     description:
-      "You're the CEO of a brand-new phone manufacturing company. You have $175M in cash and one empty factory in North America. Your goal: build a profitable phone empire by buying equipment, hiring workers, sourcing materials, and competing in 5 market segments.",
+      "You're the CEO of a brand-new phone company starting from scratch. You have $175M in cash and one empty factory. Your mission: hire workers, buy equipment, develop products, and build a profitable phone empire over 32 rounds.",
     targetPath: "",
     position: "center",
-    tip: "Each round represents one quarter. Make decisions, then submit to see results.",
+    objective: "Highest Earnings Per Share (EPS) at the end wins. Revenue and market share are also tracked.",
+    tip: "Each round = 1 quarter. Take your time in early rounds to set up your company properly.",
+  },
+  {
+    id: "overview-first",
+    title: "Your Starting Position",
+    description:
+      "This is your Overview dashboard. Right now everything is at zero — no products, no workers, no revenue. That's okay! Over the next few steps, you'll set up your company piece by piece. Follow along and you'll be producing phones in no time.",
+    targetPath: "",
+    position: "top-right",
+    tip: "Check this dashboard each round to track your progress.",
   },
   {
     id: "factory-equipment",
     title: "Step 1: Buy Equipment",
     description:
-      "Head to the Factory panel and open the Equipment tab. Purchase production machines to add manufacturing capacity. Assembly Lines are versatile, CNC Machines excel at precision, and Robotic Arms reduce labor costs. Each machine adds production capacity measured in units per round.",
+      "Head to the Factory and open the Equipment tab. Purchase production machines to add manufacturing capacity. Assembly Lines are versatile ($5M, 10K units/round), CNC Machines add precision, and Robotic Arms reduce labor needs. You need machines before you can produce anything.",
     targetPath: "/factory",
     targetTab: "equipment",
     position: "top-right",
-    tip: "Start with an Assembly Line ($5M, 10K units) - it's the best value for beginners.",
+    tip: "Start with 1-2 Assembly Lines — they're the best value for beginners.",
   },
   {
     id: "hr-hiring",
     title: "Step 2: Hire Workers",
     description:
-      "Switch to HR and use the Recruitment tab. You need workers to operate machines (roughly 2.5 workers per machine). Engineers boost your R&D output, and Supervisors improve team efficiency. Choose a recruitment tier - higher tiers cost more but find better candidates.",
+      "Go to HR and open the Recruitment tab. You need workers to operate machines (roughly 2-3 workers per machine). Engineers boost R&D output, and Supervisors improve team performance. Choose a recruitment tier — higher tiers cost more but find better candidates.",
     targetPath: "/hr",
     targetTab: "recruitment",
     position: "top-right",
-    tip: "Workers: run machines. Engineers: develop products. Supervisors: boost team performance.",
+    tip: "Workers run machines, Engineers develop products, Supervisors boost performance. Hire workers first!",
   },
   {
     id: "rd-products",
-    title: "Step 3: Develop Products",
+    title: "Step 3: Develop Your First Product",
     description:
-      "Visit R&D to start developing your first product. Choose a market segment to target - Budget phones are cheap to make but have thin margins, while Professional phones command premium prices but require high quality. Development takes 1-4 rounds depending on complexity.",
+      "Visit R&D to start developing a product. Choose a market segment: Budget phones are cheap to make but thin margins, General is balanced, Professional commands premium prices but needs high quality. Development takes 1-4 rounds depending on complexity.",
     targetPath: "/rnd",
     position: "top-right",
-    tip: "The General segment is a good starting point - balanced demand and moderate quality requirements.",
+    tip: "Start with General or Budget — they have the most demand and easiest quality requirements.",
   },
   {
-    id: "global-ops-materials",
+    id: "supply-chain",
     title: "Step 4: Source Materials",
     description:
-      "Go to the Supply Chain page to order raw materials from suppliers around the world. Each region offers different cost, quality, and reliability trade-offs. Asia is cheapest but less reliable; North America is premium quality but expensive. You need materials before you can produce!",
+      "Go to Supply Chain to order raw materials. Each region offers different cost, quality, and reliability: Asia is cheapest but less reliable; North America is premium quality but expensive. You need materials in stock before you can produce!",
     targetPath: "/supply-chain",
     position: "top-right",
-    tip: "Order enough materials to match your production capacity. Check unit costs per segment.",
-  },
-  {
-    id: "global-ops-shipping",
-    title: "Step 5: Choose Shipping",
-    description:
-      "When ordering materials, pick a shipping method. Sea freight is cheapest but takes the longest (2-3 rounds). Air freight arrives next round but costs 5x more. Land and Rail are good middle-ground options for nearby regions.",
-    targetPath: "/supply-chain",
-    position: "top-right",
-    tip: "For your first order, Air freight ensures materials arrive quickly so you can start producing.",
+    tip: "Use Air freight for your first order so materials arrive next round. Sea freight is cheaper but takes 2-3 rounds.",
   },
   {
     id: "factory-production",
-    title: "Step 6: Set Production",
+    title: "Step 5: Set Production",
     description:
-      "Back in Factory, open the Production tab to allocate how many units to produce per market segment. Your total production is limited by machine capacity and workforce size. Balance production across segments based on your materials and market strategy.",
+      "Once you have equipment, workers, a product, and materials — go to Factory > Production and allocate how many units to produce. Your output is limited by machine capacity, workforce size, and available materials.",
     targetPath: "/factory",
     targetTab: "production",
     position: "top-right",
-    tip: "Don't produce more than your capacity allows - check Total Capacity in the overview.",
+    tip: "You can only produce products that have finished development (status: Launched).",
   },
   {
     id: "marketing-ads",
-    title: "Step 7: Marketing & Advertising",
+    title: "Step 6: Marketing & Advertising",
     description:
-      "Open the Marketing panel to set advertising budgets per segment. Advertising builds brand value, which is a key factor in winning market share. Brand value grows with investment but decays 2% each round if you stop spending. Focus budget on segments you're actively selling in.",
+      "Open Marketing to set advertising budgets. Advertising builds brand value, which drives market share. Without advertising, nobody knows your phones exist! Focus budget on segments where you have a launched product.",
     targetPath: "/marketing",
     targetTab: "advertising",
     position: "top-right",
-    tip: "Start with $500K-$1M per segment you're targeting. Diminishing returns kick in after $3M.",
+    tip: "Start with $500K-$1M per segment. Brand decays 2% per round without investment.",
   },
   {
     id: "esg-sustainability",
-    title: "Step 8: ESG & Sustainability",
+    title: "Step 7: ESG & Sustainability",
     description:
-      "In the Factory ESG tab, invest in sustainability initiatives. Your ESG score affects revenue: 700+ gives a +5% bonus, while below 300 incurs a -8% penalty. Free initiatives like Code of Ethics are easy wins. Toggle them on to boost your score.",
+      "In Factory > ESG, invest in sustainability initiatives. Your ESG score affects revenue: scores below 400 incur penalties up to -8%. Free initiatives like Code of Ethics are easy wins — toggle them on now!",
     targetPath: "/factory",
     targetTab: "esg",
     position: "top-right",
@@ -127,102 +223,30 @@ export const TUTORIAL_STEPS_FULL: TutorialStep[] = [
   },
   {
     id: "finance-overview",
-    title: "Step 9: Monitor Finances",
+    title: "Step 8: Monitor Finances",
     description:
-      "Check the Finance tab to track your financial health. Watch your cash balance, revenue, net income, and market cap. If you need more capital, you can issue corporate bonds or stocks - but debt costs interest and stock issuance dilutes your shares.",
+      "Check Finance to track cash, revenue, net income, and EPS. If you need capital, issue corporate bonds (debt with interest) or stocks (dilutes your EPS). Keep enough cash reserve for 2-3 rounds of operations.",
     targetPath: "/finance",
     position: "top-right",
-    tip: "Keep an eye on cash flow - running out of cash means game over!",
+    tip: "EPS = Net Income / Shares Outstanding. It's the main ranking metric — protect it!",
   },
   {
-    id: "factory-upgrades",
-    title: "Step 10: Factory Upgrades",
+    id: "results-check",
+    title: "Step 9: Check Results",
     description:
-      "As your company grows, invest in factory upgrades for permanent bonuses. Six Sigma reduces defects by 40%, Automation cuts worker needs by 80%, and Supply Chain improvements slash shipping costs. Higher-tier upgrades require R&D technology unlocks.",
-    targetPath: "/factory",
-    targetTab: "upgrades",
+      "After each round, visit the Results page to see your performance: revenue, market share per segment, EPS ranking, and operational metrics. Compare yourself against other teams to refine your strategy.",
+    targetPath: "/results",
     position: "top-right",
-    tip: "Upgrades are expensive but pay for themselves over many rounds. Plan ahead!",
+    tip: "Look at which segments are most profitable — focus your expansion there.",
   },
   {
     id: "submit-round",
-    title: "Ready to Submit!",
+    title: "You're Ready!",
     description:
-      "You've seen all the key features! Review your decisions in each tab, then submit your decisions for each module using the Submit button at the bottom of each page. The facilitator will advance the round once all teams are ready. Good luck, CEO!",
+      "Use the Round Checklist in the sidebar to submit each module (Factory, HR, Marketing, Finance, R&D). The facilitator advances the round once all teams are ready. Don't worry about getting everything perfect — you have 32 rounds to learn and adapt!",
     targetPath: "",
     position: "bottom-center",
-    tip: "You can always revisit any tab to adjust before the round is advanced. Take your time!",
-  },
-];
-
-/**
- * Medium Tutorial (24-round "Standard" mode)
- * 7 condensed steps
- */
-export const TUTORIAL_STEPS_MEDIUM: TutorialStep[] = [
-  {
-    id: "welcome",
-    title: "Welcome to SimCorp!",
-    description:
-      "You're running a phone manufacturing company with $175M in cash, a factory with equipment and workers, and 5 product lines ready to sell. Your goal: maximize profits and market share across 24 rounds.",
-    targetPath: "",
-    position: "center",
-    tip: "Your company is already set up - focus on strategy and optimization!",
-  },
-  {
-    id: "factory-overview",
-    title: "Your Factory",
-    description:
-      "The Factory panel manages production. You have machines, workers, and production lines. Use the Equipment tab to buy more equipment, Production tab to allocate units, and Upgrades to improve efficiency. ESG initiatives boost your sustainability score.",
-    targetPath: "/factory",
-    targetTab: "equipment",
-    position: "top-right",
-    tip: "Check your total capacity and worker count to plan production.",
-  },
-  {
-    id: "hr-overview",
-    title: "Human Resources",
-    description:
-      "Manage your workforce through hiring, training, and compensation. Workers operate machines, Engineers drive R&D, and Supervisors boost team performance. Keep morale high and turnover low for maximum efficiency.",
-    targetPath: "/hr",
-    position: "top-right",
-    tip: "Premium recruitment finds better candidates. Training improves existing staff.",
-  },
-  {
-    id: "supply-chain",
-    title: "Global Supply Chain",
-    description:
-      "Source materials from global suppliers in the Supply Chain tab. Balance cost, quality, and delivery time. Order materials in advance - sea freight is cheap but slow, air freight is fast but expensive.",
-    targetPath: "/supply-chain",
-    position: "top-right",
-    tip: "Asia offers the cheapest materials. North America has the highest quality.",
-  },
-  {
-    id: "marketing-strategy",
-    title: "Marketing & Sales",
-    description:
-      "Set advertising budgets per market segment to build brand value. Higher brand value means more market share. Run promotions for short-term boosts and consider sponsorships for maximum reach.",
-    targetPath: "/marketing",
-    targetTab: "advertising",
-    position: "top-right",
-    tip: "Brand decays 2% per round - keep investing to maintain your edge.",
-  },
-  {
-    id: "rd-innovation",
-    title: "R&D & Innovation",
-    description:
-      "Invest in R&D to improve product quality, develop new products, and unlock technologies. Technologies gate access to factory upgrades. Patents generate ongoing value.",
-    targetPath: "/rnd",
-    position: "top-right",
-    tip: "Quality improvements get exponentially more expensive above 90.",
-  },
-  {
-    id: "submit",
-    title: "Make Your Move!",
-    description:
-      "Review your decisions across all tabs, then submit your decisions for each module. Once all teams submit, the facilitator advances the round. You'll see a performance report with revenue, market share, and key metrics. Good luck!",
-    targetPath: "",
-    position: "bottom-center",
-    tip: "Each round represents one quarter. Plan ahead for long-term success!",
+    objective: "Build from scratch, expand into all 5 segments, and finish with the highest EPS.",
+    tip: "Early rounds: invest in setup. Mid rounds: expand aggressively. Late rounds: maximize profit. Good luck!",
   },
 ];
