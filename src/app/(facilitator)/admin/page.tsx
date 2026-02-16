@@ -182,6 +182,7 @@ export default function AdminDashboard() {
 
                 <div className="space-y-3">
                   <Label className="text-slate-300">Game Mode</Label>
+                  <p className="text-xs text-slate-500 -mt-2">Sets the round count, starting company size, and tutorial</p>
                   <div className="grid grid-cols-3 gap-3">
                     {PRESET_LIST.map((preset) => {
                       const isSelected = selectedPreset?.id === preset.id;
@@ -265,7 +266,8 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-300">Game Complexity</Label>
+                  <Label className="text-slate-300">Feature Level</Label>
+                  <p className="text-xs text-slate-500 -mt-1">Controls which modules and features are enabled</p>
                   <ComplexitySelector
                     value={complexitySettings}
                     onChange={setComplexitySettings}

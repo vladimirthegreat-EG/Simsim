@@ -36,34 +36,61 @@ interface ComplexitySelectorProps {
 const PRESET_INFO: Record<ComplexityPreset, {
   name: string;
   description: string;
+  details: string[];
   icon: typeof Zap;
   color: string;
   recommended?: string;
 }> = {
   simple: {
     name: "Simple",
-    description: "Perfect for beginners or short sessions. Core mechanics only.",
+    description: "Core mechanics only — fewer decisions per round.",
+    details: [
+      "Factory + Marketing + Finance only",
+      "No individual employees (auto-managed)",
+      "No R&D timeline — instant product changes",
+      "No inventory tracking",
+      "Catch-up mechanics enabled",
+    ],
     icon: Zap,
     color: "text-green-400",
-    recommended: "1-2 hour sessions",
+    recommended: "Beginners",
   },
   standard: {
     name: "Standard",
-    description: "Full simulation experience with all features enabled.",
+    description: "All 6 modules with full simulation features.",
+    details: [
+      "All modules: Factory, HR, Finance, Marketing, R&D, ESG",
+      "Individual employee management",
+      "Product development takes 1-4 rounds",
+      "Inventory and COGS tracking",
+      "Market events and catch-up mechanics",
+    ],
     icon: Settings,
     color: "text-blue-400",
-    recommended: "Full workshops",
+    recommended: "Recommended",
   },
   advanced: {
     name: "Advanced",
-    description: "Maximum complexity with increased difficulty.",
+    description: "Maximum complexity with harder economics.",
+    details: [
+      "Everything in Standard, plus:",
+      "Higher market volatility (±15%)",
+      "Stronger AI competitors",
+      "Less starting cash ($150M)",
+      "No catch-up mechanics",
+    ],
     icon: Rocket,
     color: "text-purple-400",
-    recommended: "Experienced players",
+    recommended: "Experienced",
   },
   custom: {
     name: "Custom",
-    description: "Fine-tune every setting to your needs.",
+    description: "Toggle individual modules and features.",
+    details: [
+      "Choose which modules to enable",
+      "Toggle specific features on/off",
+      "Adjust difficulty settings",
+    ],
     icon: Sliders,
     color: "text-orange-400",
   },
@@ -136,34 +163,41 @@ export function ComplexitySelector({ value, onChange }: ComplexitySelectorProps)
           const info = PRESET_INFO[preset];
           const Icon = info.icon;
           const isSelected = value.preset === preset;
+          const borderColor = preset === "simple" ? "border-green-500" : preset === "standard" ? "border-blue-500" : preset === "advanced" ? "border-purple-500" : "border-orange-500";
 
           return (
             <Card
               key={preset}
               className={`cursor-pointer transition-all ${
                 isSelected
-                  ? "bg-slate-700 border-purple-500 ring-2 ring-purple-500/20"
+                  ? `bg-slate-700 ${borderColor} ring-2 ring-purple-500/20`
                   : "bg-slate-800 border-slate-700 hover:border-slate-600"
               }`}
               onClick={() => handlePresetChange(preset)}
             >
               <CardContent className="p-3">
-                <div className="flex items-start gap-2">
-                  <Icon className={`w-5 h-5 mt-0.5 ${isSelected ? info.color : "text-slate-400"}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className={`font-medium ${isSelected ? "text-white" : "text-slate-300"}`}>
-                        {info.name}
-                      </span>
-                      {info.recommended && (
-                        <Badge className="text-xs bg-slate-600 hidden sm:inline-flex">
-                          {info.recommended}
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-xs text-slate-400 mt-0.5 line-clamp-2">{info.description}</p>
-                  </div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Icon className={`w-4 h-4 ${isSelected ? info.color : "text-slate-400"}`} />
+                  <span className={`font-semibold text-sm ${isSelected ? "text-white" : "text-slate-300"}`}>
+                    {info.name}
+                  </span>
+                  {info.recommended && (
+                    <Badge className={`text-[10px] px-1.5 py-0 ${
+                      preset === "standard" ? "bg-blue-500/20 text-blue-400" : "bg-slate-600 text-slate-300"
+                    }`}>
+                      {info.recommended}
+                    </Badge>
+                  )}
                 </div>
+                <p className="text-xs text-slate-400 mb-2">{info.description}</p>
+                <ul className="space-y-0.5">
+                  {info.details.map((detail, i) => (
+                    <li key={i} className="text-[11px] text-slate-500 flex items-start gap-1">
+                      <span className="mt-1 w-1 h-1 rounded-full bg-slate-600 flex-shrink-0" />
+                      {detail}
+                    </li>
+                  ))}
+                </ul>
               </CardContent>
             </Card>
           );
