@@ -29,6 +29,19 @@ export interface SegmentDemand {
 }
 
 // ============================================
+// DYNAMIC PRICE EXPECTATIONS (Phase 5)
+// ============================================
+
+/** Per-segment dynamic price tracking using exponential moving average. */
+export interface DynamicPriceExpectation {
+  expectedPrice: number;     // EMA of actual prices
+  underservedFactor: number; // 0-1: how underserved the segment is (higher = less supply)
+  competitorCount: number;   // Number of products in this segment
+  priceFloor: number;        // Minimum viable price (cost-based)
+  priceCeiling: number;      // Maximum consumers will pay
+}
+
+// ============================================
 // MARKET STATE
 // ============================================
 
@@ -48,4 +61,6 @@ export interface MarketState {
     qualityExpectations: number;  // 0-1
     sustainabilityPremium: number; // 0-1
   };
+  /** Dynamic price expectations per segment (optional for backward compat) */
+  dynamicPricing?: Partial<Record<Segment, DynamicPriceExpectation>>;
 }

@@ -156,7 +156,7 @@ export interface MarketingDecisions {
     duration: number;
   }[];
   sponsorships?: { name: string; cost: number; brandImpact: number }[];
-  // v3.1.0: Product pricing decisions — set product prices each round
+  // v3.1.0: Product pricing decisions - set product prices each round
   productPricing?: { productId: string; newPrice: number }[];
 }
 
@@ -171,6 +171,8 @@ export interface RDDecisions {
     segment: Segment;
     targetQuality: number;
     targetFeatures: number;
+    /** Phone archetype ID (new system - undefined = legacy product creation) */
+    archetypeId?: string;
   }[];
   productImprovements?: {
     productId: string;

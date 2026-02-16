@@ -3,6 +3,7 @@
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { GlossaryText } from "@/components/game/GlossaryText";
 
 interface StatCardProps {
   label: string;
@@ -163,7 +164,9 @@ export function StatCard({
 
       <div className="relative flex items-center justify-between">
         <div className="space-y-1">
-          <p className={cn("text-slate-400 font-medium", sizes.label)}>{label}</p>
+          <p className={cn("text-slate-400 font-medium", sizes.label)}>
+            <GlossaryText text={`{{${label}}}`} />
+          </p>
           <p className={cn("font-bold tracking-tight", sizes.value, styles.value)}>
             {prefix}
             {typeof value === "number" && animate ? (

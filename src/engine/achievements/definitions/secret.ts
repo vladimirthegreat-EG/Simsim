@@ -65,7 +65,7 @@ export const SECRET_ACHIEVEMENTS: ExtendedAchievement[] = [
   defineAchievement({
     id: "logistical_chaos",
     name: "Logistical Chaos",
-    description: "Sea, air, land, and rail — all going to the same place. Your logistics team is having a group existential crisis.",
+    description: "Sea, air, land, and rail - all going to the same place. Your logistics team is having a group existential crisis.",
     hiddenDescription: "???",
     category: "secret",
     tier: "secret",
@@ -173,7 +173,7 @@ export const SECRET_ACHIEVEMENTS: ExtendedAchievement[] = [
   defineAchievement({
     id: "seen_it_all",
     name: "Seen It All",
-    description: "Recession, boom, crisis, disruption — you've lived through every headline and came out the other side with stories.",
+    description: "Recession, boom, crisis, disruption - you've lived through every headline and came out the other side with stories.",
     hiddenDescription: "???",
     category: "secret",
     tier: "secret",
@@ -273,7 +273,7 @@ export const SECRET_ACHIEVEMENTS: ExtendedAchievement[] = [
   defineAchievement({
     id: "currency_casualty",
     name: "Currency Casualty",
-    description: "Your biggest expense wasn't employees, factories, or marketing — it was the yen. Let that sink in.",
+    description: "Your biggest expense wasn't employees, factories, or marketing - it was the yen. Let that sink in.",
     hiddenDescription: "???",
     category: "secret",
     tier: "secret",

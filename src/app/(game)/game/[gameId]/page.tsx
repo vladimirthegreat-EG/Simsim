@@ -29,6 +29,7 @@ import {
   Clock,
   Building2,
 } from "lucide-react";
+import { GlossaryText } from "@/components/game/GlossaryText";
 
 // Types from engine
 interface Employee {
@@ -352,7 +353,7 @@ export default function OverviewPage({ params }: PageProps) {
             <div data-testid="stat-revenue" className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
               <div className="flex items-center gap-3">
                 <TrendingUp className="w-5 h-5 text-green-400" />
-                <span className="text-slate-300">Revenue</span>
+                <span className="text-slate-300"><GlossaryText text="{{Revenue}}" /></span>
               </div>
               <span className="text-white font-medium" data-testid="stat-revenue-value">
                 {formatCurrency(companyState?.revenue || 0)}
@@ -364,7 +365,7 @@ export default function OverviewPage({ params }: PageProps) {
                   ? <TrendingUp className="w-5 h-5 text-green-400" />
                   : <TrendingDown className="w-5 h-5 text-red-400" />
                 }
-                <span className="text-slate-300">Net Income</span>
+                <span className="text-slate-300"><GlossaryText text="{{Net Income}}" /></span>
               </div>
               <span data-testid="stat-net-income-value" className={`font-medium ${(companyState?.netIncome || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {formatCurrency(companyState?.netIncome || 0)}
@@ -461,7 +462,7 @@ export default function OverviewPage({ params }: PageProps) {
                       <span className="text-xs text-slate-400">{factory.region}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">Efficiency</span>
+                      <span className="text-slate-400"><GlossaryText text="{{Efficiency}}" /></span>
                       <span className="text-green-400">{(factory.efficiency * 100).toFixed(0)}%</span>
                     </div>
                     <div className="flex justify-between text-sm">
@@ -513,7 +514,7 @@ export default function OverviewPage({ params }: PageProps) {
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">Quality</span>
+                      <span className="text-slate-400"><GlossaryText text="{{Quality}}" /></span>
                       <span className="text-purple-400">{product.quality}/100</span>
                     </div>
                     <div className="flex justify-between text-sm">
@@ -552,25 +553,25 @@ export default function OverviewPage({ params }: PageProps) {
               <div className="text-3xl font-bold text-blue-400">
                 {employeeCounts.worker || 0}
               </div>
-              <div className="text-slate-400 text-sm">Workers</div>
+              <div className="text-slate-400 text-sm"><GlossaryText text="{{Workers}}" /></div>
             </div>
             <div className="text-center p-4 bg-slate-700/50 rounded-lg">
               <div className="text-3xl font-bold text-purple-400">
                 {employeeCounts.engineer || 0}
               </div>
-              <div className="text-slate-400 text-sm">Engineers</div>
+              <div className="text-slate-400 text-sm"><GlossaryText text="{{Engineers}}" /></div>
             </div>
             <div className="text-center p-4 bg-slate-700/50 rounded-lg">
               <div className="text-3xl font-bold text-orange-400">
                 {employeeCounts.supervisor || 0}
               </div>
-              <div className="text-slate-400 text-sm">Supervisors</div>
+              <div className="text-slate-400 text-sm"><GlossaryText text="{{Supervisors}}" /></div>
             </div>
             <div className="text-center p-4 bg-slate-700/50 rounded-lg">
               <div className="text-3xl font-bold text-green-400">
                 {companyState?.workforce?.averageMorale?.toFixed(0) || 0}%
               </div>
-              <div className="text-slate-400 text-sm">Avg Morale</div>
+              <div className="text-slate-400 text-sm"><GlossaryText text="{{Morale}}" /></div>
             </div>
           </div>
         </CardContent>

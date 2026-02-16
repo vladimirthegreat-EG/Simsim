@@ -1,4 +1,9 @@
 export { ComplexitySelector } from "./ComplexitySelector";
+export { DiscussionGuide } from "./DiscussionGuide";
 export { EventInjectionPanel } from "./EventInjectionPanel";
+export { FacilitatorDashboard } from "./FacilitatorDashboard";
+export { ParticipantScorecard } from "./ParticipantScorecard";
+export { PostGameReport } from "./PostGameReport";
+export { RoundBrief } from "./RoundBrief";
 export { RoundHistoryPanel } from "./RoundHistoryPanel";
 export { TeamDetailPanel } from "./TeamDetailPanel";

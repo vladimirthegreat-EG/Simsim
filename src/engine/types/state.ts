@@ -9,6 +9,8 @@ import type { MaterialInventory, MaterialOrder, Region } from "../materials/type
 import type { TariffState } from "../tariffs/types";
 import type { FinancialStatements } from "../finance/types";
 import type { FactoryMachineryState } from "../machinery/types";
+import type { Patent } from "./patents";
+import type { UnlockedAchievement } from "./achievements";
 
 // ============================================
 // STATE VERSIONING (Required for compatibility)
@@ -142,8 +144,12 @@ export interface TeamState {
   // R&D
   rdBudget: number;
   rdProgress: number;             // Accumulated R&D points
-  patents: number;
+  patents: number | Patent[];     // number for backward compat, Patent[] for new games
   unlockedTechnologies?: string[]; // IDs of researched technologies
+
+  // Achievements (new - victory condition)
+  achievements?: UnlockedAchievement[];
+  achievementScore?: number;      // Computed: sum of achievement points
 
   // ESG
   esgScore: number;

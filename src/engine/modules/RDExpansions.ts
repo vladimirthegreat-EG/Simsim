@@ -17,24 +17,41 @@ import type { EngineConfig } from "../config/schema";
 // ============================================
 
 export type TechFamily = "battery" | "camera" | "ai" | "durability" | "display" | "connectivity";
-export type TechTier = 1 | 2 | 3;
+export type TechTier = 1 | 2 | 3 | 4 | 5;
 export type RiskLevel = "conservative" | "moderate" | "aggressive";
+
+export type TechEffectType =
+  | "quality_bonus"
+  | "feature_unlock"
+  | "cost_reduction"
+  | "dev_speed"
+  | "segment_bonus"
+  | "family_bonus"; // Cross-family: grants points in another tech family
 
 export interface TechNode {
   id: string;
   name: string;
   family: TechFamily;
   tier: TechTier;
+  /** AND prerequisites - all must be met */
   prerequisites: string[];
+  /** OR prerequisite groups - any ONE group must be fully met (optional) */
+  prerequisitesOr?: string[][];
   researchCost: number;
   researchRounds: number;
   effects: TechEffect[];
   description: string;
+  /** Phone archetypes this node helps unlock */
+  unlocksArchetypes?: string[];
+  /** Segments that benefit most from this tech */
+  bestSegments?: Segment[];
 }
 
 export interface TechEffect {
-  type: "quality_bonus" | "feature_unlock" | "cost_reduction" | "dev_speed" | "segment_bonus";
+  type: TechEffectType;
   segment?: Segment;
+  /** For family_bonus: which family receives the bonus */
+  targetFamily?: TechFamily;
   value: number;
 }
 
@@ -114,270 +131,76 @@ export interface RDExpansionDecisions {
 }
 
 // ============================================
-// TECH TREE DEFINITIONS
+// TECH TREE DEFINITIONS - 54 nodes (9 per family × 6 families, 5 tiers)
+// Source: Simsim_Complete_Design_Document.docx Section 2.3
 // ============================================
 
 const TECH_TREE: TechNode[] = [
-  // Battery Family
-  {
-    id: "battery_1",
-    name: "Extended Battery",
-    family: "battery",
-    tier: 1,
-    prerequisites: [],
-    researchCost: 5_000_000,
-    researchRounds: 2,
-    effects: [{ type: "quality_bonus", value: 5 }],
-    description: "Improved battery life technology",
-  },
-  {
-    id: "battery_2",
-    name: "Fast Charging",
-    family: "battery",
-    tier: 2,
-    prerequisites: ["battery_1"],
-    researchCost: 10_000_000,
-    researchRounds: 3,
-    effects: [
-      { type: "feature_unlock", value: 1 },
-      { type: "quality_bonus", value: 8 },
-    ],
-    description: "Rapid charging capability",
-  },
-  {
-    id: "battery_3",
-    name: "Solid State Battery",
-    family: "battery",
-    tier: 3,
-    prerequisites: ["battery_2"],
-    researchCost: 25_000_000,
-    researchRounds: 4,
-    effects: [
-      { type: "quality_bonus", value: 15 },
-      { type: "cost_reduction", value: 0.1 },
-    ],
-    description: "Revolutionary solid-state battery technology",
-  },
+  // =============== BATTERY FAMILY ===============
+  { id: "bat_1a", name: "Extended Battery", family: "battery", tier: 1, prerequisites: [], researchCost: 3_000_000, researchRounds: 1, effects: [{ type: "quality_bonus", value: 20 }], description: "Improved battery life technology", unlocksArchetypes: ["long_life_phone", "gaming_phone"], bestSegments: ["Budget", "Active Lifestyle"] },
+  { id: "bat_1b", name: "Power Management", family: "battery", tier: 1, prerequisites: [], researchCost: 4_000_000, researchRounds: 1, effects: [{ type: "quality_bonus", value: 15 }, { type: "cost_reduction", value: 0.03 }], description: "Efficient power management chipset", bestSegments: ["Budget"] },
+  { id: "bat_2a", name: "Fast Charging", family: "battery", tier: 2, prerequisites: ["bat_1a"], researchCost: 8_000_000, researchRounds: 2, effects: [{ type: "quality_bonus", value: 15 }, { type: "feature_unlock", value: 1 }], description: "Rapid charging capability", unlocksArchetypes: ["fast_charge_pro"], bestSegments: ["General"] },
+  { id: "bat_2b", name: "Wireless Charging", family: "battery", tier: 2, prerequisites: ["bat_1b"], researchCost: 7_000_000, researchRounds: 2, effects: [{ type: "quality_bonus", value: 10 }], description: "Qi wireless charging support", bestSegments: ["General"] },
+  { id: "bat_3a", name: "Graphene Battery", family: "battery", tier: 3, prerequisites: ["bat_2a"], researchCost: 15_000_000, researchRounds: 3, effects: [{ type: "quality_bonus", value: 20 }, { type: "cost_reduction", value: 0.05 }], description: "Graphene-based battery cells", unlocksArchetypes: ["ultra_endurance"], bestSegments: ["Budget", "Active Lifestyle"] },
+  { id: "bat_3b", name: "Solar Charging", family: "battery", tier: 3, prerequisites: ["bat_2b"], researchCost: 12_000_000, researchRounds: 2, effects: [{ type: "quality_bonus", value: 15 }, { type: "segment_bonus", segment: "Active Lifestyle", value: 0.08 }], description: "Integrated solar charging panel", bestSegments: ["Active Lifestyle"] },
+  { id: "bat_4a", name: "Solid State Battery", family: "battery", tier: 4, prerequisites: ["bat_3a"], researchCost: 25_000_000, researchRounds: 4, effects: [{ type: "quality_bonus", value: 15 }], description: "Revolutionary solid-state battery", unlocksArchetypes: ["ultimate_flagship"], bestSegments: ["Budget", "General", "Enthusiast", "Professional", "Active Lifestyle"] },
+  { id: "bat_4b", name: "Energy Harvesting", family: "battery", tier: 4, prerequisites: ["bat_3b"], researchCost: 20_000_000, researchRounds: 3, effects: [{ type: "quality_bonus", value: 10 }, { type: "segment_bonus", segment: "Budget", value: 0.10 }], description: "Ambient energy harvesting", unlocksArchetypes: ["peoples_phone"], bestSegments: ["Budget"] },
+  { id: "bat_5", name: "Perpetual Power", family: "battery", tier: 5, prerequisites: [], prerequisitesOr: [["bat_4a"], ["bat_4b"]], researchCost: 40_000_000, researchRounds: 5, effects: [{ type: "quality_bonus", value: 15 }, { type: "cost_reduction", value: 0.08 }, { type: "dev_speed", value: 0.10 }], description: "Near-infinite battery technology", unlocksArchetypes: ["quantum_phone"], bestSegments: ["Budget", "General", "Enthusiast", "Professional", "Active Lifestyle"] },
 
-  // Camera Family
-  {
-    id: "camera_1",
-    name: "Enhanced Optics",
-    family: "camera",
-    tier: 1,
-    prerequisites: [],
-    researchCost: 4_000_000,
-    researchRounds: 2,
-    effects: [
-      { type: "quality_bonus", value: 4, segment: "Enthusiast" },
-      { type: "quality_bonus", value: 3 },
-    ],
-    description: "Improved camera optics",
-  },
-  {
-    id: "camera_2",
-    name: "Computational Photography",
-    family: "camera",
-    tier: 2,
-    prerequisites: ["camera_1"],
-    researchCost: 12_000_000,
-    researchRounds: 3,
-    effects: [
-      { type: "quality_bonus", value: 10, segment: "Enthusiast" },
-      { type: "feature_unlock", value: 2 },
-    ],
-    description: "AI-powered image processing",
-  },
-  {
-    id: "camera_3",
-    name: "Pro Video Suite",
-    family: "camera",
-    tier: 3,
-    prerequisites: ["camera_2"],
-    researchCost: 20_000_000,
-    researchRounds: 4,
-    effects: [
-      { type: "quality_bonus", value: 15, segment: "Professional" },
-      { type: "segment_bonus", segment: "Professional", value: 0.1 },
-    ],
-    description: "Professional-grade video capabilities",
-  },
+  // =============== CAMERA FAMILY ===============
+  { id: "cam_1a", name: "Enhanced Optics", family: "camera", tier: 1, prerequisites: [], researchCost: 3_000_000, researchRounds: 1, effects: [{ type: "quality_bonus", value: 20 }], description: "Improved camera optics and sensor", unlocksArchetypes: ["snapshot_phone", "camera_phone"], bestSegments: ["General", "Enthusiast"] },
+  { id: "cam_1b", name: "Wide Angle Lens", family: "camera", tier: 1, prerequisites: [], researchCost: 4_000_000, researchRounds: 1, effects: [{ type: "quality_bonus", value: 15 }, { type: "segment_bonus", segment: "General", value: 0.05 }], description: "Ultra-wide angle lens system", bestSegments: ["General"] },
+  { id: "cam_2a", name: "Night Vision", family: "camera", tier: 2, prerequisites: ["cam_1a"], researchCost: 8_000_000, researchRounds: 2, effects: [{ type: "quality_bonus", value: 15 }], description: "Low-light photography enhancement", bestSegments: ["Enthusiast"] },
+  { id: "cam_2b", name: "Computational Photography", family: "camera", tier: 2, prerequisites: [], prerequisitesOr: [["cam_1a"], ["cam_1b"]], researchCost: 10_000_000, researchRounds: 2, effects: [{ type: "quality_bonus", value: 20 }, { type: "feature_unlock", value: 1 }], description: "AI-powered image processing", unlocksArchetypes: ["camera_phone"], bestSegments: ["Enthusiast"] },
+  { id: "cam_3a", name: "8K Video", family: "camera", tier: 3, prerequisites: [], prerequisitesOr: [["cam_2a"], ["cam_2b"]], researchCost: 15_000_000, researchRounds: 3, effects: [{ type: "quality_bonus", value: 15 }, { type: "segment_bonus", segment: "Enthusiast", value: 0.10 }], description: "8K video recording capability", unlocksArchetypes: ["photo_flagship"], bestSegments: ["Enthusiast"] },
+  { id: "cam_3b", name: "3D Depth Sensing", family: "camera", tier: 3, prerequisites: ["cam_2b"], researchCost: 12_000_000, researchRounds: 2, effects: [{ type: "quality_bonus", value: 10 }, { type: "family_bonus", targetFamily: "ai", value: 10 }], description: "3D depth mapping for AR and photography", bestSegments: ["Professional"] },
+  { id: "cam_4a", name: "Pro Cinema Suite", family: "camera", tier: 4, prerequisites: ["cam_3a"], researchCost: 25_000_000, researchRounds: 4, effects: [{ type: "quality_bonus", value: 15 }, { type: "segment_bonus", segment: "Professional", value: 0.12 }], description: "Professional-grade cinema recording", unlocksArchetypes: ["creator_phone"], bestSegments: ["Professional"] },
+  { id: "cam_4b", name: "Holographic Capture", family: "camera", tier: 4, prerequisites: ["cam_3b"], researchCost: 22_000_000, researchRounds: 3, effects: [{ type: "quality_bonus", value: 10 }, { type: "family_bonus", targetFamily: "display", value: 10 }], description: "Holographic video capture", unlocksArchetypes: ["ultimate_flagship"], bestSegments: ["Enthusiast", "Professional"] },
+  { id: "cam_5", name: "Quantum Imaging", family: "camera", tier: 5, prerequisites: [], prerequisitesOr: [["cam_4a"], ["cam_4b"]], researchCost: 40_000_000, researchRounds: 5, effects: [{ type: "quality_bonus", value: 15 }], description: "Quantum-enhanced imaging sensor", unlocksArchetypes: ["quantum_phone"], bestSegments: ["Budget", "General", "Enthusiast", "Professional", "Active Lifestyle"] },
 
-  // AI Family
-  {
-    id: "ai_1",
-    name: "Smart Assistant",
-    family: "ai",
-    tier: 1,
-    prerequisites: [],
-    researchCost: 6_000_000,
-    researchRounds: 2,
-    effects: [
-      { type: "feature_unlock", value: 1 },
-      { type: "quality_bonus", value: 3 },
-    ],
-    description: "Basic AI assistant features",
-  },
-  {
-    id: "ai_2",
-    name: "Predictive AI",
-    family: "ai",
-    tier: 2,
-    prerequisites: ["ai_1"],
-    researchCost: 15_000_000,
-    researchRounds: 3,
-    effects: [
-      { type: "quality_bonus", value: 8 },
-      { type: "feature_unlock", value: 2 },
-    ],
-    description: "Predictive user experience",
-  },
-  {
-    id: "ai_3",
-    name: "On-Device AI",
-    family: "ai",
-    tier: 3,
-    prerequisites: ["ai_2"],
-    researchCost: 30_000_000,
-    researchRounds: 5,
-    effects: [
-      { type: "quality_bonus", value: 12 },
-      { type: "cost_reduction", value: 0.05 },
-      { type: "segment_bonus", segment: "Professional", value: 0.15 },
-    ],
-    description: "Full on-device AI processing",
-  },
+  // =============== AI FAMILY ===============
+  { id: "ai_1a", name: "Smart Assistant", family: "ai", tier: 1, prerequisites: [], researchCost: 5_000_000, researchRounds: 1, effects: [{ type: "quality_bonus", value: 20 }], description: "Basic AI assistant features", unlocksArchetypes: ["smart_companion", "business_phone"], bestSegments: ["General", "Professional"] },
+  { id: "ai_1b", name: "Predictive Text", family: "ai", tier: 1, prerequisites: [], researchCost: 3_000_000, researchRounds: 1, effects: [{ type: "quality_bonus", value: 15 }], description: "AI-powered text prediction", bestSegments: ["General"] },
+  { id: "ai_2a", name: "On-Device ML", family: "ai", tier: 2, prerequisites: ["ai_1a"], researchCost: 10_000_000, researchRounds: 2, effects: [{ type: "quality_bonus", value: 20 }, { type: "dev_speed", value: 0.05 }], description: "On-device machine learning", unlocksArchetypes: ["ai_assistant_phone"], bestSegments: ["Professional"] },
+  { id: "ai_2b", name: "Context Awareness", family: "ai", tier: 2, prerequisites: [], prerequisitesOr: [["ai_1a"], ["ai_1b"]], researchCost: 8_000_000, researchRounds: 2, effects: [{ type: "quality_bonus", value: 15 }, { type: "segment_bonus", segment: "Professional", value: 0.08 }], description: "Contextual user experience", bestSegments: ["Professional"] },
+  { id: "ai_3a", name: "Autonomous Agent", family: "ai", tier: 3, prerequisites: ["ai_2a"], researchCost: 18_000_000, researchRounds: 3, effects: [{ type: "quality_bonus", value: 15 }, { type: "feature_unlock", value: 1 }], description: "AI agent that handles tasks proactively", unlocksArchetypes: ["ai_powerhouse", "creator_phone"], bestSegments: ["Professional"] },
+  { id: "ai_3b", name: "Emotion Recognition", family: "ai", tier: 3, prerequisites: ["ai_2b"], researchCost: 14_000_000, researchRounds: 3, effects: [{ type: "quality_bonus", value: 10 }, { type: "segment_bonus", segment: "General", value: 0.08 }], description: "Emotional intelligence for UX", bestSegments: ["General"] },
+  { id: "ai_4a", name: "Neural Processing Unit", family: "ai", tier: 4, prerequisites: ["ai_3a"], researchCost: 28_000_000, researchRounds: 4, effects: [{ type: "quality_bonus", value: 15 }, { type: "cost_reduction", value: 0.06 }, { type: "dev_speed", value: 0.08 }], description: "Dedicated neural processing hardware", unlocksArchetypes: ["ultimate_flagship"], bestSegments: ["Professional"] },
+  { id: "ai_4b", name: "Adaptive UX", family: "ai", tier: 4, prerequisites: [], prerequisitesOr: [["ai_3a"], ["ai_3b"]], researchCost: 22_000_000, researchRounds: 3, effects: [{ type: "quality_bonus", value: 10 }, { type: "family_bonus", targetFamily: "battery", value: 5 }, { type: "family_bonus", targetFamily: "camera", value: 5 }, { type: "family_bonus", targetFamily: "durability", value: 5 }, { type: "family_bonus", targetFamily: "display", value: 5 }, { type: "family_bonus", targetFamily: "connectivity", value: 5 }], description: "Adaptive UX that boosts all systems", unlocksArchetypes: ["ultimate_flagship"], bestSegments: ["Budget", "General", "Enthusiast", "Professional", "Active Lifestyle"] },
+  { id: "ai_5", name: "Sentient OS", family: "ai", tier: 5, prerequisites: [], prerequisitesOr: [["ai_4a"], ["ai_4b"]], researchCost: 45_000_000, researchRounds: 5, effects: [{ type: "quality_bonus", value: 20 }, { type: "segment_bonus", segment: "Professional", value: 0.15 }], description: "Fully sentient operating system", unlocksArchetypes: ["quantum_phone"], bestSegments: ["Professional"] },
 
-  // Durability Family
-  {
-    id: "durability_1",
-    name: "Gorilla Glass",
-    family: "durability",
-    tier: 1,
-    prerequisites: [],
-    researchCost: 3_000_000,
-    researchRounds: 1,
-    effects: [
-      { type: "quality_bonus", value: 3 },
-      { type: "segment_bonus", segment: "Active Lifestyle", value: 0.05 },
-    ],
-    description: "Enhanced screen durability",
-  },
-  {
-    id: "durability_2",
-    name: "Water Resistance",
-    family: "durability",
-    tier: 2,
-    prerequisites: ["durability_1"],
-    researchCost: 8_000_000,
-    researchRounds: 2,
-    effects: [
-      { type: "quality_bonus", value: 6 },
-      { type: "segment_bonus", segment: "Active Lifestyle", value: 0.1 },
-    ],
-    description: "IP68 water and dust resistance",
-  },
-  {
-    id: "durability_3",
-    name: "Military Grade",
-    family: "durability",
-    tier: 3,
-    prerequisites: ["durability_2"],
-    researchCost: 15_000_000,
-    researchRounds: 3,
-    effects: [
-      { type: "quality_bonus", value: 10, segment: "Active Lifestyle" },
-      { type: "quality_bonus", value: 8, segment: "Professional" },
-      { type: "segment_bonus", segment: "Active Lifestyle", value: 0.2 },
-    ],
-    description: "MIL-STD-810G certification",
-  },
+  // =============== DURABILITY FAMILY ===============
+  { id: "dur_1a", name: "Gorilla Glass", family: "durability", tier: 1, prerequisites: [], researchCost: 2_000_000, researchRounds: 1, effects: [{ type: "quality_bonus", value: 20 }], description: "Enhanced screen durability", unlocksArchetypes: ["outdoor_basic", "rugged_phone"], bestSegments: ["Active Lifestyle"] },
+  { id: "dur_1b", name: "Rubber Armor", family: "durability", tier: 1, prerequisites: [], researchCost: 2_000_000, researchRounds: 1, effects: [{ type: "quality_bonus", value: 15 }, { type: "segment_bonus", segment: "Active Lifestyle", value: 0.05 }], description: "Shock-absorbing rubber casing", bestSegments: ["Active Lifestyle"] },
+  { id: "dur_2a", name: "IP68 Water Resist", family: "durability", tier: 2, prerequisites: [], prerequisitesOr: [["dur_1a"], ["dur_1b"]], researchCost: 6_000_000, researchRounds: 2, effects: [{ type: "quality_bonus", value: 20 }], description: "IP68 water and dust resistance", unlocksArchetypes: ["rugged_phone"], bestSegments: ["Active Lifestyle"] },
+  { id: "dur_2b", name: "Shock Absorption", family: "durability", tier: 2, prerequisites: ["dur_1b"], researchCost: 5_000_000, researchRounds: 1, effects: [{ type: "quality_bonus", value: 15 }, { type: "cost_reduction", value: 0.03 }], description: "Advanced shock absorption system", bestSegments: ["Active Lifestyle", "Budget"] },
+  { id: "dur_3a", name: "MIL-STD Certified", family: "durability", tier: 3, prerequisites: ["dur_2a"], researchCost: 12_000_000, researchRounds: 2, effects: [{ type: "quality_bonus", value: 15 }, { type: "segment_bonus", segment: "Active Lifestyle", value: 0.12 }], description: "MIL-STD-810G certification", unlocksArchetypes: ["adventure_phone"], bestSegments: ["Active Lifestyle"] },
+  { id: "dur_3b", name: "Self-Healing Materials", family: "durability", tier: 3, prerequisites: [], prerequisitesOr: [["dur_2a"], ["dur_2b"]], researchCost: 14_000_000, researchRounds: 3, effects: [{ type: "quality_bonus", value: 15 }], description: "Self-repairing polymer coating", bestSegments: ["Active Lifestyle"] },
+  { id: "dur_4a", name: "Extreme Environment", family: "durability", tier: 4, prerequisites: ["dur_3a"], researchCost: 20_000_000, researchRounds: 3, effects: [{ type: "quality_bonus", value: 15 }, { type: "segment_bonus", segment: "Active Lifestyle", value: 0.10 }, { type: "segment_bonus", segment: "Professional", value: 0.08 }], description: "Extreme temperature and pressure resistance", unlocksArchetypes: ["explorer_phone"], bestSegments: ["Active Lifestyle", "Professional"] },
+  { id: "dur_4b", name: "Titanium Frame", family: "durability", tier: 4, prerequisites: ["dur_3b"], researchCost: 18_000_000, researchRounds: 3, effects: [{ type: "quality_bonus", value: 10 }], description: "Aerospace-grade titanium chassis", unlocksArchetypes: ["ultimate_flagship"], bestSegments: ["Professional"] },
+  { id: "dur_5", name: "Indestructible", family: "durability", tier: 5, prerequisites: [], prerequisitesOr: [["dur_4a"], ["dur_4b"]], researchCost: 35_000_000, researchRounds: 5, effects: [{ type: "quality_bonus", value: 20 }, { type: "segment_bonus", segment: "Active Lifestyle", value: 0.15 }], description: "Virtually indestructible construction", unlocksArchetypes: ["quantum_phone"], bestSegments: ["Active Lifestyle"] },
 
-  // Display Family
-  {
-    id: "display_1",
-    name: "OLED Display",
-    family: "display",
-    tier: 1,
-    prerequisites: [],
-    researchCost: 5_000_000,
-    researchRounds: 2,
-    effects: [{ type: "quality_bonus", value: 5 }],
-    description: "Premium OLED display",
-  },
-  {
-    id: "display_2",
-    name: "High Refresh Rate",
-    family: "display",
-    tier: 2,
-    prerequisites: ["display_1"],
-    researchCost: 10_000_000,
-    researchRounds: 2,
-    effects: [
-      { type: "quality_bonus", value: 7 },
-      { type: "segment_bonus", segment: "Enthusiast", value: 0.1 },
-    ],
-    description: "120Hz+ display refresh rate",
-  },
-  {
-    id: "display_3",
-    name: "Adaptive Display",
-    family: "display",
-    tier: 3,
-    prerequisites: ["display_2"],
-    researchCost: 18_000_000,
-    researchRounds: 3,
-    effects: [
-      { type: "quality_bonus", value: 10 },
-      { type: "cost_reduction", value: 0.08 },
-    ],
-    description: "Adaptive refresh and brightness",
-  },
+  // =============== DISPLAY FAMILY ===============
+  { id: "dsp_1a", name: "OLED Display", family: "display", tier: 1, prerequisites: [], researchCost: 4_000_000, researchRounds: 1, effects: [{ type: "quality_bonus", value: 20 }], description: "Premium OLED display", unlocksArchetypes: ["cinema_screen", "gaming_phone"], bestSegments: ["General", "Enthusiast"] },
+  { id: "dsp_1b", name: "High Brightness", family: "display", tier: 1, prerequisites: [], researchCost: 3_000_000, researchRounds: 1, effects: [{ type: "quality_bonus", value: 15 }], description: "Sunlight-readable high brightness display", bestSegments: ["Active Lifestyle"] },
+  { id: "dsp_2a", name: "120Hz Refresh", family: "display", tier: 2, prerequisites: ["dsp_1a"], researchCost: 8_000_000, researchRounds: 2, effects: [{ type: "quality_bonus", value: 20 }, { type: "segment_bonus", segment: "Enthusiast", value: 0.08 }], description: "120Hz+ display refresh rate", unlocksArchetypes: ["gaming_phone", "photo_flagship"], bestSegments: ["Enthusiast"] },
+  { id: "dsp_2b", name: "Always-On Display", family: "display", tier: 2, prerequisites: [], prerequisitesOr: [["dsp_1a"], ["dsp_1b"]], researchCost: 6_000_000, researchRounds: 1, effects: [{ type: "quality_bonus", value: 10 }, { type: "family_bonus", targetFamily: "battery", value: -5 }], description: "Always-on display (trades battery life)", bestSegments: ["General"] },
+  { id: "dsp_3a", name: "Adaptive ProMotion", family: "display", tier: 3, prerequisites: ["dsp_2a"], researchCost: 14_000_000, researchRounds: 2, effects: [{ type: "quality_bonus", value: 15 }, { type: "family_bonus", targetFamily: "battery", value: 5 }, { type: "cost_reduction", value: 0.04 }], description: "Variable refresh rate display", bestSegments: ["Enthusiast"] },
+  { id: "dsp_3b", name: "Under-Display Camera", family: "display", tier: 3, prerequisites: [], prerequisitesOr: [["dsp_2a"], ["dsp_2b"]], researchCost: 12_000_000, researchRounds: 3, effects: [{ type: "quality_bonus", value: 10 }, { type: "family_bonus", targetFamily: "camera", value: 5 }], description: "Camera hidden under the display", bestSegments: ["Enthusiast"] },
+  { id: "dsp_4a", name: "Micro-LED", family: "display", tier: 4, prerequisites: ["dsp_3a"], researchCost: 22_000_000, researchRounds: 3, effects: [{ type: "quality_bonus", value: 15 }, { type: "cost_reduction", value: 0.06 }], description: "Next-generation micro-LED display", unlocksArchetypes: ["ultimate_flagship"], bestSegments: ["Enthusiast", "Professional"] },
+  { id: "dsp_4b", name: "Foldable Display", family: "display", tier: 4, prerequisites: [], prerequisitesOr: [["dsp_3a"], ["dsp_3b"]], researchCost: 28_000_000, researchRounds: 4, effects: [{ type: "quality_bonus", value: 15 }, { type: "feature_unlock", value: 1 }], description: "Foldable display technology", unlocksArchetypes: ["foldable_phone"], bestSegments: ["Enthusiast"] },
+  { id: "dsp_5", name: "Holographic Display", family: "display", tier: 5, prerequisites: [], prerequisitesOr: [["dsp_4a"], ["dsp_4b"]], researchCost: 45_000_000, researchRounds: 5, effects: [{ type: "quality_bonus", value: 20 }], description: "Holographic 3D display", unlocksArchetypes: ["quantum_phone"], bestSegments: ["Budget", "General", "Enthusiast", "Professional", "Active Lifestyle"] },
 
-  // Connectivity Family
-  {
-    id: "connectivity_1",
-    name: "5G Modem",
-    family: "connectivity",
-    tier: 1,
-    prerequisites: [],
-    researchCost: 8_000_000,
-    researchRounds: 2,
-    effects: [
-      { type: "feature_unlock", value: 1 },
-      { type: "quality_bonus", value: 5 },
-    ],
-    description: "5G connectivity",
-  },
-  {
-    id: "connectivity_2",
-    name: "WiFi 6E",
-    family: "connectivity",
-    tier: 2,
-    prerequisites: ["connectivity_1"],
-    researchCost: 6_000_000,
-    researchRounds: 2,
-    effects: [
-      { type: "quality_bonus", value: 4 },
-      { type: "segment_bonus", segment: "Professional", value: 0.05 },
-    ],
-    description: "Next-gen WiFi technology",
-  },
-  {
-    id: "connectivity_3",
-    name: "Satellite Communication",
-    family: "connectivity",
-    tier: 3,
-    prerequisites: ["connectivity_2"],
-    researchCost: 35_000_000,
-    researchRounds: 5,
-    effects: [
-      { type: "quality_bonus", value: 8 },
-      { type: "segment_bonus", segment: "Professional", value: 0.15 },
-      { type: "segment_bonus", segment: "Active Lifestyle", value: 0.1 },
-    ],
-    description: "Emergency satellite connectivity",
-  },
+  // =============== CONNECTIVITY FAMILY ===============
+  { id: "con_1a", name: "5G Modem", family: "connectivity", tier: 1, prerequisites: [], researchCost: 5_000_000, researchRounds: 1, effects: [{ type: "quality_bonus", value: 20 }], description: "5G connectivity", unlocksArchetypes: ["connected_phone", "business_phone"], bestSegments: ["General", "Professional"] },
+  { id: "con_1b", name: "WiFi 6", family: "connectivity", tier: 1, prerequisites: [], researchCost: 3_000_000, researchRounds: 1, effects: [{ type: "quality_bonus", value: 15 }], description: "WiFi 6 support", bestSegments: ["General"] },
+  { id: "con_2a", name: "mmWave 5G", family: "connectivity", tier: 2, prerequisites: ["con_1a"], researchCost: 10_000_000, researchRounds: 2, effects: [{ type: "quality_bonus", value: 20 }, { type: "segment_bonus", segment: "Professional", value: 0.08 }], description: "Millimeter wave 5G for ultra speeds", unlocksArchetypes: ["business_phone", "ai_powerhouse"], bestSegments: ["Professional"] },
+  { id: "con_2b", name: "WiFi 6E", family: "connectivity", tier: 2, prerequisites: ["con_1b"], researchCost: 6_000_000, researchRounds: 1, effects: [{ type: "quality_bonus", value: 15 }, { type: "dev_speed", value: 0.03 }], description: "Next-gen WiFi 6E technology", bestSegments: ["General"] },
+  { id: "con_3a", name: "Satellite SOS", family: "connectivity", tier: 3, prerequisites: ["con_2a"], researchCost: 18_000_000, researchRounds: 3, effects: [{ type: "quality_bonus", value: 15 }, { type: "segment_bonus", segment: "Active Lifestyle", value: 0.10 }], description: "Emergency satellite connectivity", unlocksArchetypes: ["adventure_phone"], bestSegments: ["Active Lifestyle"] },
+  { id: "con_3b", name: "UWB Precision", family: "connectivity", tier: 3, prerequisites: [], prerequisitesOr: [["con_2a"], ["con_2b"]], researchCost: 10_000_000, researchRounds: 2, effects: [{ type: "quality_bonus", value: 10 }, { type: "feature_unlock", value: 1 }], description: "Ultra-wideband precision location", bestSegments: ["General"] },
+  { id: "con_4a", name: "LEO Satellite", family: "connectivity", tier: 4, prerequisites: ["con_3a"], researchCost: 30_000_000, researchRounds: 4, effects: [{ type: "quality_bonus", value: 15 }, { type: "segment_bonus", segment: "Professional", value: 0.10 }, { type: "segment_bonus", segment: "Active Lifestyle", value: 0.10 }], description: "Low-earth orbit satellite broadband", unlocksArchetypes: ["explorer_phone"], bestSegments: ["Professional", "Active Lifestyle"] },
+  { id: "con_4b", name: "Mesh Networking", family: "connectivity", tier: 4, prerequisites: ["con_3b"], researchCost: 15_000_000, researchRounds: 3, effects: [{ type: "quality_bonus", value: 15 }, { type: "segment_bonus", segment: "Budget", value: 0.08 }], description: "Peer-to-peer mesh networking", unlocksArchetypes: ["peoples_phone"], bestSegments: ["Budget"] },
+  { id: "con_5", name: "Quantum Communication", family: "connectivity", tier: 5, prerequisites: [], prerequisitesOr: [["con_4a"], ["con_4b"]], researchCost: 50_000_000, researchRounds: 5, effects: [{ type: "quality_bonus", value: 20 }, { type: "segment_bonus", segment: "Professional", value: 0.12 }], description: "Quantum-encrypted communication", unlocksArchetypes: ["quantum_phone"], bestSegments: ["Professional"] },
 ];
 
 // ============================================
@@ -589,11 +412,21 @@ export class RDExpansions {
       const tech = TECH_TREE.find((t) => t.id === techId);
       if (!tech) continue;
 
-      // Check prerequisites
-      const prereqsMet = tech.prerequisites.every((p) =>
+      // Check AND prerequisites
+      const andPrereqsMet = tech.prerequisites.every((p) =>
         techTree.unlockedTechs.includes(p)
       );
-      if (!prereqsMet) continue;
+      if (!andPrereqsMet) continue;
+
+      // Check OR prerequisites (if defined, at least one group must be fully met)
+      if (tech.prerequisitesOr && tech.prerequisitesOr.length > 0) {
+        const orPrereqsMet = tech.prerequisitesOr.some((group) =>
+          group.every((p) => techTree.unlockedTechs.includes(p))
+        );
+        if (!orPrereqsMet) continue;
+      }
+
+      const prereqsMet = true; // Already validated above
 
       // Check if already researching or completed
       const alreadyActive = techTree.activeResearch.some((r) => r.techId === techId);
@@ -772,16 +605,68 @@ export class RDExpansions {
   }
 
   /**
-   * Get available research options
+   * Get available research options (supports AND + OR prerequisites)
    */
   static getAvailableResearch(unlockedTechs: string[]): TechNode[] {
     return TECH_TREE.filter((tech) => {
       // Not already unlocked
       if (unlockedTechs.includes(tech.id)) return false;
 
-      // Prerequisites met
-      return tech.prerequisites.every((p) => unlockedTechs.includes(p));
+      // AND prerequisites met
+      if (!tech.prerequisites.every((p) => unlockedTechs.includes(p))) return false;
+
+      // OR prerequisites met (if defined)
+      if (tech.prerequisitesOr && tech.prerequisitesOr.length > 0) {
+        const orMet = tech.prerequisitesOr.some((group) =>
+          group.every((p) => unlockedTechs.includes(p))
+        );
+        if (!orMet) return false;
+      }
+
+      return true;
     });
+  }
+
+  /**
+   * Calculate a product's feature set from unlocked technologies.
+   * Each tech node contributes to its family based on effects.
+   * Tier contribution: +20 per node (from family_bonus or quality_bonus effects).
+   */
+  static calculateProductFeatureSet(
+    unlockedTechs: string[]
+  ): Record<TechFamily, number> {
+    const families: TechFamily[] = ["battery", "camera", "ai", "durability", "display", "connectivity"];
+    const features: Record<TechFamily, number> = {
+      battery: 0, camera: 0, ai: 0, durability: 0, display: 0, connectivity: 0,
+    };
+
+    for (const techId of unlockedTechs) {
+      const tech = TECH_TREE.find((t) => t.id === techId);
+      if (!tech) continue;
+
+      // Each unlocked tech contributes to its own family
+      // We look at effects for the contribution value
+      for (const effect of tech.effects) {
+        if (effect.type === "family_bonus" && effect.targetFamily) {
+          // Cross-family bonus
+          features[effect.targetFamily] = Math.min(100, features[effect.targetFamily] + effect.value);
+        }
+      }
+
+      // Direct family contribution based on the primary effect value
+      // Use the first effect's value or a tier-based default
+      const primaryEffect = tech.effects.find(
+        (e) => e.type === "quality_bonus" && !e.segment
+      );
+      const contribution = primaryEffect ? primaryEffect.value : 0;
+
+      // Add the main tech contribution to its own family
+      // Note: the TECH_TREE nodes' effects encode the contribution values directly
+      // For legacy 18-node tree, we use a generic approach
+      features[tech.family] = Math.min(100, features[tech.family] + contribution);
+    }
+
+    return features;
   }
 
   /**

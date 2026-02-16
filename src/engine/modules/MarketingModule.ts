@@ -106,7 +106,7 @@ export class MarketingModule {
       }
     }
 
-    // Process promotions — apply discount directly to product prices for this round
+    // Process promotions - apply discount directly to product prices for this round
     // v3.1.0: Promotions now actually reduce prices for market scoring
     if (decisions.promotions) {
       for (const promo of decisions.promotions) {

@@ -11,9 +11,20 @@ import {
   Product,
   CONSTANTS,
 } from "../types";
+import type { DynamicPriceExpectation } from "../types/market";
 import { random, randomRange } from "../utils";
 import { cloneMarketState, cloneTeamState } from "../utils/stateUtils";
 import type { EngineContext, SeededRNG } from "../core/EngineContext";
+import type { CompetitionState, CrowdingState, FirstMoverBonus, BrandErosion, ArmsRaceBonus, MarketEvent } from "../types/competition";
+import { calculateCrowdingFactor, FIRST_MOVER_MAX_BONUS, FIRST_MOVER_DECAY_ROUNDS, BRAND_EROSION_SENSITIVITY, ARMS_RACE_BONUS, initializeCompetitionState } from "../types/competition";
+import { SEGMENT_FEATURE_PREFERENCES, TECH_FAMILIES, calculateFeatureMatchScore } from "../types/features";
+import type { ProductFeatureSet } from "../types/features";
+
+/** EMA smoothing factor for dynamic pricing. */
+const DYNAMIC_PRICE_EMA_ALPHA = 0.3;
+
+/** Maximum underserved bonus for pricing advantage. */
+const UNDERSERVED_PRICE_BONUS = 0.25;
 
 /**
  * Get RNG instance - uses context if available, otherwise global (throws if not seeded)
@@ -63,6 +74,15 @@ export interface MarketSimulationResult {
   revenueByTeam: Record<string, number>;
   rubberBandingApplied: boolean;
   esgEvents: Record<string, { type: "bonus" | "penalty"; amount: number; message: string }>;
+  // Competition mechanics (Phase 3)
+  competitionData?: {
+    crowding: CrowdingState[];
+    firstMoverBonuses: FirstMoverBonus[];
+    brandErosion: BrandErosion[];
+    armsRaceBonuses: ArmsRaceBonus[];
+    marketEvents: MarketEvent[];
+    updatedCompetitionState: CompetitionState;
+  };
 }
 
 export class MarketSimulator {
@@ -76,7 +96,7 @@ export class MarketSimulator {
   static simulate(
     teams: Array<{ id: string; state: TeamState }>,
     marketState: MarketState,
-    options?: { applyRubberBanding?: boolean },
+    options?: { applyRubberBanding?: boolean; competitionState?: CompetitionState },
     ctx?: EngineContext
   ): MarketSimulationResult {
     const positions: TeamMarketPosition[] = [];
@@ -85,6 +105,20 @@ export class MarketSimulator {
     const revenueByTeam: Record<string, number> = {};
     // PATCH 6: Foreign revenue tracking
     const revenueByRegion: Record<string, Record<string, number>> = {};
+
+    // Competition state tracking
+    const competitionState = options?.competitionState
+      ? { ...options.competitionState, firstMoverBonuses: [...options.competitionState.firstMoverBonuses], armsRaceBonuses: [...options.competitionState.armsRaceBonuses], firstCompletions: { ...options.competitionState.firstCompletions } }
+      : initializeCompetitionState();
+    const crowdingStates: CrowdingState[] = [];
+    const newFirstMoverBonuses: FirstMoverBonus[] = [];
+    const brandErosionEvents: BrandErosion[] = [];
+    const marketEvents: MarketEvent[] = [];
+
+    // Decay existing first-mover bonuses
+    competitionState.firstMoverBonuses = competitionState.firstMoverBonuses
+      .map(b => ({ ...b, roundsRemaining: b.roundsRemaining - 1 }))
+      .filter(b => b.roundsRemaining > 0);
 
     // Initialize team records
     for (const team of teams) {
@@ -112,6 +146,13 @@ export class MarketSimulator {
     for (const segment of CONSTANTS.SEGMENTS) {
       const segmentPositions: TeamMarketPosition[] = [];
 
+      // Count products in this segment for crowding calculation
+      const productsInSegment = teams.filter(t =>
+        t.state.products.some(p => p.segment === segment && p.developmentStatus === "launched")
+      ).length;
+      const crowdingFactor = calculateCrowdingFactor(productsInSegment);
+      crowdingStates.push({ segment, productCount: productsInSegment, crowdingFactor });
+
       // Calculate scores for each team in this segment
       for (const team of teams) {
         const product = team.state.products.find(p => p.segment === segment);
@@ -122,8 +163,82 @@ export class MarketSimulator {
           segment,
           marketState
         );
+
+        // Apply crowding penalty to total score
+        if (crowdingFactor < 1.0 && position.totalScore > 0) {
+          position.totalScore *= crowdingFactor;
+        }
+
+        // Apply first-mover bonus
+        const activeFirstMover = competitionState.firstMoverBonuses.find(
+          b => b.teamId === team.id && b.segment === segment && b.roundsRemaining > 0
+        );
+        if (activeFirstMover && position.totalScore > 0) {
+          const decayedBonus = activeFirstMover.initialBonus *
+            (activeFirstMover.roundsRemaining / FIRST_MOVER_DECAY_ROUNDS);
+          position.totalScore *= (1 + decayedBonus);
+        }
+
+        // Apply arms race bonus (first team to use a new tech in a product)
+        for (const armsBonus of competitionState.armsRaceBonuses) {
+          if (armsBonus.teamId === team.id && !armsBonus.bonusUsed && position.product) {
+            const appliedTechs = position.product.appliedTechs || [];
+            if (appliedTechs.includes(armsBonus.techId)) {
+              position.totalScore *= (1 + ARMS_RACE_BONUS);
+              armsBonus.bonusUsed = true;
+              marketEvents.push({
+                type: "tech_completed",
+                round: marketState.roundNumber,
+                description: `${team.id} gains arms race bonus from ${armsBonus.family} technology`,
+                impact: "positive",
+                teamId: team.id,
+                segment,
+              });
+            }
+          }
+        }
+
         segmentPositions.push(position);
         positions.push(position);
+      }
+
+      // Detect first-mover opportunities (underserved segments)
+      if (productsInSegment <= 1) {
+        const entrant = segmentPositions.find(p => p.product && p.totalScore > 0);
+        const alreadyHasBonus = competitionState.firstMoverBonuses.some(
+          b => b.segment === segment && b.roundsRemaining > 0
+        );
+        if (entrant && !alreadyHasBonus) {
+          const underservedFactor = productsInSegment === 0 ? 1.0 : 0.5;
+          const bonus: FirstMoverBonus = {
+            teamId: entrant.teamId,
+            segment,
+            roundEntered: marketState.roundNumber,
+            initialBonus: FIRST_MOVER_MAX_BONUS * underservedFactor,
+            roundsRemaining: FIRST_MOVER_DECAY_ROUNDS,
+          };
+          newFirstMoverBonuses.push(bonus);
+          competitionState.firstMoverBonuses.push(bonus);
+          marketEvents.push({
+            type: "segment_underserved",
+            round: marketState.roundNumber,
+            description: `${entrant.teamId} gains first-mover advantage in ${segment}`,
+            impact: "positive",
+            teamId: entrant.teamId,
+            segment,
+          });
+        }
+      }
+
+      // Detect crowded segments
+      if (crowdingFactor < 1.0) {
+        marketEvents.push({
+          type: "segment_flooded",
+          round: marketState.roundNumber,
+          description: `${segment} segment is crowded (${productsInSegment} products, ${((1 - crowdingFactor) * 100).toFixed(0)}% penalty)`,
+          impact: "negative",
+          segment,
+        });
       }
 
       // Calculate market shares using softmax
@@ -164,6 +279,28 @@ export class MarketSimulator {
         marketShares[position.teamId][segment] = share;
         salesByTeam[position.teamId][segment] = units;
         revenueByTeam[position.teamId] += position.revenue;
+      }
+
+      // Brand erosion detection: when a competitor has significantly higher score
+      const scoredPositions = segmentPositions.filter(p => p.totalScore > 0);
+      if (scoredPositions.length >= 2) {
+        const sorted = [...scoredPositions].sort((a, b) => b.totalScore - a.totalScore);
+        const leader = sorted[0];
+        for (let i = 1; i < sorted.length; i++) {
+          const trailing = sorted[i];
+          const scoreAdvantage = (leader.totalScore - trailing.totalScore) / trailing.totalScore;
+          if (scoreAdvantage > 0.2) { // 20% threshold to trigger erosion
+            const erosionMultiplier = 1 + scoreAdvantage * BRAND_EROSION_SENSITIVITY;
+            brandErosionEvents.push({
+              teamId: trailing.teamId,
+              segment,
+              competitorTeamId: leader.teamId,
+              scoreAdvantage,
+              erosionMultiplier,
+              message: `${trailing.teamId}'s brand erodes in ${segment} (-${((erosionMultiplier - 1) * 100).toFixed(0)}% decay) due to ${leader.teamId}'s stronger product`,
+            });
+          }
+        }
       }
     }
 
@@ -250,6 +387,14 @@ export class MarketSimulator {
       revenueByRegion,  // PATCH 6: Foreign revenue tracking
       rubberBandingApplied,
       esgEvents,
+      competitionData: {
+        crowding: crowdingStates,
+        firstMoverBonuses: newFirstMoverBonuses,
+        brandErosion: brandErosionEvents,
+        armsRaceBonuses: competitionState.armsRaceBonuses.filter(b => b.bonusUsed),
+        marketEvents,
+        updatedCompetitionState: competitionState,
+      },
     };
   }
 
@@ -371,41 +516,54 @@ export class MarketSimulator {
     const segmentData = marketState.demandBySegment[segment];
     const weights = this.getSegmentWeights(segment);
 
-    // Price Score: How competitive is the price?
-    // Uses price position within segment range (0 at max, 1 at min)
-    // This properly rewards low prices: cheaper = higher score
-    // BUT: Prices significantly below minimum get penalized (price floor curve)
-    // PATCH 5: Quality increases price tolerance
-    const priceRange = segmentData.priceRange;
-    const rangeWidth = priceRange.max - priceRange.min;
+    // Price Score - dynamic pricing when available, legacy otherwise
+    const dynamicPrice = marketState.dynamicPricing?.[segment];
+    let priceScore: number;
 
-    // PATCH 5: Quality-driven price tolerance (up to 20% premium acceptance for Q=100)
-    const qualityPriceTolerance = product.quality * 0.002;  // 0.2 at Q=100
-    const adjustedMaxPrice = priceRange.max * (1 + qualityPriceTolerance);
+    if (dynamicPrice && dynamicPrice.expectedPrice > 0) {
+      // Dynamic pricing: score based on expected price (EMA of actual market prices)
+      // priceAdvantage = (expected - actual) / expected, clamped via tanh sigmoid
+      const priceAdvantage = (dynamicPrice.expectedPrice - product.price) / dynamicPrice.expectedPrice;
+      const sigmoidScore = Math.tanh(priceAdvantage * 2) * 0.5 + 0.5; // 0-1 range
 
-    // pricePosition: 0 (at adjusted max price) to 1 (at min price), can exceed 1 if below min
-    const adjustedRangeWidth = adjustedMaxPrice - priceRange.min;
-    const pricePosition = adjustedRangeWidth > 0
-      ? Math.max(0, (adjustedMaxPrice - product.price) / adjustedRangeWidth)
-      : 0.5;
+      // Underserved bonus: if segment has few suppliers, pricing above expected is more tolerated
+      const underservedBonus = dynamicPrice.underservedFactor * UNDERSERVED_PRICE_BONUS;
+      const dynamicPriceScore = Math.min(1.0, sigmoidScore + underservedBonus);
 
-    // Price floor curve: penalize prices far below segment minimum
-    // This prevents "race to bottom" pricing strategies
-    let priceScoreMultiplier = 1.0;
-    if (product.price < priceRange.min) {
-      const priceBelowMin = priceRange.min - product.price;
-      const floorThreshold = priceRange.min * CONSTANTS.PRICE_FLOOR_PENALTY_THRESHOLD;
-
-      if (priceBelowMin > floorThreshold) {
-        // Calculate penalty: scales from 0 to MAX_PENALTY as price goes further below floor
-        const excessBelow = priceBelowMin - floorThreshold;
-        const penaltyScale = Math.min(1, excessBelow / floorThreshold); // 0-1 as price drops further
-        priceScoreMultiplier = 1 - (penaltyScale * CONSTANTS.PRICE_FLOOR_PENALTY_MAX);
+      // Price floor penalty (still applies - prevent dumping below cost)
+      let priceFloorMultiplier = 1.0;
+      if (product.price < dynamicPrice.priceFloor) {
+        const belowFloor = (dynamicPrice.priceFloor - product.price) / dynamicPrice.priceFloor;
+        priceFloorMultiplier = Math.max(0.5, 1 - belowFloor);
       }
-    }
 
-    // Cap at 1.0 for prices at or slightly below min, apply floor penalty if too low
-    const priceScore = Math.min(1, pricePosition) * weights.price * priceScoreMultiplier;
+      priceScore = dynamicPriceScore * weights.price * priceFloorMultiplier;
+    } else {
+      // Legacy static pricing (backward compatible)
+      const priceRange = segmentData.priceRange;
+
+      // PATCH 5: Quality-driven price tolerance (up to 20% premium acceptance for Q=100)
+      const qualityPriceTolerance = product.quality * 0.002;
+      const adjustedMaxPrice = priceRange.max * (1 + qualityPriceTolerance);
+
+      const adjustedRangeWidth = adjustedMaxPrice - priceRange.min;
+      const pricePosition = adjustedRangeWidth > 0
+        ? Math.max(0, (adjustedMaxPrice - product.price) / adjustedRangeWidth)
+        : 0.5;
+
+      let priceScoreMultiplier = 1.0;
+      if (product.price < priceRange.min) {
+        const priceBelowMin = priceRange.min - product.price;
+        const floorThreshold = priceRange.min * CONSTANTS.PRICE_FLOOR_PENALTY_THRESHOLD;
+        if (priceBelowMin > floorThreshold) {
+          const excessBelow = priceBelowMin - floorThreshold;
+          const penaltyScale = Math.min(1, excessBelow / floorThreshold);
+          priceScoreMultiplier = 1 - (penaltyScale * CONSTANTS.PRICE_FLOOR_PENALTY_MAX);
+        }
+      }
+
+      priceScore = Math.min(1, pricePosition) * weights.price * priceScoreMultiplier;
+    }
 
     // Quality Score: Product quality vs expectations
     // v2.2.0: Allow exceeding expectations with diminishing returns
@@ -420,8 +578,8 @@ export class MarketSimulator {
     const qualityScore = Math.min(CONSTANTS.QUALITY_FEATURE_BONUS_CAP, qualityMultiplier) * weights.quality;
 
     // Brand Score: Brand value contribution (already 0-1)
-    // sqrt() for diminishing returns — high brand values give less incremental benefit
-    // v4.0.2: Gentle critical mass — modest bonus for brand investors
+    // sqrt() for diminishing returns - high brand values give less incremental benefit
+    // v4.0.2: Gentle critical mass - modest bonus for brand investors
     let brandMultiplier = 1.0;
     if (state.brandValue > CONSTANTS.BRAND_CRITICAL_MASS_HIGH) {
       brandMultiplier = CONSTANTS.BRAND_HIGH_MULTIPLIER;
@@ -435,14 +593,25 @@ export class MarketSimulator {
     const esgMultiplier = marketState.marketPressures.sustainabilityPremium; // 0.1 to 0.6
     const esgScore = esgRatio * esgMultiplier * weights.esg;
 
-    // Feature Score: Product features (0-100 normalized to 0-1)
-    // v2.2.0: Allow features above 100 to provide bonus (R&D investment reward)
-    const featureRatio = product.features / 100;
-    // v4.0.2: Feature cap
-    const featureMultiplier = featureRatio <= 1.0
-      ? featureRatio
-      : 1.0 + Math.sqrt(featureRatio - 1) * 0.5; // 50% of excess via sqrt
-    const featureScore = Math.min(CONSTANTS.QUALITY_FEATURE_BONUS_CAP, featureMultiplier) * weights.features;
+    // Feature Score: Use feature-match scoring if product has featureSet, else legacy
+    let featureScore: number;
+    const segmentPrefs = SEGMENT_FEATURE_PREFERENCES[segment];
+    if (product.featureSet && segmentPrefs) {
+      // New system: dot product of product features × segment preferences (0.0 to 1.0)
+      const featureMatchScore = calculateFeatureMatchScore(product.featureSet, segmentPrefs);
+      // Apply diminishing returns cap same as legacy
+      const featureMultiplier = featureMatchScore <= 1.0
+        ? featureMatchScore
+        : 1.0 + Math.sqrt(featureMatchScore - 1) * 0.5;
+      featureScore = Math.min(CONSTANTS.QUALITY_FEATURE_BONUS_CAP, featureMultiplier) * weights.features;
+    } else {
+      // Legacy fallback: product.features (0-100) normalized to 0-1
+      const featureRatio = product.features / 100;
+      const featureMultiplier = featureRatio <= 1.0
+        ? featureRatio
+        : 1.0 + Math.sqrt(featureRatio - 1) * 0.5;
+      featureScore = Math.min(CONSTANTS.QUALITY_FEATURE_BONUS_CAP, featureMultiplier) * weights.features;
+    }
 
     // Total score (theoretical max = 100 with all weights summing to 100)
     let totalScore = priceScore + qualityScore + brandScore + esgScore + featureScore;
@@ -451,7 +620,7 @@ export class MarketSimulator {
     const qualityMarketShareBonus = product.quality * CONSTANTS.QUALITY_MARKET_SHARE_BONUS;
     totalScore += qualityMarketShareBonus;
 
-    // v4.0.2: Balanced flexibility bonus — reward diversified investment
+    // v4.0.2: Balanced flexibility bonus - reward diversified investment
     const flexCriteria = [
       state.rdBudget >= CONSTANTS.FLEXIBILITY_MIN_RD,
       state.brandValue >= CONSTANTS.FLEXIBILITY_MIN_BRAND,
@@ -568,7 +737,9 @@ export class MarketSimulator {
       effects?: Array<{ target: string; modifier: number }>;
       targetTeams?: string[] | "all";
     }>,
-    ctx?: EngineContext
+    ctx?: EngineContext,
+    /** Optional team data for updating dynamic pricing expectations */
+    teams?: Array<{ id: string; state: TeamState }>
   ): MarketState {
     const nextState = cloneMarketState(currentState);
     nextState.roundNumber += 1;
@@ -619,6 +790,11 @@ export class MarketSimulator {
     nextState.marketPressures.priceCompetition = Math.max(0.2, Math.min(0.9, nextState.marketPressures.priceCompetition));
     nextState.marketPressures.qualityExpectations = Math.max(0.3, Math.min(0.95, nextState.marketPressures.qualityExpectations));
     nextState.marketPressures.sustainabilityPremium = Math.max(0.1, Math.min(0.6, nextState.marketPressures.sustainabilityPremium));
+
+    // Update dynamic pricing if team data available
+    if (teams) {
+      nextState.dynamicPricing = this.updateDynamicPricing(nextState, teams);
+    }
 
     // Apply any special events
     if (events) {
@@ -806,5 +982,67 @@ export class MarketSimulator {
       epsRank: byEPS.findIndex(t => t.id === team.id) + 1,
       shareRank: byShare.findIndex(t => t.id === team.id) + 1,
     }));
+  }
+
+  /**
+   * Update dynamic price expectations after a round.
+   * Uses Exponential Moving Average (EMA) of actual prices.
+   * Called after market simulation to prepare next round's expectations.
+   */
+  static updateDynamicPricing(
+    marketState: MarketState,
+    teams: Array<{ id: string; state: TeamState }>
+  ): Partial<Record<Segment, DynamicPriceExpectation>> {
+    const dynamicPricing: Partial<Record<Segment, DynamicPriceExpectation>> = {};
+    const previous = marketState.dynamicPricing || {};
+
+    for (const segment of CONSTANTS.SEGMENTS) {
+      const segmentData = marketState.demandBySegment[segment];
+
+      // Collect all launched product prices in this segment
+      const prices: number[] = [];
+      for (const team of teams) {
+        for (const product of team.state.products) {
+          if (product.segment === segment && product.developmentStatus === "launched") {
+            prices.push(product.price);
+          }
+        }
+      }
+
+      const competitorCount = prices.length;
+      const avgPrice = competitorCount > 0
+        ? prices.reduce((sum, p) => sum + p, 0) / competitorCount
+        : (segmentData.priceRange.min + segmentData.priceRange.max) / 2;
+
+      // EMA update
+      const prevExpected = previous[segment]?.expectedPrice ?? avgPrice;
+      const expectedPrice = prevExpected * (1 - DYNAMIC_PRICE_EMA_ALPHA)
+        + avgPrice * DYNAMIC_PRICE_EMA_ALPHA;
+
+      // Underserved factor: fewer competitors = more underserved
+      const maxCompetitors = teams.length; // Max = every team has a product
+      const underservedFactor = competitorCount === 0
+        ? 1.0
+        : Math.max(0, 1 - competitorCount / maxCompetitors);
+
+      // Price floor: minimum material + labor cost
+      const priceFloor = CONSTANTS.RAW_MATERIAL_COST_PER_UNIT[segment]
+        + CONSTANTS.LABOR_COST_PER_UNIT
+        + CONSTANTS.OVERHEAD_COST_PER_UNIT;
+
+      // Price ceiling: segment max × inflation adjustment
+      const inflationFactor = 1 + (marketState.economicConditions.inflation / 100);
+      const priceCeiling = segmentData.priceRange.max * inflationFactor * 1.2;
+
+      dynamicPricing[segment] = {
+        expectedPrice,
+        underservedFactor,
+        competitorCount,
+        priceFloor,
+        priceCeiling,
+      };
+    }
+
+    return dynamicPricing;
   }
 }

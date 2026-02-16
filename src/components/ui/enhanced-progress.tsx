@@ -3,6 +3,7 @@
 import * as React from "react";
 import * as ProgressPrimitive from "@radix-ui/react-progress";
 import { cn } from "@/lib/utils";
+import { GlossaryText } from "@/components/game/GlossaryText";
 
 interface EnhancedProgressProps extends React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> {
   variant?: "default" | "success" | "warning" | "danger" | "info" | "gradient" | "orange" | "purple" | "pink";
@@ -53,7 +54,11 @@ const EnhancedProgress = React.forwardRef<
     <div className="space-y-2">
       {(showLabel || showValue) && (
         <div className="flex items-center justify-between text-sm">
-          {showLabel && <span className="text-slate-300">{label}</span>}
+          {showLabel && (
+            <span className="text-slate-300">
+              <GlossaryText text={`{{${label}}}`} />
+            </span>
+          )}
           {showValue && <span className="font-medium text-white">{displayValue}</span>}
         </div>
       )}

@@ -341,7 +341,13 @@ export class SimulationEngine {
     }
 
     // Step 5: Generate next market state (with context for deterministic fluctuations)
-    const newMarketState = MarketSimulator.generateNextMarketState(marketState, events, marketCtx);
+    // Pass team data for dynamic pricing updates
+    const newMarketState = MarketSimulator.generateNextMarketState(
+      marketState,
+      events,
+      marketCtx,
+      processedTeams.map(t => ({ id: t.id, state: t.state }))
+    );
 
     summaryMessages.push(`Round ${roundNumber} complete. Leader: Team ${rankings[0]?.teamId}`);
 

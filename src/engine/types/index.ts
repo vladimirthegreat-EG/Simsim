@@ -38,6 +38,7 @@ export type {
   FxRates,
   SegmentDemand,
   MarketState,
+  DynamicPriceExpectation,
 } from "./market";
 
 // State types

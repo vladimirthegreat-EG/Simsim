@@ -242,15 +242,24 @@ export default function HRPage({ params }: PageProps) {
     setHRDecisions({ trainingPrograms: enrolledTraining });
   }, [enrolledTraining, setHRDecisions]);
 
-  // Get current decisions for submission
-  const getDecisions = useCallback(() => ({
-    hires: hr.hires,
-    fires: hr.fires,
-    recruitmentSearches: hr.recruitmentSearches,
-    salaryAdjustment,
-    trainingPrograms: hr.trainingPrograms,
-    benefitChanges: Object.keys(benefitChanges).length > 0 ? benefitChanges : undefined,
-  }), [hr, salaryAdjustment, benefitChanges]);
+  // Get current decisions for submission (transformed to match router schema)
+  const getDecisions = useCallback(() => {
+    const validRoles = ["worker", "engineer", "supervisor"];
+    return {
+      hires: hr.hires.map(h => ({
+        ...h,
+        role: validRoles.includes(h.role) ? h.role : "worker",
+      })),
+      fires: hr.fires,
+      recruitmentSearches: hr.recruitmentSearches.map(s => ({
+        ...s,
+        role: validRoles.includes(s.role) ? s.role : "worker",
+      })),
+      salaryAdjustment,
+      trainingPrograms: hr.trainingPrograms,
+      benefitChanges: Object.keys(benefitChanges).length > 0 ? benefitChanges : undefined,
+    };
+  }, [hr, salaryAdjustment, benefitChanges]);
 
   const { data: teamState } = trpc.team.getMyState.useQuery();
 
@@ -538,7 +547,7 @@ export default function HRPage({ params }: PageProps) {
               <div>
                 <label className="text-slate-300 text-sm mb-2 block">Position Type</label>
                 <div className="flex gap-2 flex-wrap">
-                  {["worker", "engineer", "supervisor", "manager"].map((type) => (
+                  {["worker", "engineer", "supervisor"].map((type) => (
                     <Button
                       key={type}
                       variant={selectedPositionType === type ? "default" : "outline"}

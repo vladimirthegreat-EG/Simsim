@@ -64,7 +64,7 @@ const financeDecisionsSchema = z.object({
  */
 const hrDecisionsSchema = z.object({
   hires: z.array(z.object({
-    factoryId: z.string(),
+    factoryId: z.string().default("default"),
     role: z.enum(["worker", "engineer", "supervisor"]),
     candidateId: z.string(),
   })).optional(),
@@ -74,14 +74,15 @@ const hrDecisionsSchema = z.object({
   recruitmentSearches: z.array(z.object({
     role: z.enum(["worker", "engineer", "supervisor"]),
     tier: z.enum(["basic", "premium", "executive"]),
-    factoryId: z.string(),
+    factoryId: z.string().default("default"),
   })).optional(),
   salaryMultiplierChanges: z.object({
     workers: z.number().min(0.6).max(3.0),
     engineers: z.number().min(0.6).max(3.0),
     supervisors: z.number().min(0.6).max(3.0),
   }).optional(),
-  benefitChanges: z.record(z.string(), z.number()).optional(),
+  salaryAdjustment: z.number().min(-20).max(20).optional(),
+  benefitChanges: z.record(z.string(), z.union([z.number(), z.boolean()])).optional(),
   trainingPrograms: z.array(z.object({
     role: z.enum(["worker", "engineer", "supervisor"]),
     programType: z.string(),

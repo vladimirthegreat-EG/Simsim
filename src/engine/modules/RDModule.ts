@@ -16,6 +16,12 @@ import {
 import { createErrorResult, random } from "../utils";
 import { cloneTeamState } from "../utils/stateUtils";
 import type { EngineContext, SeededRNG } from "../core/EngineContext";
+import { getArchetype, getAvailableArchetypes } from "../types/archetypes";
+import type { PhoneArchetype } from "../types/archetypes";
+import type { ProductFeatureSet } from "../types/features";
+import { TECH_FAMILIES, emptyFeatureSet } from "../types/features";
+import { RDExpansions } from "./RDExpansions";
+import type { TechFamily } from "./RDExpansions";
 
 /**
  * Get RNG instance - uses context if available, otherwise global (throws if not seeded)
@@ -96,6 +102,41 @@ export class RDModule {
     // Process new product development (now starts in "in_development" status)
     if (decisions.newProducts) {
       for (const productSpec of decisions.newProducts) {
+        // Archetype-based product creation (new system)
+        if (productSpec.archetypeId) {
+          const archetype = getArchetype(productSpec.archetypeId);
+          if (!archetype) {
+            messages.push(`Unknown archetype: ${productSpec.archetypeId}`);
+            continue;
+          }
+
+          // Validate tech requirements
+          const unlockedTechs = newState.unlockedTechnologies || [];
+          const techNodes = RDExpansions.getTechTree().map(n => ({ id: n.id, tier: n.tier }));
+          const available = getAvailableArchetypes(unlockedTechs, techNodes);
+          if (!available.some(a => a.id === archetype.id)) {
+            messages.push(`Cannot build ${archetype.name}: required technologies not unlocked`);
+            continue;
+          }
+
+          const developmentCost = archetype.baseCost;
+          if (newState.cash >= developmentCost) {
+            const newProduct = this.createArchetypeProduct(
+              productSpec.name,
+              archetype,
+              unlockedTechs,
+              ctx
+            );
+            newState.products.push(newProduct);
+            totalCosts += developmentCost;
+            messages.push(`Started development of ${productSpec.name} (${archetype.name}) for ${archetype.primarySegment} segment (${archetype.developmentRounds} rounds)`);
+          } else {
+            messages.push(`Insufficient funds to develop ${productSpec.name} ($${(developmentCost / 1_000_000).toFixed(0)}M needed)`);
+          }
+          continue;
+        }
+
+        // Legacy product creation (backward compatible)
         const developmentCost = this.calculateDevelopmentCost(productSpec.segment, productSpec.targetQuality);
 
         if (newState.cash >= developmentCost) {
@@ -152,7 +193,7 @@ export class RDModule {
             product.features    // v4.0.0: Pass current features for progressive costing
           );
 
-          // v4.0.0: rdProgress requirement (kept simple — cost scaling handles diminishing returns)
+          // v4.0.0: rdProgress requirement (kept simple - cost scaling handles diminishing returns)
           const rdPointsRequired = (improvement.qualityIncrease || 0) * 10;
           if (newState.cash >= improvementCost && newState.rdProgress >= rdPointsRequired) {
             if (improvement.qualityIncrease) {
@@ -348,6 +389,78 @@ export class RDModule {
       targetFeatures,
       roundsRemaining: roundsToComplete,
       unitCost,
+    };
+  }
+
+  /**
+   * Create a new product from a phone archetype (new system).
+   * Computes featureSet from team's unlocked techs × archetype emphasis multipliers.
+   */
+  static createArchetypeProduct(
+    name: string,
+    archetype: PhoneArchetype,
+    unlockedTechs: string[],
+    ctx?: EngineContext
+  ): Product {
+    // Calculate base feature set from unlocked techs
+    const baseFeatures = RDExpansions.calculateProductFeatureSet(unlockedTechs);
+
+    // Apply archetype emphasis multipliers
+    const featureSet: ProductFeatureSet = emptyFeatureSet();
+    for (const family of TECH_FAMILIES) {
+      const emphasis = archetype.featureEmphasis[family] ?? 1.0;
+      featureSet[family] = Math.min(100, Math.round(baseFeatures[family] * emphasis));
+    }
+
+    // Compute backward-compatible features score as weighted average
+    // using segment preferences (so legacy scoring still works)
+    const avgFeature = TECH_FAMILIES.reduce((sum, f) => sum + featureSet[f], 0) / TECH_FAMILIES.length;
+
+    // Quality from archetype base + tech bonus
+    const techBonusQuality = Math.min(
+      10,
+      unlockedTechs.length * 0.5 // Small quality bonus per researched tech
+    );
+    const quality = Math.min(100, Math.round(archetype.baseQuality + techBonusQuality));
+
+    // Unit cost calculation
+    const materialCost = CONSTANTS.RAW_MATERIAL_COST_PER_UNIT[archetype.primarySegment];
+    const laborCost = CONSTANTS.LABOR_COST_PER_UNIT;
+    const overheadCost = CONSTANTS.OVERHEAD_COST_PER_UNIT;
+    const qualityPremium = (quality - 50) * 0.5;
+    const unitCost = materialCost + laborCost + overheadCost + qualityPremium;
+
+    // Suggested price from archetype range
+    const priceRange = archetype.suggestedPriceRange;
+    const qualityFactor = quality / 100;
+    const suggestedPrice = Math.round(
+      priceRange.min + (priceRange.max - priceRange.min) * qualityFactor
+    );
+
+    // Deterministic ID generation
+    const id = ctx
+      ? ctx.idGenerator.next("product")
+      : `prod-r0-${Date.now().toString(36)}-${Math.floor(Math.random() * 10000)}`;
+
+    return {
+      id,
+      name,
+      segment: archetype.primarySegment,
+      price: suggestedPrice,
+      quality: Math.round(quality * 0.5), // 50% during development
+      features: Math.round(avgFeature * 0.5),
+      reliability: 50,
+      developmentRound: 0,
+      developmentStatus: "in_development",
+      developmentProgress: 0,
+      targetQuality: quality,
+      targetFeatures: Math.round(avgFeature),
+      roundsRemaining: archetype.developmentRounds,
+      unitCost,
+      // New archetype fields
+      archetypeId: archetype.id,
+      featureSet,
+      appliedTechs: [...unlockedTechs],
     };
   }
 

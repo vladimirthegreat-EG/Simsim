@@ -35,6 +35,7 @@ import { NewsTicker } from "@/components/game/NewsTicker";
 import { TutorialGuide } from "@/components/game/TutorialGuide";
 import { WorkflowGuide } from "@/components/game/WorkflowGuide";
 import { useTutorialStore } from "@/lib/stores/tutorialStore";
+import { GlossaryPanel, GlossaryButton } from "@/components/game/GlossaryPanel";
 
 // Map module IDs to store keys
 const moduleToStoreKey: Record<string, GameModule> = {
@@ -150,6 +151,7 @@ export function GameLayout({
   const pathname = usePathname();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [glossaryOpen, setGlossaryOpen] = useState(false);
   const submissionStatus = useDecisionStore((state) => state.submissionStatus);
   const { isModuleEnabled } = useComplexity();
   const tutorialActive = useTutorialStore((s) => s.isActive);
@@ -336,6 +338,11 @@ export function GameLayout({
           </button>
         )}
 
+        {/* Game Glossary */}
+        {!sidebarCollapsed && (
+          <GlossaryButton onClick={() => setGlossaryOpen(true)} />
+        )}
+
         {/* Collapse button */}
         <button
           className="hidden lg:flex absolute bottom-4 right-0 translate-x-1/2 w-6 h-6 bg-slate-700 border border-slate-600 rounded-full items-center justify-center text-slate-400 hover:text-white"
@@ -377,6 +384,9 @@ export function GameLayout({
 
       {/* Tutorial Overlay */}
       {tutorialActive && <TutorialGuide gameId={gameId} />}
+
+      {/* Glossary Panel */}
+      {glossaryOpen && <GlossaryPanel onClose={() => setGlossaryOpen(false)} />}
 
       {/* News Ticker */}
       <NewsTicker

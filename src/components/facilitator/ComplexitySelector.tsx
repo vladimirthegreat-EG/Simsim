@@ -43,11 +43,11 @@ const PRESET_INFO: Record<ComplexityPreset, {
 }> = {
   simple: {
     name: "Simple",
-    description: "Core mechanics only — fewer decisions per round.",
+    description: "Core mechanics only - fewer decisions per round.",
     details: [
       "Factory + Marketing + Finance only",
       "No individual employees (auto-managed)",
-      "No R&D timeline — instant product changes",
+      "No R&D timeline - instant product changes",
       "No inventory tracking",
       "Catch-up mechanics enabled",
     ],

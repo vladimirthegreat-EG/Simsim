@@ -98,7 +98,7 @@ export default function AchievementsPage({ params }: AchievementsPageProps) {
     <div className="space-y-6 pb-24">
       <PageHeader
         title="Achievements"
-        subtitle="The Ledger of Legends & Losers — Your journey to greatness (or infamy)"
+        subtitle="The Ledger of Legends & Losers - Your journey to greatness (or infamy)"
         icon={<Trophy className="h-6 w-6" />}
         iconColor="text-yellow-400"
       />

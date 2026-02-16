@@ -59,8 +59,13 @@ export interface UIRDDecisions {
     qualityTarget: number;
     featuresTarget: number;
     priceTarget: number;
+    archetypeId?: string;
   }>;
   techUpgrades: string[];
+  /** Patent decisions (new patent system) */
+  patentFilings?: string[];           // techIds to file patents on
+  patentLicenseRequests?: string[];    // patentIds to license
+  patentChallenges?: string[];         // patentIds to challenge
 }
 
 // Legacy type aliases for backward compatibility
