@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { ComplexitySelector } from "@/components/facilitator/ComplexitySelector";
 import { GameComplexitySettings, getComplexitySettings } from "@/engine/types";
 import { PRESET_LIST, GAME_PRESETS, type GamePreset } from "@/engine/config/gamePresets";
-import { Zap, Settings, Rocket } from "lucide-react";
+import { Zap, Settings, Rocket, Users, Factory, ShoppingBag, TrendingUp, GraduationCap, Check, X } from "lucide-react";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -72,7 +72,10 @@ export default function AdminDashboard() {
     createGame.mutate({
       name: newGameName.trim(),
       complexitySettings: complexitySettings,
-      ...(selectedPreset && { gamePresetId: selectedPreset.id }),
+      ...(selectedPreset && {
+        gamePresetId: selectedPreset.id,
+        maxRounds: selectedPreset.rounds,
+      }),
     });
   };
 
@@ -177,38 +180,86 @@ export default function AdminDashboard() {
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <Label className="text-slate-300">Game Mode</Label>
                   <div className="grid grid-cols-3 gap-3">
                     {PRESET_LIST.map((preset) => {
                       const isSelected = selectedPreset?.id === preset.id;
                       const Icon = preset.id === "quick" ? Zap : preset.id === "full" ? Rocket : Settings;
-                      const borderColor = preset.id === "quick" ? "border-green-500" : preset.id === "full" ? "border-purple-500" : "border-blue-500";
-                      const iconColor = preset.id === "quick" ? "text-green-400" : preset.id === "full" ? "text-purple-400" : "text-blue-400";
+                      const colors = {
+                        quick: { border: "border-green-500", icon: "text-green-400", bg: "bg-green-500/10", badge: "bg-green-500/20 text-green-400" },
+                        standard: { border: "border-blue-500", icon: "text-blue-400", bg: "bg-blue-500/10", badge: "bg-blue-500/20 text-blue-400" },
+                        full: { border: "border-purple-500", icon: "text-purple-400", bg: "bg-purple-500/10", badge: "bg-purple-500/20 text-purple-400" },
+                      }[preset.id];
+                      const segments = preset.startingSegments === 5 ? "All 5" : preset.startingSegments === 0 ? "None" : `${preset.startingSegments}`;
+                      const totalStaff = preset.startingWorkers + preset.startingEngineers + preset.startingSupervisors;
                       return (
                         <button
                           key={preset.id}
                           type="button"
                           onClick={() => setSelectedPreset(isSelected ? null : preset)}
-                          className={`p-3 rounded-lg border-2 text-left transition-all ${
+                          className={`p-4 rounded-lg border-2 text-left transition-all ${
                             isSelected
-                              ? `${borderColor} bg-slate-700`
+                              ? `${colors.border} bg-slate-700`
                               : "border-slate-600 bg-slate-700/50 hover:border-slate-500"
                           }`}
                         >
-                          <div className="flex items-center gap-2 mb-1">
-                            <Icon className={`w-4 h-4 ${iconColor}`} />
-                            <span className="text-white text-sm font-medium">{preset.name}</span>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Icon className={`w-5 h-5 ${colors.icon}`} />
+                            <span className="text-white font-semibold">{preset.name}</span>
                           </div>
-                          <p className="text-slate-400 text-xs">{preset.rounds} rounds</p>
-                          <p className="text-slate-500 text-xs mt-1 line-clamp-2">{preset.description}</p>
+                          <p className="text-slate-400 text-xs mb-3">{preset.description}</p>
+
+                          <div className="space-y-1.5 text-xs">
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-500">Rounds</span>
+                              <Badge className={`${colors.badge} text-[10px] px-1.5 py-0`}>{preset.rounds}</Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-500">Staff</span>
+                              <span className="text-slate-300">{totalStaff > 0 ? totalStaff : "None"}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-500">Segments</span>
+                              <span className="text-slate-300">{segments}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-500">Products</span>
+                              <span className="text-slate-300">
+                                {preset.startingSegments > 0 ? (
+                                  <Check className="w-3.5 h-3.5 text-green-400 inline" />
+                                ) : (
+                                  <X className="w-3.5 h-3.5 text-red-400 inline" />
+                                )}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-500">Brand</span>
+                              <span className="text-slate-300">{preset.startingBrandValue > 0 ? `${Math.round(preset.startingBrandValue * 100)}%` : "None"}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-500">Tutorial</span>
+                              <span className="text-slate-300 capitalize">{preset.tutorialDepth}</span>
+                            </div>
+                          </div>
                         </button>
                       );
                     })}
                   </div>
                   {selectedPreset && (
-                    <div className="text-xs text-slate-400 mt-1">
-                      {selectedPreset.details.join(" · ")}
+                    <div className="p-3 rounded-lg bg-slate-700/50 text-xs text-slate-400 space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5" />
+                        <span>{selectedPreset.startingWorkers} workers, {selectedPreset.startingEngineers} engineers, {selectedPreset.startingSupervisors} supervisors</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <ShoppingBag className="w-3.5 h-3.5" />
+                        <span>
+                          {selectedPreset.startingSegments === 5 ? "All segments: Budget, General, Enthusiast, Professional, Active Lifestyle"
+                            : selectedPreset.startingSegments === 2 ? "Starter segments: General & Budget (expand into others during the game)"
+                            : "No starting segments — hire staff, build products & production lines from scratch"}
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>
