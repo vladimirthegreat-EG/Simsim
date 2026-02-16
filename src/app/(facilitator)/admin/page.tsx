@@ -159,16 +159,16 @@ export default function AdminDashboard() {
                 + Create New Game
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="text-white">Create New Game</DialogTitle>
-                <DialogDescription className="text-slate-400">
-                  Create a new business simulation session for your teams.
+            <DialogContent className="bg-slate-800 border-slate-700 max-w-5xl max-h-[90vh] overflow-y-auto p-8">
+              <DialogHeader className="mb-2">
+                <DialogTitle className="text-white text-2xl">Create New Game</DialogTitle>
+                <DialogDescription className="text-slate-400 text-sm">
+                  Configure your business simulation session — choose a game mode, feature level, and name.
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleCreateGame} className="space-y-6">
+              <form onSubmit={handleCreateGame} className="space-y-8">
                 <div className="space-y-2">
-                  <Label htmlFor="gameName" className="text-slate-300">
+                  <Label htmlFor="gameName" className="text-slate-300 text-base">
                     Game Name
                   </Label>
                   <Input
@@ -176,14 +176,16 @@ export default function AdminDashboard() {
                     placeholder="e.g., MBA Strategy Workshop"
                     value={newGameName}
                     onChange={(e) => setNewGameName(e.target.value)}
-                    className="bg-slate-700 border-slate-600 text-white"
+                    className="bg-slate-700 border-slate-600 text-white h-11 text-base"
                   />
                 </div>
 
-                <div className="space-y-3">
-                  <Label className="text-slate-300">Game Mode</Label>
-                  <p className="text-xs text-slate-500 -mt-2">Sets the round count, starting company size, and tutorial</p>
-                  <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-slate-300 text-base">Game Mode</Label>
+                    <p className="text-sm text-slate-500 mt-0.5">Choose how long the game runs and what teams start with</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-5">
                     {PRESET_LIST.map((preset) => {
                       const isSelected = selectedPreset?.id === preset.id;
                       const Icon = preset.id === "quick" ? Zap : preset.id === "full" ? Rocket : Settings;
@@ -192,55 +194,52 @@ export default function AdminDashboard() {
                         standard: { border: "border-blue-500", icon: "text-blue-400", bg: "bg-blue-500/10", badge: "bg-blue-500/20 text-blue-400" },
                         full: { border: "border-purple-500", icon: "text-purple-400", bg: "bg-purple-500/10", badge: "bg-purple-500/20 text-purple-400" },
                       }[preset.id];
-                      const segments = preset.startingSegments === 5 ? "All 5" : preset.startingSegments === 0 ? "None" : `${preset.startingSegments}`;
+                      const segments = preset.startingSegments === 5 ? "All 5 segments" : preset.startingSegments === 0 ? "None (build from scratch)" : `${preset.startingSegments} segments`;
                       const totalStaff = preset.startingWorkers + preset.startingEngineers + preset.startingSupervisors;
                       return (
                         <button
                           key={preset.id}
                           type="button"
                           onClick={() => setSelectedPreset(isSelected ? null : preset)}
-                          className={`p-4 rounded-lg border-2 text-left transition-all ${
+                          className={`p-5 rounded-xl border-2 text-left transition-all ${
                             isSelected
-                              ? `${colors.border} bg-slate-700`
+                              ? `${colors.border} bg-slate-700 ring-1 ring-white/10`
                               : "border-slate-600 bg-slate-700/50 hover:border-slate-500"
                           }`}
                         >
-                          <div className="flex items-center gap-2 mb-2">
-                            <Icon className={`w-5 h-5 ${colors.icon}`} />
-                            <span className="text-white font-semibold">{preset.name}</span>
+                          <div className="flex items-center gap-2.5 mb-2">
+                            <Icon className={`w-6 h-6 ${colors.icon}`} />
+                            <span className="text-white font-bold text-lg">{preset.name}</span>
+                            <Badge className={`${colors.badge} text-xs px-2 py-0.5 ml-auto`}>{preset.rounds} rounds</Badge>
                           </div>
-                          <p className="text-slate-400 text-xs mb-3">{preset.description}</p>
+                          <p className="text-slate-400 text-sm mb-4 leading-relaxed">{preset.description}</p>
 
-                          <div className="space-y-1.5 text-xs">
+                          <div className="space-y-2.5 text-sm border-t border-slate-600/50 pt-3">
                             <div className="flex items-center justify-between">
-                              <span className="text-slate-500">Rounds</span>
-                              <Badge className={`${colors.badge} text-[10px] px-1.5 py-0`}>{preset.rounds}</Badge>
+                              <span className="text-slate-500">Starting Staff</span>
+                              <span className="text-slate-300 font-medium">{totalStaff > 0 ? `${totalStaff} employees` : "None"}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-slate-500">Staff</span>
-                              <span className="text-slate-300">{totalStaff > 0 ? totalStaff : "None"}</span>
+                              <span className="text-slate-500">Market Segments</span>
+                              <span className="text-slate-300 font-medium">{segments}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-slate-500">Segments</span>
-                              <span className="text-slate-300">{segments}</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-500">Products</span>
-                              <span className="text-slate-300">
+                              <span className="text-slate-500">Products Ready</span>
+                              <span className="text-slate-300 font-medium">
                                 {preset.startingSegments > 0 ? (
-                                  <Check className="w-3.5 h-3.5 text-green-400 inline" />
+                                  <span className="flex items-center gap-1"><Check className="w-4 h-4 text-green-400" /> Yes</span>
                                 ) : (
-                                  <X className="w-3.5 h-3.5 text-red-400 inline" />
+                                  <span className="flex items-center gap-1"><X className="w-4 h-4 text-red-400" /> No</span>
                                 )}
                               </span>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-slate-500">Brand</span>
-                              <span className="text-slate-300">{preset.startingBrandValue > 0 ? `${Math.round(preset.startingBrandValue * 100)}%` : "None"}</span>
+                              <span className="text-slate-500">Starting Brand</span>
+                              <span className="text-slate-300 font-medium">{preset.startingBrandValue > 0 ? `${Math.round(preset.startingBrandValue * 100)}%` : "None"}</span>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-slate-500">Tutorial</span>
-                              <span className="text-slate-300 capitalize">{preset.tutorialDepth}</span>
+                              <span className="text-slate-300 font-medium capitalize">{preset.tutorialDepth} guide</span>
                             </div>
                           </div>
                         </button>
@@ -248,26 +247,28 @@ export default function AdminDashboard() {
                     })}
                   </div>
                   {selectedPreset && (
-                    <div className="p-3 rounded-lg bg-slate-700/50 text-xs text-slate-400 space-y-1">
-                      <div className="flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5" />
-                        <span>{selectedPreset.startingWorkers} workers, {selectedPreset.startingEngineers} engineers, {selectedPreset.startingSupervisors} supervisors</span>
+                    <div className="p-4 rounded-xl bg-slate-700/50 text-sm text-slate-400 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-slate-500" />
+                        <span><strong className="text-slate-300">{selectedPreset.startingWorkers}</strong> workers, <strong className="text-slate-300">{selectedPreset.startingEngineers}</strong> engineers, <strong className="text-slate-300">{selectedPreset.startingSupervisors}</strong> supervisors</span>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <ShoppingBag className="w-3.5 h-3.5" />
+                      <div className="flex items-center gap-2">
+                        <ShoppingBag className="w-4 h-4 text-slate-500" />
                         <span>
                           {selectedPreset.startingSegments === 5 ? "All segments: Budget, General, Enthusiast, Professional, Active Lifestyle"
-                            : selectedPreset.startingSegments === 2 ? "Starter segments: General & Budget (expand into others during the game)"
-                            : "No starting segments — hire staff, build products & production lines from scratch"}
+                            : selectedPreset.startingSegments === 2 ? "Starter segments: General & Budget — expand into others during the game"
+                            : "No starting segments — hire staff, develop products & build production lines from scratch"}
                         </span>
                       </div>
                     </div>
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-slate-300">Feature Level</Label>
-                  <p className="text-xs text-slate-500 -mt-1">Controls which modules and features are enabled</p>
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-slate-300 text-base">Feature Level</Label>
+                    <p className="text-sm text-slate-500 mt-0.5">Controls which modules and features are enabled during gameplay</p>
+                  </div>
                   <ComplexitySelector
                     value={complexitySettings}
                     onChange={setComplexitySettings}
@@ -276,7 +277,7 @@ export default function AdminDashboard() {
 
                 <Button
                   type="submit"
-                  className="w-full bg-purple-600 hover:bg-purple-700"
+                  className="w-full bg-purple-600 hover:bg-purple-700 h-12 text-base font-semibold"
                   disabled={createGame.isPending}
                 >
                   {createGame.isPending ? "Creating..." : "Create Game"}

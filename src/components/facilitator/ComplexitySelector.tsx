@@ -158,7 +158,7 @@ export function ComplexitySelector({ value, onChange }: ComplexitySelectorProps)
   return (
     <div className="space-y-4">
       {/* Preset Selection */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-4">
         {(Object.keys(PRESET_INFO) as ComplexityPreset[]).map((preset) => {
           const info = PRESET_INFO[preset];
           const Icon = info.icon;
@@ -175,25 +175,25 @@ export function ComplexitySelector({ value, onChange }: ComplexitySelectorProps)
               }`}
               onClick={() => handlePresetChange(preset)}
             >
-              <CardContent className="p-3">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <Icon className={`w-4 h-4 ${isSelected ? info.color : "text-slate-400"}`} />
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Icon className={`w-5 h-5 ${isSelected ? info.color : "text-slate-400"}`} />
                   <span className={`font-semibold text-sm ${isSelected ? "text-white" : "text-slate-300"}`}>
                     {info.name}
                   </span>
                   {info.recommended && (
-                    <Badge className={`text-[10px] px-1.5 py-0 ${
+                    <Badge className={`text-xs px-2 py-0.5 ml-auto ${
                       preset === "standard" ? "bg-blue-500/20 text-blue-400" : "bg-slate-600 text-slate-300"
                     }`}>
                       {info.recommended}
                     </Badge>
                   )}
                 </div>
-                <p className="text-xs text-slate-400 mb-2">{info.description}</p>
-                <ul className="space-y-0.5">
+                <p className="text-sm text-slate-400 mb-3">{info.description}</p>
+                <ul className="space-y-1">
                   {info.details.map((detail, i) => (
-                    <li key={i} className="text-[11px] text-slate-500 flex items-start gap-1">
-                      <span className="mt-1 w-1 h-1 rounded-full bg-slate-600 flex-shrink-0" />
+                    <li key={i} className="text-xs text-slate-500 flex items-start gap-1.5">
+                      <span className="mt-1.5 w-1 h-1 rounded-full bg-slate-600 flex-shrink-0" />
                       {detail}
                     </li>
                   ))}
