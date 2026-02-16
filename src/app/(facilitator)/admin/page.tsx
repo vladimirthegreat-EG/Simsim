@@ -200,14 +200,14 @@ export default function AdminDashboard() {
                 Create Game
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-slate-900 border-slate-800 max-w-5xl max-h-[90vh] overflow-y-auto p-8">
-              <DialogHeader className="mb-2">
+            <DialogContent className="bg-slate-900 border-slate-800 max-w-4xl max-h-[90vh] overflow-y-auto p-6 sm:p-8">
+              <DialogHeader className="mb-4">
                 <DialogTitle className="text-white text-2xl font-bold">Create New Game</DialogTitle>
                 <DialogDescription className="text-slate-500 text-sm">
                   Configure your business simulation session - choose a game mode, feature level, and name.
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleCreateGame} className="space-y-8">
+              <form onSubmit={handleCreateGame} className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="gameName" className="text-slate-300 text-base">
                     Game Name
@@ -226,7 +226,7 @@ export default function AdminDashboard() {
                     <Label className="text-slate-300 text-base">Game Mode</Label>
                     <p className="text-sm text-slate-500 mt-0.5">Choose how long the game runs and what teams start with</p>
                   </div>
-                  <div className="grid grid-cols-3 gap-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {PRESET_LIST.map((preset) => {
                       const isSelected = selectedPreset?.id === preset.id;
                       const Icon = preset.id === "quick" ? Zap : preset.id === "full" ? Rocket : Settings;
@@ -235,54 +235,54 @@ export default function AdminDashboard() {
                         standard: { border: "border-blue-500/60", glow: "shadow-blue-500/10", icon: "text-blue-400", bg: "bg-blue-500/10", badge: "bg-blue-500/20 text-blue-400", ring: "ring-blue-500/20" },
                         full: { border: "border-purple-500/60", glow: "shadow-purple-500/10", icon: "text-purple-400", bg: "bg-purple-500/10", badge: "bg-purple-500/20 text-purple-400", ring: "ring-purple-500/20" },
                       }[preset.id]!;
-                      const segments = preset.startingSegments === 5 ? "All 5 segments" : preset.startingSegments === 0 ? "None (build from scratch)" : `${preset.startingSegments} segments`;
+                      const segments = preset.startingSegments === 5 ? "All 5" : preset.startingSegments === 0 ? "None" : `${preset.startingSegments}`;
                       const totalStaff = preset.startingWorkers + preset.startingEngineers + preset.startingSupervisors;
                       return (
                         <button
                           key={preset.id}
                           type="button"
                           onClick={() => setSelectedPreset(isSelected ? null : preset)}
-                          className={`p-5 rounded-xl border-2 text-left transition-all duration-300 ${
+                          className={`p-4 rounded-xl border-2 text-left transition-all duration-300 ${
                             isSelected
                               ? `${colors.border} bg-slate-800 ring-2 ${colors.ring} shadow-lg ${colors.glow}`
                               : "border-slate-700 bg-slate-800/50 hover:border-slate-600 hover:bg-slate-800"
                           }`}
                         >
-                          <div className="flex items-center gap-2.5 mb-2">
-                            <div className={`${colors.bg} rounded-lg p-1.5`}>
-                              <Icon className={`w-5 h-5 ${colors.icon}`} />
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <div className={`${colors.bg} rounded-lg p-1.5 flex-shrink-0`}>
+                              <Icon className={`w-4 h-4 ${colors.icon}`} />
                             </div>
-                            <span className="text-white font-bold text-lg">{preset.name}</span>
-                            <Badge className={`${colors.badge} text-xs px-2 py-0.5 ml-auto border-0`}>{preset.rounds} rounds</Badge>
+                            <span className="text-white font-bold text-sm">{preset.name}</span>
                           </div>
-                          <p className="text-slate-400 text-sm mb-4 leading-relaxed">{preset.description}</p>
+                          <Badge className={`${colors.badge} text-[10px] px-1.5 py-0.5 border-0 mb-2`}>{preset.rounds} rounds</Badge>
+                          <p className="text-slate-400 text-xs mb-3 leading-relaxed line-clamp-2">{preset.description}</p>
 
-                          <div className="space-y-2.5 text-sm border-t border-slate-700/50 pt-3">
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-500">Starting Staff</span>
-                              <span className="text-slate-300 font-medium">{totalStaff > 0 ? `${totalStaff} employees` : "None"}</span>
+                          <div className="space-y-1.5 text-xs border-t border-slate-700/50 pt-2.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-slate-500 flex-shrink-0">Staff</span>
+                              <span className="text-slate-300 font-medium text-right">{totalStaff > 0 ? totalStaff : "None"}</span>
                             </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-500">Market Segments</span>
-                              <span className="text-slate-300 font-medium">{segments}</span>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-slate-500 flex-shrink-0">Segments</span>
+                              <span className="text-slate-300 font-medium text-right">{segments}</span>
                             </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-500">Products Ready</span>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-slate-500 flex-shrink-0">Products</span>
                               <span className="text-slate-300 font-medium">
                                 {preset.startingSegments > 0 ? (
-                                  <span className="flex items-center gap-1"><Check className="w-4 h-4 text-emerald-400" /> Yes</span>
+                                  <span className="flex items-center gap-1"><Check className="w-3.5 h-3.5 text-emerald-400" /> Yes</span>
                                 ) : (
-                                  <span className="flex items-center gap-1"><X className="w-4 h-4 text-red-400" /> No</span>
+                                  <span className="flex items-center gap-1"><X className="w-3.5 h-3.5 text-red-400" /> No</span>
                                 )}
                               </span>
                             </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-500">Starting Brand</span>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-slate-500 flex-shrink-0">Brand</span>
                               <span className="text-slate-300 font-medium">{preset.startingBrandValue > 0 ? `${Math.round(preset.startingBrandValue * 100)}%` : "None"}</span>
                             </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-500">Tutorial</span>
-                              <span className="text-slate-300 font-medium capitalize">{preset.tutorialDepth} guide</span>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-slate-500 flex-shrink-0">Tutorial</span>
+                              <span className="text-slate-300 font-medium capitalize">{preset.tutorialDepth}</span>
                             </div>
                           </div>
                         </button>
@@ -290,13 +290,13 @@ export default function AdminDashboard() {
                     })}
                   </div>
                   {selectedPreset && (
-                    <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/50 text-sm text-slate-400 space-y-2">
+                    <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/50 text-xs text-slate-400 space-y-1.5">
                       <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-slate-500" />
+                        <Users className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
                         <span><strong className="text-slate-300">{selectedPreset.startingWorkers}</strong> workers, <strong className="text-slate-300">{selectedPreset.startingEngineers}</strong> engineers, <strong className="text-slate-300">{selectedPreset.startingSupervisors}</strong> supervisors</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <ShoppingBag className="w-4 h-4 text-slate-500" />
+                      <div className="flex items-start gap-2">
+                        <ShoppingBag className="w-3.5 h-3.5 text-slate-500 flex-shrink-0 mt-0.5" />
                         <span>
                           {selectedPreset.startingSegments === 5 ? "All segments: Budget, General, Enthusiast, Professional, Active Lifestyle"
                             : selectedPreset.startingSegments === 2 ? "Starter segments: General & Budget - expand into others during the game"
@@ -320,7 +320,7 @@ export default function AdminDashboard() {
 
                 <Button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 h-12 text-base font-semibold shadow-lg shadow-purple-500/20 transition-all duration-300"
+                  className="w-full bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 h-11 text-sm font-semibold shadow-lg shadow-purple-500/20 transition-all duration-300"
                   disabled={createGame.isPending}
                 >
                   {createGame.isPending ? (
