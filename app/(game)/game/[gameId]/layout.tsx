@@ -124,6 +124,32 @@ export default function GamePageLayout({ children, params }: LayoutProps) {
     }
   }, [teamState?.game?.config, teamState?.game?.currentRound]);
 
+  // Notify players when round advances
+  const previousRoundRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!teamState?.game) return;
+
+    const currentRound = teamState.game.currentRound;
+
+    // Initialize on first load
+    if (previousRoundRef.current === null) {
+      previousRoundRef.current = currentRound;
+      return;
+    }
+
+    // Detect round advance
+    if (currentRound > previousRoundRef.current) {
+      toast.success(
+        `🎯 Round ${currentRound} Started!`,
+        {
+          description: `Make your decisions for Round ${currentRound} of ${teamState.game.maxRounds}`,
+          duration: 5000,
+        }
+      );
+      previousRoundRef.current = currentRound;
+    }
+  }, [teamState?.game?.currentRound, teamState?.game?.maxRounds]);
+
   if (sessionLoading || stateLoading) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">

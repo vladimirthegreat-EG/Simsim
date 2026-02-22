@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { use } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useTutorialStore } from "@/lib/stores/tutorialStore";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
@@ -38,6 +39,7 @@ import {
   Cog,
   BarChart3,
   Ship,
+  ArrowRight,
   Plane,
   Truck,
   Clock,
@@ -78,6 +80,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { getArchetype } from "@/engine/types/archetypes";
+import { getMachineryRequirements, type MachineryRequirement } from "@/engine/types/machineryRequirements";
 
 interface PageProps {
   params: Promise<{ gameId: string }>;
@@ -380,11 +384,18 @@ const upgrades = [
 
 export default function FactoryPage({ params }: PageProps) {
   const { gameId } = use(params);
-  const [activeTab, setActiveTab] = useState("overview");
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab") || "overview";
+  const [activeTab, setActiveTab] = useState(initialTab);
   const tutorialStep = useTutorialStore(s => s.isActive ? s.steps[s.currentStep] : null);
   useEffect(() => {
     if (tutorialStep?.targetTab) setActiveTab(tutorialStep.targetTab);
   }, [tutorialStep?.targetTab]);
+  // Update tab when query param changes (e.g., navigating from R&D)
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab) setActiveTab(tab);
+  }, [searchParams]);
   const [selectedFactoryIndex, setSelectedFactoryIndex] = useState(0);
 
   // Feature flags
@@ -392,7 +403,26 @@ export default function FactoryPage({ params }: PageProps) {
   const hasMultipleFactories = useFeatureFlag("multipleFactories");
 
   // Get decisions from store
-  const { factory, setFactoryDecisions, submissionStatus } = useDecisionStore();
+  const { factory, setFactoryDecisions, submissionStatus, rd } = useDecisionStore();
+  const router = useRouter();
+
+  // Auto-navigate to Finance after successful Factory save
+  const prevFactorySubmittedRef = useRef(submissionStatus.FACTORY?.isSubmitted);
+  useEffect(() => {
+    const wasSubmitted = prevFactorySubmittedRef.current;
+    const isNowSubmitted = submissionStatus.FACTORY?.isSubmitted;
+    prevFactorySubmittedRef.current = isNowSubmitted;
+
+    if (!wasSubmitted && isNowSubmitted) {
+      const basePath = gameId === "demo" ? "/demo" : `/game/${gameId}`;
+      toast.info("Factory saved! Head to Finance to set pricing and review your budget.", {
+        duration: 5000,
+      });
+      setTimeout(() => {
+        router.push(`${basePath}/finance`);
+      }, 1500);
+    }
+  }, [submissionStatus.FACTORY?.isSubmitted, gameId, router]);
 
   // Local state for form inputs (synced with store)
   const [efficiencyInvestment, setEfficiencyInvestment] = useState(factory.efficiencyInvestment);
@@ -494,6 +524,37 @@ export default function FactoryPage({ params }: PageProps) {
   // Get factories from state or use default
   const factories = state?.factories || [defaultFactory];
   const selectedFactory = factories[selectedFactoryIndex] || defaultFactory;
+
+  // Compute required machinery based on R&D pending products
+  const requiredMachinery = useMemo(() => {
+    const products = rd.newProducts || [];
+    if (products.length === 0) return [];
+
+    let maxTier = 0;
+    const productNames: string[] = [];
+    for (const product of products) {
+      if (product.archetypeId) {
+        const archetype = getArchetype(product.archetypeId);
+        if (archetype) {
+          maxTier = Math.max(maxTier, archetype.tier);
+          productNames.push(archetype.name);
+        }
+      } else {
+        productNames.push(product.name);
+      }
+    }
+
+    const requirements = getMachineryRequirements(maxTier);
+    const ownedUpgrades = selectedFactory.upgrades || [];
+    return requirements.map((req) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const installed = ownedUpgrades.includes(req.machineType as any);
+      const pending = upgradePurchases.some(
+        (u) => u.factoryId === selectedFactory.id && u.upgradeName === req.machineType
+      );
+      return { ...req, installed: !!installed, pending, productNames };
+    });
+  }, [rd.newProducts, upgradePurchases, selectedFactory.upgrades, selectedFactory.id]);
 
   // Calculate equipment health metrics
   const equipmentHealth = useMemo(() => {
@@ -1791,6 +1852,88 @@ export default function FactoryPage({ params }: PageProps) {
               title="Machinery Management"
               description="Purchase, maintain, and manage your factory machines"
             />
+
+            {/* Required Machinery for R&D Products */}
+            {requiredMachinery.length > 0 && (
+              <Card className="bg-purple-900/20 border-purple-600/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-white flex items-center gap-2 text-base">
+                    <AlertTriangle className="w-5 h-5 text-purple-400" />
+                    Required Machinery for Your Products
+                  </CardTitle>
+                  <CardDescription className="text-purple-300/70">
+                    Your R&D queue includes: {requiredMachinery[0]?.productNames?.join(", ")}. These machines are needed to produce them.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {requiredMachinery.map((req) => (
+                      <div
+                        key={req.machineType}
+                        className={`flex items-center justify-between p-3 rounded-lg border ${
+                          req.installed
+                            ? "bg-green-900/20 border-green-600/30"
+                            : req.pending
+                            ? "bg-orange-900/20 border-orange-600/30"
+                            : "bg-red-900/20 border-red-600/30"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {req.installed ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
+                          ) : req.pending ? (
+                            <Clock className="w-4 h-4 text-orange-400 flex-shrink-0" />
+                          ) : (
+                            <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                          )}
+                          <div>
+                            <span className="text-white text-sm font-medium">
+                              {req.machineType.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                            </span>
+                            <p className="text-slate-400 text-xs">{req.reason}</p>
+                          </div>
+                        </div>
+                        <div>
+                          {req.installed ? (
+                            <Badge className="bg-green-500/20 text-green-400 text-xs">Owned</Badge>
+                          ) : req.pending ? (
+                            <Badge className="bg-orange-500/20 text-orange-400 text-xs">Queued</Badge>
+                          ) : (
+                            <Button
+                              size="sm"
+                              className="bg-purple-600 hover:bg-purple-700 h-7 text-xs"
+                              onClick={() => toggleUpgradePurchase(req.machineType)}
+                            >
+                              Purchase
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {requiredMachinery.some((r) => !r.installed && !r.pending) && (
+                    <p className="text-red-400/80 text-xs mt-3">
+                      Missing machinery will reduce production quality and capacity for your products.
+                    </p>
+                  )}
+                  {requiredMachinery.every((r) => r.installed || r.pending) && (
+                    <div className="mt-3 flex items-center justify-between">
+                      <p className="text-green-400/80 text-xs">
+                        All required machinery is ready.
+                      </p>
+                      <Button
+                        size="sm"
+                        className="bg-orange-600 hover:bg-orange-700 h-7 text-xs gap-1"
+                        onClick={() => setActiveTab("production")}
+                      >
+                        Next: Set Production
+                        <ArrowRight className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Machine Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

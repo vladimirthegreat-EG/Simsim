@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { use } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { trpc } from "@/lib/api/trpc";
 import { useDecisionStore } from "@/lib/stores/decisionStore";
 import { DecisionSubmitBar } from "@/components/game/DecisionSubmitBar";
 import { useFeatureFlag } from "@/lib/contexts/ComplexityContext";
+import { toast } from "sonner";
 import { TeamState } from "@/engine/types";
 import { FinancialStatementsComponent } from "@/components/game/FinancialStatements";
 import {
@@ -230,7 +232,26 @@ export default function FinancePage({ params }: PageProps) {
   const hasBoardMeetings = useFeatureFlag("boardMeetings");
 
   // Get decisions from store
-  const { finance, setFinanceDecisions } = useDecisionStore();
+  const { finance, setFinanceDecisions, submissionStatus } = useDecisionStore();
+  const router = useRouter();
+
+  // Auto-navigate to HR after successful Finance save
+  const prevFinanceSubmittedRef = useRef(submissionStatus.FINANCE?.isSubmitted);
+  useEffect(() => {
+    const wasSubmitted = prevFinanceSubmittedRef.current;
+    const isNowSubmitted = submissionStatus.FINANCE?.isSubmitted;
+    prevFinanceSubmittedRef.current = isNowSubmitted;
+
+    if (!wasSubmitted && isNowSubmitted) {
+      const basePath = gameId === "demo" ? "/demo" : `/game/${gameId}`;
+      toast.info("Finances saved! Head to HR to manage your workforce.", {
+        duration: 5000,
+      });
+      setTimeout(() => {
+        router.push(`${basePath}/hr`);
+      }, 1500);
+    }
+  }, [submissionStatus.FINANCE?.isSubmitted, gameId, router]);
 
   // Decision states (synced with store)
   const [selectedFunding, setSelectedFunding] = useState<{type: string; amount: number} | null>(null);

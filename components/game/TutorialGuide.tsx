@@ -87,12 +87,12 @@ export function TutorialGuide({ gameId }: TutorialGuideProps) {
           />
         )}
 
-        {/* Tooltip Card */}
+        {/* Tooltip Card - Fixed at bottom-center for consistency */}
         <div
           className="absolute"
           style={{
             pointerEvents: "auto",
-            ...getPositionStyles(step.position),
+            ...getPositionStyles(isCenter ? "center" : "bottom-center"),
           }}
         >
           <div
@@ -252,15 +252,16 @@ export function TutorialGuide({ gameId }: TutorialGuideProps) {
               </div>
             )}
 
-            {/* Navigation buttons */}
-            <div className="flex items-center justify-between pt-2">
+            {/* Navigation buttons - Always visible and clickable */}
+            <div className="flex items-center justify-between pt-2 relative z-50">
               <div>
                 {!isFirst && (
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={prevStep}
-                    className="text-[12px] border-slate-600 text-slate-400 hover:text-white"
+                    className="text-[12px] border-slate-600 text-slate-400 hover:text-white hover:bg-slate-700 transition-all"
+                    style={{ pointerEvents: "auto", cursor: "pointer" }}
                   >
                     <ChevronLeft className="w-3 h-3 mr-1" />
                     Back
@@ -271,9 +272,10 @@ export function TutorialGuide({ gameId }: TutorialGuideProps) {
                 size="sm"
                 onClick={nextStep}
                 disabled={!canAdvance}
-                className={`text-[12px] font-bold uppercase tracking-[1px] ${
+                style={{ pointerEvents: canAdvance ? "auto" : "none", cursor: canAdvance ? "pointer" : "not-allowed" }}
+                className={`text-[12px] font-bold uppercase tracking-[1px] transition-all ${
                   canAdvance
-                    ? "bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-slate-900"
+                    ? "bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-slate-900 hover:scale-105"
                     : "bg-slate-700 text-slate-500 cursor-not-allowed"
                 }`}
               >
@@ -313,14 +315,32 @@ function getPositionStyles(
 ): React.CSSProperties {
   switch (position) {
     case "center":
-      return { top: "50%", left: "50%", transform: "translate(-50%, -50%)" };
+      return {
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        maxHeight: "90vh",
+        overflowY: "auto"
+      };
     case "top-right":
       return { top: 80, right: 20 };
     case "bottom-right":
       return { bottom: 80, right: 20 };
     case "bottom-center":
-      return { bottom: 100, left: "50%", transform: "translateX(-50%)" };
+      return {
+        bottom: "40px",
+        left: "50%",
+        transform: "translateX(-50%)",
+        maxHeight: "calc(100vh - 100px)",
+        overflowY: "auto"
+      };
     default:
-      return { top: "50%", left: "50%", transform: "translate(-50%, -50%)" };
+      return {
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        maxHeight: "90vh",
+        overflowY: "auto"
+      };
   }
 }

@@ -76,14 +76,35 @@ const MODULES = ["FACTORY", "FINANCE", "HR", "MARKETING", "RD"] as const;
 export function TeamDetailPanel({ team, isExpanded, onToggle }: TeamDetailPanelProps) {
   const state = team.currentState;
 
-  const formatCurrency = (amount: number) => {
+  // Safe defaults for potentially undefined nested properties
+  const factories = state.factories ?? [];
+  const products = state.products ?? [];
+  const workforce = state.workforce ?? {
+    totalHeadcount: 0,
+    averageMorale: 0,
+    averageEfficiency: 0,
+    laborCost: 0,
+    turnoverRate: 0,
+  };
+  const marketShare = state.marketShare ?? {};
+
+  const formatCurrency = (amount: number | undefined | null) => {
+    if (amount === undefined || amount === null || isNaN(amount)) return "$0";
     if (amount >= 1_000_000_000) return `$${(amount / 1_000_000_000).toFixed(1)}B`;
     if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(1)}M`;
     if (amount >= 1_000) return `$${(amount / 1_000).toFixed(1)}K`;
     return `$${amount.toFixed(0)}`;
   };
 
-  const formatPercent = (value: number) => `${(value * 100).toFixed(1)}%`;
+  const formatPercent = (value: number | undefined | null) => {
+    if (value === undefined || value === null || isNaN(value)) return "0.0%";
+    return `${(value * 100).toFixed(1)}%`;
+  };
+
+  const formatDecimal = (value: number | undefined | null, decimals: number = 2) => {
+    if (value === undefined || value === null || isNaN(value)) return "0." + "0".repeat(decimals);
+    return value.toFixed(decimals);
+  };
 
   const submittedModules = team.decisions.map((d) => d.module);
   const submissionProgress = (submittedModules.length / MODULES.length) * 100;
@@ -162,12 +183,12 @@ export function TeamDetailPanel({ team, isExpanded, onToggle }: TeamDetailPanelP
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   <MetricBox label="Cash" value={formatCurrency(state.cash)} icon={DollarSign} />
                   <MetricBox label="Revenue" value={formatCurrency(state.revenue)} icon={TrendingUp} />
-                  <MetricBox label="Net Income" value={formatCurrency(state.netIncome)} icon={DollarSign} variant={state.netIncome >= 0 ? "positive" : "negative"} />
-                  <MetricBox label="EPS" value={`$${state.eps.toFixed(2)}`} icon={TrendingUp} variant={state.eps >= 0 ? "positive" : "negative"} />
+                  <MetricBox label="Net Income" value={formatCurrency(state.netIncome)} icon={DollarSign} variant={(state.netIncome ?? 0) >= 0 ? "positive" : "negative"} />
+                  <MetricBox label="EPS" value={`$${formatDecimal(state.eps, 2)}`} icon={TrendingUp} variant={(state.eps ?? 0) >= 0 ? "positive" : "negative"} />
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   <MetricBox label="Market Cap" value={formatCurrency(state.marketCap)} icon={Building2} />
-                  <MetricBox label="Share Price" value={`$${state.sharePrice.toFixed(2)}`} icon={TrendingUp} />
+                  <MetricBox label="Share Price" value={`$${formatDecimal(state.sharePrice, 2)}`} icon={TrendingUp} />
                   <MetricBox label="Total Assets" value={formatCurrency(state.totalAssets)} icon={DollarSign} />
                   <MetricBox label="Liabilities" value={formatCurrency(state.totalLiabilities)} icon={DollarSign} />
                 </div>
@@ -176,9 +197,9 @@ export function TeamDetailPanel({ team, isExpanded, onToggle }: TeamDetailPanelP
               {/* Operations Tab */}
               <TabsContent value="operations" className="space-y-3 mt-0">
                 <div className="text-xs text-slate-500 font-medium uppercase tracking-wider">
-                  {state.factories.length} Factor{state.factories.length !== 1 ? "ies" : "y"}
+                  {factories.length} Factor{factories.length !== 1 ? "ies" : "y"}
                 </div>
-                {state.factories.map((factory) => (
+                {factories.map((factory) => (
                   <div key={factory.id} className="p-3 bg-slate-800/40 rounded-lg border border-slate-700/30">
                     <div className="flex items-center justify-between mb-2.5">
                       <span className="text-white font-medium text-sm">{factory.name}</span>
@@ -206,11 +227,11 @@ export function TeamDetailPanel({ team, isExpanded, onToggle }: TeamDetailPanelP
                     </div>
                   </div>
                 ))}
-                {state.products.length > 0 && (
+                {products.length > 0 && (
                   <div>
                     <div className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Products</div>
                     <div className="flex flex-wrap gap-1.5">
-                      {state.products.map((product) => (
+                      {products.map((product) => (
                         <Badge key={product.id} className="bg-slate-800/60 text-slate-300 border border-slate-700/30 text-xs">
                           {product.name} - {product.segment} (${product.price})
                         </Badge>
@@ -223,20 +244,20 @@ export function TeamDetailPanel({ team, isExpanded, onToggle }: TeamDetailPanelP
               {/* Workforce Tab */}
               <TabsContent value="workforce" className="space-y-3 mt-0">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  <MetricBox label="Headcount" value={state.workforce.totalHeadcount.toString()} icon={Users} />
+                  <MetricBox label="Headcount" value={workforce.totalHeadcount.toString()} icon={Users} />
                   <MetricBox
                     label="Morale"
-                    value={`${state.workforce.averageMorale.toFixed(0)}%`}
+                    value={`${formatDecimal(workforce.averageMorale, 0)}%`}
                     icon={Users}
-                    variant={state.workforce.averageMorale >= 70 ? "positive" : state.workforce.averageMorale >= 50 ? "neutral" : "negative"}
+                    variant={workforce.averageMorale >= 70 ? "positive" : workforce.averageMorale >= 50 ? "neutral" : "negative"}
                   />
-                  <MetricBox label="Efficiency" value={formatPercent(state.workforce.averageEfficiency)} icon={TrendingUp} />
-                  <MetricBox label="Labor Cost" value={formatCurrency(state.workforce.laborCost)} icon={DollarSign} />
+                  <MetricBox label="Efficiency" value={formatPercent(workforce.averageEfficiency)} icon={TrendingUp} />
+                  <MetricBox label="Labor Cost" value={formatCurrency(workforce.laborCost)} icon={DollarSign} />
                   <MetricBox
                     label="Turnover Rate"
-                    value={formatPercent(state.workforce.turnoverRate)}
+                    value={formatPercent(workforce.turnoverRate)}
                     icon={Users}
-                    variant={state.workforce.turnoverRate <= 0.1 ? "positive" : state.workforce.turnoverRate <= 0.2 ? "neutral" : "negative"}
+                    variant={workforce.turnoverRate <= 0.1 ? "positive" : workforce.turnoverRate <= 0.2 ? "neutral" : "negative"}
                   />
                 </div>
               </TabsContent>
@@ -247,11 +268,11 @@ export function TeamDetailPanel({ team, isExpanded, onToggle }: TeamDetailPanelP
                   <MetricBox label="Brand Value" value={formatPercent(state.brandValue)} icon={Megaphone} />
                   <MetricBox label="R&D Budget" value={formatCurrency(state.rdBudget)} icon={Lightbulb} />
                 </div>
-                {Object.keys(state.marketShare).length > 0 && (
+                {Object.keys(marketShare).length > 0 && (
                   <div>
                     <div className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Market Share by Segment</div>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {Object.entries(state.marketShare).map(([segment, share]) => (
+                      {Object.entries(marketShare).map(([segment, share]) => (
                         <div key={segment} className="p-2.5 bg-slate-800/40 rounded-lg border border-slate-700/30">
                           <div className="text-xs text-slate-500">{segment}</div>
                           <div className="text-white font-medium text-sm">{formatPercent(share)}</div>

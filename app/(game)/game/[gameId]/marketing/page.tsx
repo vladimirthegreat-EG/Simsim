@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { use } from "react";
 import { useTutorialStore } from "@/lib/stores/tutorialStore";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
@@ -18,6 +18,7 @@ import { trpc } from "@/lib/api/trpc";
 import { useDecisionStore } from "@/lib/stores/decisionStore";
 import { DecisionSubmitBar } from "@/components/game/DecisionSubmitBar";
 import { TeamState, Segment } from "@/engine/types";
+import { toast } from "sonner";
 import {
   Megaphone,
   TrendingUp,
@@ -139,7 +140,21 @@ export default function MarketingPage({ params }: PageProps) {
   }, [tutorialStep?.targetTab]);
 
   // Get decisions from store
-  const { marketing, setMarketingDecisions } = useDecisionStore();
+  const { marketing, setMarketingDecisions, submissionStatus } = useDecisionStore();
+
+  // Show completion toast after Marketing save (final module)
+  const prevMarketingSubmittedRef = useRef(submissionStatus.MARKETING?.isSubmitted);
+  useEffect(() => {
+    const wasSubmitted = prevMarketingSubmittedRef.current;
+    const isNowSubmitted = submissionStatus.MARKETING?.isSubmitted;
+    prevMarketingSubmittedRef.current = isNowSubmitted;
+
+    if (!wasSubmitted && isNowSubmitted) {
+      toast.success("All decisions submitted! Your round is ready to advance.", {
+        duration: 6000,
+      });
+    }
+  }, [submissionStatus.MARKETING?.isSubmitted]);
 
   // Decision states (synced with store)
   const [adBudgets, setAdBudgets] = useState<Record<string, Record<string, number>>>(

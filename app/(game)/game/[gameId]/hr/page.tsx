@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { use } from "react";
+import { useRouter } from "next/navigation";
 import { useTutorialStore } from "@/lib/stores/tutorialStore";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +20,7 @@ import { trpc } from "@/lib/api/trpc";
 import { useDecisionStore } from "@/lib/stores/decisionStore";
 import { DecisionSubmitBar } from "@/components/game/DecisionSubmitBar";
 import { useFeatureFlag } from "@/lib/contexts/ComplexityContext";
+import { toast } from "sonner";
 import {
   Users,
   UserPlus,
@@ -188,7 +190,31 @@ export default function HRPage({ params }: PageProps) {
   const hasEmployeeManagement = useFeatureFlag("employeeManagement");
 
   // Get decisions from store
-  const { hr, setHRDecisions } = useDecisionStore();
+  const { hr, setHRDecisions, submissionStatus } = useDecisionStore();
+  const router = useRouter();
+
+  // Auto-navigate to Marketing after successful HR save
+  const prevHRSubmittedRef = useRef(submissionStatus.HR?.isSubmitted);
+  useEffect(() => {
+    const wasSubmitted = prevHRSubmittedRef.current;
+    const isNowSubmitted = submissionStatus.HR?.isSubmitted;
+    prevHRSubmittedRef.current = isNowSubmitted;
+
+    if (!wasSubmitted && isNowSubmitted) {
+      const basePath = gameId === "demo" ? "/demo" : `/game/${gameId}`;
+      toast.info("HR saved! Head to Marketing to promote your products.", {
+        duration: 5000,
+      });
+      setTimeout(() => {
+        router.push(`${basePath}/marketing`);
+      }, 1500);
+    }
+  }, [submissionStatus.HR?.isSubmitted, gameId, router]);
+
+  // Refs to track previous values and prevent infinite loops
+  const prevRecruitmentSearchesRef = useRef<string>(JSON.stringify(hr.recruitmentSearches ?? []));
+  const prevTrainingProgramsRef = useRef<string>(JSON.stringify(hr.trainingPrograms ?? []));
+  const prevSalaryAdjustmentRef = useRef<number>(hr.salaryAdjustment);
 
   // Decision state (synced with store)
   const [salaryAdjustment, setSalaryAdjustment] = useState(hr.salaryAdjustment);
@@ -198,22 +224,27 @@ export default function HRPage({ params }: PageProps) {
 
   // Sync store changes to local state (for when decisions are loaded from server)
   useEffect(() => {
-    if (hr.salaryAdjustment !== salaryAdjustment) {
+    if (prevSalaryAdjustmentRef.current !== hr.salaryAdjustment) {
+      prevSalaryAdjustmentRef.current = hr.salaryAdjustment;
       setSalaryAdjustment(hr.salaryAdjustment);
     }
-  }, [hr.salaryAdjustment]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hr.salaryAdjustment]);
 
   useEffect(() => {
-    if (JSON.stringify(hr.recruitmentSearches) !== JSON.stringify(recruitmentSearches)) {
-      setRecruitmentSearches(hr.recruitmentSearches);
+    const newSearchesStr = JSON.stringify(hr.recruitmentSearches ?? []);
+    if (newSearchesStr !== prevRecruitmentSearchesRef.current) {
+      prevRecruitmentSearchesRef.current = newSearchesStr;
+      setRecruitmentSearches(hr.recruitmentSearches ?? []);
     }
-  }, [hr.recruitmentSearches]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hr.recruitmentSearches]);
 
   useEffect(() => {
-    if (JSON.stringify(hr.trainingPrograms) !== JSON.stringify(enrolledTraining)) {
-      setEnrolledTraining(hr.trainingPrograms);
+    const newProgramsStr = JSON.stringify(hr.trainingPrograms ?? []);
+    if (newProgramsStr !== prevTrainingProgramsRef.current) {
+      prevTrainingProgramsRef.current = newProgramsStr;
+      setEnrolledTraining(hr.trainingPrograms ?? []);
     }
-  }, [hr.trainingPrograms]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hr.trainingPrograms]);
 
   // Sync local state changes to store
   useEffect(() => {

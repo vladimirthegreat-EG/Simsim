@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { use } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,8 @@ import { FeatureRadarChart } from "@/components/game/FeatureRadarChart";
 import { PatentPanel } from "@/components/game/PatentPanel";
 import { NotificationPanel } from "@/components/game/NotificationPanel";
 import { PlainEnglishTooltip } from "@/components/game/PlainEnglishTooltip";
+import { getArchetype } from "@/engine/types/archetypes";
+import { toast } from "sonner";
 import {
   Lightbulb,
   Beaker,
@@ -92,14 +95,34 @@ const techUpgrades = [
 
 export default function RDPage({ params }: PageProps) {
   const { gameId } = use(params);
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
 
   // Get decisions from store
-  const { rd, setRDDecisions } = useDecisionStore();
+  const { rd, setRDDecisions, submissionStatus } = useDecisionStore();
+
+  // Navigate to Factory after successful R&D save (when products are queued)
+  const prevSubmittedRef = useRef(submissionStatus.RD?.isSubmitted);
+  useEffect(() => {
+    const wasSubmitted = prevSubmittedRef.current;
+    const isNowSubmitted = submissionStatus.RD?.isSubmitted;
+    prevSubmittedRef.current = isNowSubmitted;
+
+    // Only navigate on fresh submission (transition from not-submitted to submitted)
+    if (!wasSubmitted && isNowSubmitted && rd.newProducts?.length > 0) {
+      const basePath = gameId === "demo" ? "/demo" : `/game/${gameId}`;
+      toast.info("Head to Factory to set up machinery for your new products!", {
+        duration: 5000,
+      });
+      // Small delay so the save toast shows first
+      setTimeout(() => {
+        router.push(`${basePath}/factory?tab=machinery`);
+      }, 1500);
+    }
+  }, [submissionStatus.RD?.isSubmitted, rd.newProducts, gameId, router]);
 
   // Decision states (synced with store)
   const [selectedSegment, setSelectedSegment] = useState<string | null>(null);
-  const [selectedArchetype, setSelectedArchetype] = useState<string | undefined>(undefined);
   const [newProductName, setNewProductName] = useState("");
   const [qualityTarget, setQualityTarget] = useState(70);
   const [featuresTarget, setFeaturesTarget] = useState(50);
@@ -119,6 +142,29 @@ export default function RDPage({ params }: PageProps) {
   const [pendingChallenges, setPendingChallenges] = useState<string[]>([]);
   const [developMode, setDevelopMode] = useState<"archetype" | "legacy">("archetype");
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
+
+  // When user clicks an archetype, immediately add it to the development queue
+  const handleSelectArchetype = useCallback((archetypeId: string) => {
+    const archetype = getArchetype(archetypeId);
+    if (!archetype) return;
+
+    const midPrice = Math.round(
+      (archetype.suggestedPriceRange.min + archetype.suggestedPriceRange.max) / 2 / 50
+    ) * 50;
+
+    setPendingProducts(prev => [...prev, {
+      name: archetype.name,
+      segment: archetype.primarySegment,
+      qualityTarget: 0,
+      featuresTarget: 0,
+      priceTarget: midPrice,
+      archetypeId,
+    }]);
+
+    toast.success(`"${archetype.name}" added to development queue`, {
+      description: "Click Save Decisions below to submit your R&D plan.",
+    });
+  }, []);
 
   // Sync store changes to local state
   useEffect(() => {
@@ -163,6 +209,7 @@ export default function RDPage({ params }: PageProps) {
   // Handle start development (legacy mode)
   const handleStartDevelopment = () => {
     if (selectedSegment && newProductName) {
+      const productName = newProductName;
       setPendingProducts(prev => [...prev, {
         name: newProductName,
         segment: selectedSegment,
@@ -175,26 +222,12 @@ export default function RDPage({ params }: PageProps) {
       setQualityTarget(70);
       setFeaturesTarget(50);
       setPriceTarget(400);
+      toast.success(`"${productName}" added to development queue`, {
+        description: "Click Save Decisions below to submit your R&D plan.",
+      });
     }
   };
 
-  // Handle archetype-based development
-  const handleArchetypeDevelopment = () => {
-    if (selectedArchetype && newProductName && selectedSegment) {
-      setPendingProducts(prev => [...prev, {
-        name: newProductName,
-        segment: selectedSegment,
-        qualityTarget: 0, // Determined by archetype + techs
-        featuresTarget: 0,
-        priceTarget,
-        archetypeId: selectedArchetype,
-      }]);
-      setSelectedArchetype(undefined);
-      setSelectedSegment(null);
-      setNewProductName("");
-      setPriceTarget(400);
-    }
-  };
 
   // Handle research tech upgrade
   const handleResearchTech = (techId: string) => {
@@ -702,6 +735,59 @@ export default function RDPage({ params }: PageProps) {
 
         {/* ==================== DEVELOP TAB ==================== */}
         <TabsContent value="develop" className="space-y-6">
+          {/* Development Queue - always visible at top */}
+          <Card className={`border ${pendingProducts.length > 0 ? 'bg-green-900/20 border-green-600/50' : 'bg-slate-800 border-slate-700'}`}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-white flex items-center gap-2 text-base">
+                <Rocket className="w-5 h-5 text-purple-400" />
+                Development Queue
+                {pendingProducts.length > 0 && (
+                  <Badge className="bg-green-600 text-xs">{pendingProducts.length} product{pendingProducts.length > 1 ? 's' : ''}</Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {pendingProducts.length === 0 ? (
+                <div className="text-center py-4 text-slate-400 text-sm">
+                  <Package className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  <p>No products queued yet. Pick an archetype below to start developing.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {pendingProducts.map((product, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-slate-800/60 rounded-lg border border-slate-700/50">
+                      <div className="flex items-center gap-3">
+                        <Smartphone className="w-4 h-4 text-purple-400" />
+                        <div>
+                          <span className="text-white font-medium text-sm">{product.name}</span>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <Badge className="text-[10px] bg-slate-700 text-slate-300">{product.segment}</Badge>
+                            {product.archetypeId && (
+                              <Badge className="text-[10px] bg-purple-500/20 text-purple-400 border-none">
+                                {product.archetypeId.replace(/_/g, ' ')}
+                              </Badge>
+                            )}
+                            <span className="text-slate-500 text-xs">${product.priceTarget}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm" variant="ghost"
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-7 px-2 text-xs"
+                        onClick={() => setPendingProducts(prev => prev.filter((_, i) => i !== idx))}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                  <p className="text-green-400 text-xs mt-2">
+                    Scroll down and click <span className="font-semibold">Save Decisions</span> to submit your R&D plan.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Mode Selector */}
           <div className="flex gap-2">
             <Button
@@ -724,78 +810,12 @@ export default function RDPage({ params }: PageProps) {
 
           {/* Archetype Mode */}
           {developMode === "archetype" && (
-            <div className="space-y-6">
-              <ArchetypeCatalog
-                unlockedTechs={rdData.unlockedTechs}
-                allTechNodes={techNodes}
-                onSelectArchetype={(id) => setSelectedArchetype(id)}
-                selectedArchetype={selectedArchetype}
-              />
-
-              {selectedArchetype && (
-                <Card className="bg-slate-800 border-purple-700/50">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Rocket className="w-5 h-5 text-purple-400" />
-                      Configure {selectedArchetype.replace(/_/g, ' ')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <label className="text-slate-300 text-sm mb-2 block">Product Name</label>
-                      <input
-                        type="text"
-                        value={newProductName}
-                        onChange={(e) => setNewProductName(e.target.value)}
-                        placeholder="Enter product name..."
-                        className="w-full bg-slate-700 border-slate-600 rounded px-3 py-2 text-white"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-slate-300 text-sm mb-3 block">Target Segment</label>
-                      <div className="grid grid-cols-5 gap-2">
-                        {segments.map((seg) => (
-                          <button
-                            key={seg.id}
-                            className={`p-2 rounded-lg border text-center text-sm transition-all ${
-                              selectedSegment === seg.id
-                                ? 'border-purple-500 bg-purple-500/10 text-white'
-                                : 'border-slate-600 bg-slate-700/50 text-slate-400 hover:border-slate-500'
-                            }`}
-                            onClick={() => setSelectedSegment(seg.id)}
-                          >
-                            {seg.name}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="p-4 bg-slate-700/30 rounded-lg space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-300 font-medium">Target Price</span>
-                        <span className="text-green-400 font-semibold">${priceTarget}</span>
-                      </div>
-                      <Slider
-                        value={[priceTarget]}
-                        onValueChange={(values) => setPriceTarget(values[0])}
-                        min={100} max={1500} step={50}
-                        variant="success"
-                      />
-                    </div>
-
-                    <Button
-                      className="w-full bg-purple-600 hover:bg-purple-700"
-                      onClick={handleArchetypeDevelopment}
-                      disabled={!newProductName || !selectedSegment}
-                    >
-                      <Rocket className="w-4 h-4 mr-2" />
-                      Start Archetype Development
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+            <ArchetypeCatalog
+              unlockedTechs={rdData.unlockedTechs}
+              allTechNodes={techNodes}
+              onSelectArchetype={handleSelectArchetype}
+              selectedArchetype={undefined}
+            />
           )}
 
           {/* Legacy Mode */}
@@ -933,34 +953,6 @@ export default function RDPage({ params }: PageProps) {
                 )}
               </CardContent>
             </Card>
-          )}
-
-          {/* Pending Products */}
-          {pendingProducts.length > 0 && (
-            <div className="p-3 bg-green-900/20 border border-green-700 rounded-lg">
-              <p className="text-green-400 text-sm font-medium mb-2">Pending Product Development:</p>
-              <div className="space-y-1">
-                {pendingProducts.map((product, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-sm">
-                    <span className="text-slate-300">
-                      {product.name} ({product.segment})
-                      {product.archetypeId && (
-                        <Badge className="ml-2 text-[10px] bg-purple-500/20 text-purple-400 border-none">
-                          {product.archetypeId.replace(/_/g, ' ')}
-                        </Badge>
-                      )}
-                    </span>
-                    <Button
-                      size="sm" variant="ghost"
-                      className="text-red-400 h-6 px-2"
-                      onClick={() => setPendingProducts(prev => prev.filter((_, i) => i !== idx))}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
           )}
 
           {/* Products in Development */}

@@ -11,11 +11,11 @@ interface WorkflowGuideProps {
 }
 
 const WORKFLOW_ITEMS = [
+  { module: GameModuleValues.RD, label: "Choose Products", path: "/rnd", color: "text-purple-400" },
   { module: GameModuleValues.FACTORY, label: "Set Production", path: "/factory", color: "text-orange-400" },
+  { module: GameModuleValues.FINANCE, label: "Review Finances", path: "/finance", color: "text-green-400" },
   { module: GameModuleValues.HR, label: "Manage Workforce", path: "/hr", color: "text-blue-400" },
   { module: GameModuleValues.MARKETING, label: "Adjust Marketing", path: "/marketing", color: "text-pink-400" },
-  { module: GameModuleValues.FINANCE, label: "Review Finances", path: "/finance", color: "text-green-400" },
-  { module: GameModuleValues.RD, label: "Check R&D", path: "/rnd", color: "text-purple-400" },
 ] as const;
 
 export function WorkflowGuide({ basePath, gameStatus }: WorkflowGuideProps) {

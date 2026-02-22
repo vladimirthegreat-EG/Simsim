@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState, useMemo } from "react";
+import { ReactNode, useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -35,6 +35,8 @@ import { NewsTicker } from "@/components/game/NewsTicker";
 import { TutorialGuide } from "@/components/game/TutorialGuide";
 import { WorkflowGuide } from "@/components/game/WorkflowGuide";
 import { useTutorialStore } from "@/lib/stores/tutorialStore";
+import { useGuidanceStore } from "@/lib/stores/guidanceStore";
+import { GuidanceBanner } from "@/components/game/GuidanceBanner";
 import { GlossaryPanel, GlossaryButton } from "@/components/game/GlossaryPanel";
 
 // Map module IDs to store keys
@@ -155,6 +157,61 @@ export function GameLayout({
   const submissionStatus = useDecisionStore((state) => state.submissionStatus);
   const { isModuleEnabled } = useComplexity();
   const tutorialActive = useTutorialStore((s) => s.isActive);
+
+  // First-round guidance
+  const guidanceActive = useGuidanceStore((s) => s.active);
+  const guidanceStep = useGuidanceStore((s) => s.currentStep);
+  const guidanceSteps = useGuidanceStore((s) => s.steps);
+  const onTutorialComplete = useGuidanceStore((s) => s.onTutorialComplete);
+  const onModuleSubmitted = useGuidanceStore((s) => s.onModuleSubmitted);
+  const guidanceTutorialCompleted = useGuidanceStore((s) => s.tutorialCompleted);
+
+  // Track if tutorial was ever active, so we don't trigger guidance before it starts
+  const tutorialWasActive = useRef(false);
+  useEffect(() => {
+    if (tutorialActive) tutorialWasActive.current = true;
+  }, [tutorialActive]);
+
+  // Start guidance when tutorial finishes (only round 1)
+  useEffect(() => {
+    if (
+      !tutorialActive &&
+      tutorialWasActive.current &&
+      currentRound === 1 &&
+      !guidanceTutorialCompleted &&
+      !guidanceActive
+    ) {
+      // Small delay so the tutorial overlay clears first
+      const timer = setTimeout(() => {
+        onTutorialComplete();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [tutorialActive, currentRound, guidanceTutorialCompleted, guidanceActive, onTutorialComplete]);
+
+  // Auto-advance guidance when a module is submitted
+  useEffect(() => {
+    if (!guidanceActive || guidanceStep >= guidanceSteps.length) return;
+    const currentTarget = guidanceSteps[guidanceStep];
+    const decisionKey = ({
+      factory: "FACTORY",
+      finance: "FINANCE",
+      hr: "HR",
+      marketing: "MARKETING",
+      rnd: "RD",
+    } as Record<string, string>)[currentTarget.moduleId];
+    if (!decisionKey) return;
+
+    const status = submissionStatus[decisionKey as GameModule];
+    if (status?.isSubmitted) {
+      onModuleSubmitted(decisionKey);
+    }
+  }, [submissionStatus, guidanceActive, guidanceStep, guidanceSteps, onModuleSubmitted]);
+
+  // Current guidance target module ID
+  const guidanceTargetId = guidanceActive && guidanceStep < guidanceSteps.length
+    ? guidanceSteps[guidanceStep].moduleId
+    : null;
 
   // Support both /game/[gameId] and /demo routes
   const basePath = gameId === "demo" ? "/demo" : `/game/${gameId}`;
@@ -293,6 +350,7 @@ export function GameLayout({
           {visibleModules.map((module) => {
             const isActive = isActiveModule(module.path);
             const Icon = module.icon;
+            const isGuidanceTarget = guidanceTargetId === module.id && !isActive;
 
             return (
               <Link
@@ -300,16 +358,17 @@ export function GameLayout({
                 href={`${basePath}${module.path}`}
                 onClick={() => setMobileMenuOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all",
                   isActive
                     ? "bg-slate-700 text-white"
-                    : "text-slate-400 hover:bg-slate-700/50 hover:text-white"
+                    : "text-slate-400 hover:bg-slate-700/50 hover:text-white",
+                  isGuidanceTarget && "ring-2 ring-cyan-400/70 ring-offset-1 ring-offset-slate-800 bg-cyan-500/5"
                 )}
               >
-                <Icon className={cn("w-5 h-5 flex-shrink-0", isActive && module.color)} />
+                <Icon className={cn("w-5 h-5 flex-shrink-0", isActive && module.color, isGuidanceTarget && module.color)} />
                 {!sidebarCollapsed && (
                   <>
-                    <span className="font-medium flex-1">{module.name}</span>
+                    <span className={cn("font-medium flex-1", isGuidanceTarget && "text-white")}>{module.name}</span>
                     {getStatusIcon(module.id)}
                   </>
                 )}
@@ -384,6 +443,9 @@ export function GameLayout({
 
       {/* Tutorial Overlay */}
       {tutorialActive && <TutorialGuide gameId={gameId} />}
+
+      {/* First-round guidance banner */}
+      {guidanceActive && !tutorialActive && <GuidanceBanner basePath={basePath} />}
 
       {/* Glossary Panel */}
       {glossaryOpen && <GlossaryPanel onClose={() => setGlossaryOpen(false)} />}

@@ -598,6 +598,41 @@ export const gameRouter = createTRPCRouter({
       return { success: true, status: newStatus };
     }),
 
+  endGame: facilitatorProcedure
+    .input(z.object({ gameId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const game = await ctx.prisma.game.findFirst({
+        where: {
+          id: input.gameId,
+          facilitatorId: ctx.facilitator.id,
+        },
+      });
+
+      if (!game) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Game not found",
+        });
+      }
+
+      if (game.status === GameStatus.COMPLETED) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Game is already completed",
+        });
+      }
+
+      await ctx.prisma.game.update({
+        where: { id: game.id },
+        data: {
+          status: GameStatus.COMPLETED,
+          endedAt: new Date(),
+        },
+      });
+
+      return { success: true, status: GameStatus.COMPLETED };
+    }),
+
   /**
    * Get market news/events for a game
    * TODO: Store events in database when facilitator injects them

@@ -26,6 +26,7 @@ import {
   Gamepad2,
   BarChart3,
   CircleDot,
+  StopCircle,
 } from "lucide-react";
 import { EventInjectionPanel } from "@/components/facilitator";
 import { TeamDetailPanel } from "@/components/facilitator";
@@ -85,6 +86,16 @@ export default function GameControlPage({ params }: PageProps) {
   const togglePause = trpc.game.togglePause.useMutation({
     onSuccess: (data) => {
       toast.success(data.status === "PAUSED" ? "Game paused" : "Game resumed");
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const endGame = trpc.game.endGame.useMutation({
+    onSuccess: () => {
+      toast.success("Game ended successfully!");
       refetch();
     },
     onError: (error) => {
@@ -368,18 +379,38 @@ export default function GameControlPage({ params }: PageProps) {
                     <Pause className="w-4 h-4" />
                     Pause Game
                   </Button>
+                  <Button
+                    onClick={() => endGame.mutate({ gameId })}
+                    disabled={endGame.isPending}
+                    variant="outline"
+                    className="border-red-500/40 text-red-400 hover:bg-red-500/10 hover:border-red-500/60 gap-2 transition-all"
+                  >
+                    <StopCircle className="w-4 h-4" />
+                    {endGame.isPending ? "Ending..." : "End Game"}
+                  </Button>
                 </>
               )}
 
               {game.status === "PAUSED" && (
-                <Button
-                  onClick={() => togglePause.mutate({ gameId })}
-                  disabled={togglePause.isPending}
-                  className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 shadow-lg shadow-emerald-500/20 gap-2 transition-all duration-300"
-                >
-                  <Play className="w-4 h-4" />
-                  Resume Game
-                </Button>
+                <>
+                  <Button
+                    onClick={() => togglePause.mutate({ gameId })}
+                    disabled={togglePause.isPending}
+                    className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 shadow-lg shadow-emerald-500/20 gap-2 transition-all duration-300"
+                  >
+                    <Play className="w-4 h-4" />
+                    Resume Game
+                  </Button>
+                  <Button
+                    onClick={() => endGame.mutate({ gameId })}
+                    disabled={endGame.isPending}
+                    variant="outline"
+                    className="border-red-500/40 text-red-400 hover:bg-red-500/10 hover:border-red-500/60 gap-2 transition-all"
+                  >
+                    <StopCircle className="w-4 h-4" />
+                    {endGame.isPending ? "Ending..." : "End Game"}
+                  </Button>
+                </>
               )}
 
               {game.status === "COMPLETED" && (
