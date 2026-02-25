@@ -1,45 +1,50 @@
-# Simsim - Multiplayer Business Simulation
+# SIMSIM Caliber V2 — Business Simulation Engine
 
-A full-stack multiplayer business simulation where teams compete as phone manufacturing CEOs. Built with Next.js 16, tRPC, Prisma, PostgreSQL, and a deterministic simulation engine with 98+ modules.
+A deterministic, multiplayer business simulation game where teams compete as smartphone manufacturers across 5 market segments. Built with Next.js 16, TypeScript, tRPC, Prisma, and a custom game engine with seeded RNG for full reproducibility.
 
 **Live:** https://simsim-mu.vercel.app
-**Stack:** Next.js 16 &middot; React 19 &middot; tRPC 11 &middot; Prisma 5 &middot; PostgreSQL (Supabase) &middot; Zustand &middot; Tailwind CSS 4
-**Tests:** 420/420 passing (Vitest)
+**Stack:** Next.js 16.1.1 · React 19.2 · tRPC 11 · Prisma 5 · PostgreSQL (Supabase) · Zustand 5 · Tailwind CSS 4
+**Tests:** Vitest + Playwright
 
 ---
 
 ## Table of Contents
 
-- [What Is Simsim?](#what-is-simsim)
-- [How It Works](#how-it-works)
-- [Game Flow](#game-flow)
-- [Game Presets](#game-presets)
-- [The Five Decision Modules](#the-five-decision-modules)
-- [Market Simulation](#market-simulation)
-- [Competitive Mechanics](#competitive-mechanics)
-- [Financial System](#financial-system)
-- [ESG (Environmental, Social, Governance)](#esg-environmental-social-governance)
-- [Achievement System](#achievement-system)
-- [Tech Tree & R&D Expansions](#tech-tree--rd-expansions)
-- [Facilitator Tools](#facilitator-tools)
-- [Tutorial System](#tutorial-system)
-- [Engine Architecture](#engine-architecture)
-- [Project Structure](#project-structure)
-- [Database Schema](#database-schema)
-- [Key Variables & Constants](#key-variables--constants)
-- [Getting Started](#getting-started)
-- [Scripts](#scripts)
-- [Deployment](#deployment)
-- [Testing](#testing)
+1. [What Is SIMSIM?](#what-is-simsim)
+2. [Tech Stack](#tech-stack)
+3. [Getting Started](#getting-started)
+4. [Project Structure](#project-structure)
+5. [Architecture Overview](#architecture-overview)
+6. [Engine Deep Dive](#engine-deep-dive)
+   - [Simulation Pipeline](#simulation-pipeline)
+   - [Deterministic RNG](#deterministic-rng)
+   - [Factory Module](#factory-module)
+   - [HR Module](#hr-module)
+   - [R&D Module](#rd-module)
+   - [Marketing Module](#marketing-module)
+   - [Finance Module](#finance-module)
+   - [Market Simulator](#market-simulator)
+   - [Machinery System](#machinery-system)
+   - [Materials & Supply Chain](#materials--supply-chain)
+   - [Tariffs & Trade](#tariffs--trade)
+   - [Event System](#event-system)
+   - [Achievement System](#achievement-system)
+   - [Financial Statements](#financial-statements)
+   - [Explainability Engine](#explainability-engine)
+7. [Game Constants & Balance](#game-constants--balance)
+8. [Decision Flow: UI to Engine](#decision-flow-ui-to-engine)
+9. [Database Schema](#database-schema)
+10. [API Layer (tRPC)](#api-layer-trpc)
+11. [Frontend Architecture](#frontend-architecture)
+12. [Known Issues & Development State](#known-issues--development-state)
 
 ---
 
-## What Is Simsim?
+## What Is SIMSIM?
 
-Simsim is a classroom/workshop-oriented multiplayer business simulation. A **facilitator** (instructor) creates a game session, and multiple **teams** (students/participants) join via a 6-character code. Each team runs a phone manufacturing company, making decisions about factory operations, hiring, marketing, R&D, and finance across multiple rounds. After each round, the simulation engine processes all decisions simultaneously, calculates market competition using softmax-based allocation, and produces rankings.
+SIMSIM is a classroom/workshop-oriented multiplayer business simulation. A **facilitator** (instructor) creates a game session, and multiple **teams** (students/participants) join via a 6-character code. Each team runs a phone manufacturing company, making decisions about factory operations, hiring, marketing, R&D, and finance across multiple rounds. After each round, the simulation engine processes all decisions simultaneously, calculates market competition using softmax-based allocation, and produces rankings.
 
 The game teaches:
-
 - Operations management (factory efficiency, production capacity, supply chain)
 - Human resources (hiring, training, benefits, morale, turnover)
 - Marketing strategy (advertising, brand building, sponsorships, segment targeting)
@@ -48,150 +53,498 @@ The game teaches:
 - ESG responsibility (environmental initiatives, ethical practices, regulatory risk)
 - Competitive strategy (market positioning, first-mover advantage, segment crowding)
 
----
-
-## How It Works
-
-### High-Level Loop
+### Game Flow
 
 ```
-Facilitator creates game  -->  Teams join via code  -->  Game starts
-     |                                                        |
-     v                                                        v
-Teams make decisions         <--  Results displayed  <--  Engine processes round
-(Factory, HR, Marketing,                                  (all teams simultaneously)
- R&D, Finance)                                                |
-     |                                                        v
-     +----> Facilitator advances round -----> Repeat until maxRounds
-                                                              |
-                                                              v
-                                                     Game Complete
-                                                   (Rankings + Achievements)
+Facilitator creates game  →  Teams join via code  →  Game starts
+     ↓                                                    ↓
+Teams make decisions       ←  Results displayed  ←  Engine processes round
+(R&D → Factory → Finance     (rankings, financials,   (all teams simultaneously)
+ → HR → Marketing)             market share, events)      ↓
+     ↓                                              Facilitator advances round
+     +────────────────────────────────────────────→ Repeat until maxRounds
+                                                         ↓
+                                                   Game Complete
+                                                 (Rankings by Achievement Score)
 ```
 
-### Determinism Guarantee
+---
 
-The simulation engine is fully deterministic. All randomness flows through a **seeded RNG** system (`EngineContext`). Given the same seed and the same decisions, the engine produces identical outputs every time. Each team gets its own RNG context to prevent cross-contamination. An audit trail records seed bundles and final state hashes for verification and replay.
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 16.1.1 (App Router, Turbopack) |
+| Language | TypeScript 5.x |
+| UI | React 19.2, Tailwind CSS 4, shadcn/ui (Radix primitives) |
+| State | Zustand 5.x (client decision store) |
+| Charts | Recharts 3.6 |
+| Animation | Framer Motion 12.x |
+| API | tRPC 11 + TanStack React Query 5 |
+| Database | Prisma 5 (PostgreSQL or SQLite) |
+| Auth | Supabase Auth (facilitators) / Session tokens (teams) |
+| Validation | Zod 4.x |
+| Forms | React Hook Form 7.x |
+| Testing | Vitest 4 (unit), Playwright 1.57 (e2e) |
+| Icons | Lucide React |
+| Toasts | Sonner |
 
 ---
 
-## Game Flow
+## Getting Started
 
-1. **Facilitator creates a game** &mdash; picks a preset (Quick/Standard/Full), names the game, and receives a 6-character join code.
-2. **Teams join** &mdash; navigate to `/join`, enter the code, pick a team name and color. Land in the **LOBBY**.
-3. **Facilitator starts the game** &mdash; game status moves to `IN_PROGRESS`. Teams receive their initial company state based on the selected preset.
-4. **Decision phase** &mdash; each team submits decisions across 5 modules: Factory, HR, Marketing, R&D, and Finance. Decisions can be submitted independently per module and locked when ready.
-5. **Facilitator advances the round** &mdash; triggers the simulation engine. The engine processes all team decisions simultaneously, runs market competition, calculates revenue/costs/rankings, and stores results.
-6. **Results phase** &mdash; teams see their round results, financial statements, market share, competitor intelligence, and rankings.
-7. **Repeat** until `maxRounds` is reached. Game status moves to `COMPLETED`. Final rankings and achievement scores determine the winner.
+```bash
+# Install dependencies
+npm install
 
-### Game Statuses
+# Set up database (SQLite for local dev)
+npm run db:use-sqlite
+npm run db:push
 
-| Status | Description |
-|---|---|
-| `LOBBY` | Teams joining, game not yet started |
-| `IN_PROGRESS` | Active gameplay, teams submitting decisions |
-| `ROUND_PROCESSING` | Engine processing current round |
-| `PAUSED` | Game paused by facilitator |
-| `COMPLETED` | All rounds finished, final results available |
+# Start development server
+npm run dev
+```
+
+**Environment variables** (create `.env`):
+```env
+DATABASE_URL="file:./dev.db"                # SQLite (local dev)
+# DATABASE_URL="postgresql://..."           # PostgreSQL (production)
+NEXT_PUBLIC_SUPABASE_URL="..."
+NEXT_PUBLIC_SUPABASE_ANON_KEY="..."
+```
+
+**Available scripts:**
+
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start Next.js dev server (Turbopack) |
+| `npm run build` | `prisma generate && prisma db push && next build` |
+| `npm start` | Start production server |
+| `npm test` | Run Vitest in watch mode |
+| `npm run test:run` | Run all tests once |
+| `npm run e2e` | Run Playwright e2e tests |
+| `npm run db:studio` | Open Prisma Studio (DB GUI) |
+| `npm run db:use-sqlite` | Switch to SQLite schema |
+| `npm run db:use-postgres` | Switch to PostgreSQL schema |
 
 ---
 
-## Game Presets
+## Project Structure
 
-Facilitators choose from 3 presets when creating a game:
-
-| Preset | Rounds | Duration | Starting State | Tutorial |
-|---|---|---|---|---|
-| **Quick** | 16 | ~40-80 min | Pre-built company: 50 workers, 8 engineers, 5 supervisors, all 5 products launched, $175M cash, 0.5 brand value | Light (6 steps) |
-| **Standard** | 24 | ~60-120 min | Starter company: 20 workers, 4 engineers, 2 supervisors, 2 products (General + Budget), $175M cash, 0.3 brand value | Medium (10 steps) |
-| **Full** | 32 | ~80-160 min | Clean slate: no workers, no products, no equipment. Build everything from scratch. $175M cash, 0 brand value | Full (14 steps) |
+```
+SIMSIM-Caliber-V2/
+├── app/                              # Next.js App Router
+│   ├── layout.tsx                    # Root layout
+│   ├── page.tsx                      # Landing page
+│   ├── (auth)/                       # Auth routes
+│   │   ├── login/page.tsx            # Facilitator login
+│   │   └── join/page.tsx             # Team join (6-char code)
+│   ├── (facilitator)/admin/          # Facilitator dashboard
+│   │   ├── page.tsx                  # Admin home
+│   │   └── games/[gameId]/page.tsx   # Game management
+│   ├── (game)/game/[gameId]/         # Main game routes (per team)
+│   │   ├── layout.tsx                # Game layout with sidebar nav
+│   │   ├── page.tsx                  # Overview dashboard
+│   │   ├── factory/page.tsx          # Factory management (~3500 lines)
+│   │   ├── hr/page.tsx               # Human resources
+│   │   ├── rnd/page.tsx              # Research & development
+│   │   ├── marketing/page.tsx        # Marketing & brand
+│   │   ├── finance/page.tsx          # Financial management
+│   │   ├── results/page.tsx          # Round results
+│   │   ├── achievements/page.tsx     # Achievement tracking
+│   │   ├── market/page.tsx           # Market intelligence
+│   │   ├── logistics/page.tsx        # Logistics
+│   │   ├── supply-chain/page.tsx     # Supply chain
+│   │   └── news/page.tsx             # News & events
+│   ├── demo/                         # Demo mode (no auth)
+│   │   ├── layout.tsx, page.tsx, mockData.ts
+│   │   └── [module]/page.tsx         # Mirror of game routes
+│   ├── dev-login/page.tsx            # Dev login bypass
+│   └── api/trpc/[trpc]/route.ts      # tRPC API handler
+│
+├── engine/                           # Game simulation engine (100+ files)
+│   ├── core/
+│   │   ├── SimulationEngine.ts       # Main orchestrator — processRound()
+│   │   └── EngineContext.ts          # Deterministic RNG (Mulberry32)
+│   ├── types/                        # Type definitions (18 files)
+│   │   ├── index.ts                  # CONSTANTS object (all balance values)
+│   │   ├── state.ts                  # TeamState interface
+│   │   ├── decisions.ts              # AllDecisions, per-module types
+│   │   ├── factory.ts                # Factory, Region, Segment
+│   │   ├── employee.ts               # Employee roles, stats, benefits
+│   │   ├── product.ts                # Product, archetypes, features
+│   │   ├── archetypes.ts             # 15+ phone archetypes
+│   │   ├── market.ts                 # MarketState, demand, FX
+│   │   ├── results.ts                # RoundResults, ModuleResult
+│   │   ├── competition.ts            # Scoring, rankings
+│   │   ├── features.ts               # Feature system
+│   │   ├── patents.ts                # Patent types
+│   │   ├── achievements.ts           # Achievement types
+│   │   ├── economy.ts                # Economic cycle types
+│   │   └── facilitator.ts            # Facilitator report types
+│   ├── modules/                      # Core game modules
+│   │   ├── FactoryModule.ts          # Production, upgrades, ESG
+│   │   ├── HRModule.ts               # Hiring, training, turnover
+│   │   ├── RDModule.ts               # R&D budget, product dev, tech tree
+│   │   ├── MarketingModule.ts        # Advertising, brand, pricing
+│   │   ├── FinanceModule.ts          # Debt, equity, dividends, market cap
+│   │   ├── PatentEngine.ts           # Patent filing & challenges
+│   │   ├── AchievementEngine.ts      # Achievement evaluation
+│   │   ├── FacilitatorReportEngine.ts
+│   │   └── *Expansions.ts            # Factory/HR/RD/Marketing/Finance expansions
+│   ├── market/MarketSimulator.ts     # Competition scoring (softmax)
+│   ├── machinery/                    # 15 machine types
+│   │   ├── MachineCatalog.ts, MachineryEngine.ts, types.ts
+│   ├── materials/                    # Raw material supply chain
+│   ├── tariffs/                      # Trade tariffs & geopolitics
+│   ├── events/EventEngine.ts         # Crisis & opportunity events
+│   ├── finance/statements/           # Income, CashFlow, BalanceSheet
+│   ├── achievements/definitions/     # 12 category definition files
+│   ├── economy/                      # Economic cycles (Markov chain)
+│   ├── experience/                   # Learning curves
+│   ├── explainability/               # Score breakdowns, narratives
+│   ├── intelligence/                 # Competitive intelligence
+│   ├── logistics/                    # Route optimization
+│   ├── satisfaction/                 # Customer satisfaction
+│   ├── supplychain/                  # Supply chain management
+│   ├── config/                       # Engine configuration system
+│   └── utils/                        # cloneTeamState, helpers
+│
+├── components/                       # React components
+│   ├── ui/                           # shadcn/ui base (20+ components)
+│   ├── game/                         # Game-specific (30+ components)
+│   ├── charts/                       # Recharts wrappers (6)
+│   ├── facilitator/                  # Admin components (9)
+│   ├── achievements/                 # Achievement display (4)
+│   ├── hr/, market/, rd/             # Module-specific components
+│   └── shared/                       # ErrorBoundary, AnimatedCard, LoadingState
+│
+├── lib/                              # Client-side libraries
+│   ├── stores/
+│   │   ├── decisionStore.ts          # Zustand store (all module decisions)
+│   │   └── tutorialStore.ts          # Tutorial progress
+│   ├── hooks/                        # Preview hooks, cross-module warnings
+│   ├── converters/decisionConverters.ts  # UI → engine decision mapping
+│   ├── config/                       # Demand cycles, segment profiles
+│   └── utils/                        # Archetype eligibility, play style
+│
+├── server/                           # Server-side code
+│   ├── api/
+│   │   ├── root.ts, trpc.ts          # tRPC setup
+│   │   └── routers/                  # game, team, decision, facilitator, achievement, material
+│   └── db/index.ts                   # Prisma client
+│
+├── prisma/                           # Database schemas
+│   ├── schema.prisma                 # Active schema
+│   ├── schema.postgresql.prisma      # PostgreSQL variant
+│   └── schema.sqlite.prisma          # SQLite variant
+│
+├── data/                             # Static game data
+│   ├── gameGlossary.ts               # Business term definitions
+│   ├── tutorialSteps.ts              # Tutorial content (3 depth levels)
+│   ├── breakthroughEvents.ts         # Special R&D events
+│   ├── contractOrders.ts             # NPC contract orders
+│   └── supplyChainEvents.ts          # Supply chain disruptions
+│
+├── __tests__/                        # Vitest unit tests
+├── e2e/                              # Playwright e2e tests
+└── tools/                            # Dev & balance tools
+```
 
 ---
 
-## The Five Decision Modules
+## Architecture Overview
 
-Every round, each team makes decisions across five independent modules.
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                           BROWSER                                │
+│                                                                  │
+│  ┌──────────────┐   ┌───────────────┐   ┌─────────────────┐    │
+│  │  Game Pages   │──▶│ Zustand Store  │──▶│ Preview Hooks   │    │
+│  │  (factory,    │   │ (decisions)   │   │ (run engine     │    │
+│  │   hr, rnd,    │   └───────┬───────┘   │  client-side    │    │
+│  │   marketing,  │           │           │  for live       │    │
+│  │   finance)    │           │           │  impact)        │    │
+│  └───────────────┘           │           └─────────────────┘    │
+│                              ▼                                   │
+│                    ┌─────────────────┐                           │
+│                    │ Decision        │                           │
+│                    │ Converters      │                           │
+│                    │ (UI → Engine)   │                           │
+│                    └────────┬────────┘                           │
+└─────────────────────────────┼────────────────────────────────────┘
+                              │ tRPC mutation
+                              ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                           SERVER                                 │
+│                                                                  │
+│  ┌───────────────┐   ┌─────────────────────────────────────┐    │
+│  │ tRPC Router   │──▶│       SimulationEngine               │    │
+│  │ (game.ts,     │   │                                     │    │
+│  │  team.ts)     │   │  processRound():                    │    │
+│  └───────────────┘   │    1. Clone team states              │    │
+│                      │    2. Materials & tariffs             │    │
+│                      │    3. FactoryModule.process()         │    │
+│                      │    4. HRModule.process()              │    │
+│                      │    5. RDModule.process()              │    │
+│                      │    6. MarketingModule.process()       │    │
+│                      │    7. FinanceModule.process()         │    │
+│                      │    8. Apply events                    │    │
+│                      │    9. MarketSimulator.simulate()      │    │
+│                      │   10. cash += revenue  ← CRITICAL    │    │
+│                      │   11. Financial statements            │    │
+│                      │   12. Achievements                    │    │
+│                      │   13. Audit trail                     │    │
+│                      └─────────────────────────────────────┘    │
+│                                                                  │
+│  ┌───────────┐                                                  │
+│  │  Prisma   │  Game, Team, TeamState (JSON), Decisions, Results │
+│  │  (DB)     │                                                  │
+│  └───────────┘                                                  │
+└──────────────────────────────────────────────────────────────────┘
+```
 
-### 1. Factory
+**Key architectural decisions:**
+- **Engine is pure TypeScript** — no framework dependencies, runs client-side (previews) and server-side (round processing)
+- **Deterministic via seeded RNG** — same seed + same decisions = identical output
+- **Zustand for client decisions** — each module has its own decision slice
+- **Preview hooks run the engine client-side** — users see live impact before saving
+- **Decision converters** bridge UI types to engine types
+- **State is a single JSON blob** — `TeamState` is the source of truth, stored in the database
 
-Manage manufacturing operations: build new factories ($50M each), purchase/configure production lines (max 10 per factory), allocate production across market segments, and invest in factory upgrades.
+---
 
-**Key decisions:**
-- Build new factories (choose region: North America, Europe, Asia, MENA)
-- Add/remove production lines per segment
-- Set production allocation per line
-- Invest in efficiency improvements (1% per $1M, diminishing after $10M)
-- Invest in maintenance (reduces breakdown probability)
-- Purchase factory upgrades (20 available across 5 tiers)
+## Engine Deep Dive
 
-**Factory upgrades (5 tiers):**
+### Simulation Pipeline
 
-| Tier | Upgrades | R&D Prerequisite | Cost Range |
-|---|---|---|---|
-| 1 | Six Sigma, Lean Manufacturing, Warehousing, Continuous Improvement | None | $30M-$100M |
-| 2 | Automation, Material Refinement, Modular Lines | R&D Level 1 | $75M-$100M |
-| 3 | Supply Chain Optimization, Digital Twin, IoT Integration | R&D Level 2 | $50M-$200M |
-| 4 | Advanced Robotics, Quality Lab, Carbon Capture | R&D Level 3 | $60M-$100M |
-| 5 | Clean Room | R&D Level 4 | $120M |
+`SimulationEngine.processRound(input)` is the main entry point:
 
-**Regional cost modifiers:**
+```typescript
+interface SimulationInput {
+  roundNumber: number;
+  teams: Array<{
+    id: string;
+    state: TeamState;
+    decisions: AllDecisions;
+  }>;
+  marketState: MarketState;
+  events?: GameEvent[];
+  matchSeed?: string;
+}
 
-| Region | Modifier |
-|---|---|
-| North America | 1.00x (baseline) |
-| Europe | 1.00x |
-| Asia | 0.85x (-15%) |
-| MENA | 0.90x (-10%) |
+interface SimulationOutput {
+  roundNumber: number;
+  results: RoundResults[];
+  newMarketState: MarketState;
+  rankings: TeamRanking[];
+  marketPositions: TeamMarketPosition[];
+  summaryMessages: string[];
+  auditTrail: { seedBundle, finalStateHashes, version };
+}
+```
 
-**Utilization mechanics:** Operating above 95% utilization triggers burnout risk (+15%/round), increased defects (+2%), and maintenance backlog accumulation. Breakdown probability: 3% base + age factor + backlog factor - maintenance investment.
+**Processing pipeline (13 steps):**
 
-### 2. Human Resources
+1. **Seed generation** — matchSeed → SeedBundle with per-module seeds
+2. **Clone states** — `cloneTeamState()` for safe mutation
+3. **Materials** — check order arrivals, apply tariffs
+4. **FactoryModule.process()** — production, efficiency, upgrades, ESG, machinery
+5. **HRModule.process()** — hiring, firing, turnover, training, salary
+6. **RDModule.process()** — R&D budget, product dev, tech tree
+7. **MarketingModule.process()** — advertising, branding, pricing
+8. **FinanceModule.process()** — debt, equity, dividends, market cap
+9. **Apply events** — crisis/opportunity effects
+10. **MarketSimulator.simulate()** — competition scoring, softmax market share
+11. **`cash += revenue`** — add revenue to cash (modules already deducted costs)
+12. **Financial statements** — generate Income, CashFlow, BalanceSheet
+13. **Audit trail** — store seed bundle, state hashes for replay
 
-Manage your workforce: hire/fire employees, set salary levels, run training programs, and configure benefits packages.
+---
 
-**Employee roles:**
+### Deterministic RNG
 
-| Role | Base Salary | Output | Staffing Ratio |
-|---|---|---|---|
-| Worker | $45,000 | 100 units/round | 2.75 per machine |
-| Engineer | $85,000 | 10 R&D points/round | 8 per factory |
-| Supervisor | $75,000 | Manages workers | 1 per 15 workers |
+All randomness flows through `EngineContext`, wrapping a **Mulberry32 PRNG**.
+
+```typescript
+// Seed derivation
+matchSeed → hash → roundSeed
+roundSeed → per-module seeds (factory, hr, marketing, rd, finance, market)
+per-module seed + teamId → per-team RNG instance
+
+// Usage
+const ctx = createEngineContext(matchSeed, roundNumber, teamId);
+ctx.random();                    // 0-1 float
+ctx.randomInt(min, max);
+ctx.generateId("machine");       // "machine-team1-r3-001"
+```
+
+**Golden rule:** Same `matchSeed` + same decisions = bit-identical output.
+
+IDs are counter-based: `{type}-{teamId}-r{round}-{counter}`. No `Date.now()` or `Math.random()`.
+
+---
+
+### Factory Module
+
+**`FactoryModule.process(state, decisions, ctx) → { newState, result }`**
+
+**Operations:** efficiency investments, factory upgrades (20 types), ESG initiatives (14 types), new factories ($50M each), machinery via MachineryEngine.
+
+**Production formula:**
+```
+production = capacity × efficiency × (1 - defectRate)
+defectRate = 0.06 - (avgAccuracy/100 × 0.04) - sixSigmaBonus
+efficiency = base(0.7) + investments + upgrades    // capped at 1.0
+efficiency/million = 0.02 (2% per $1M), diminishing after $10M
+```
+
+**20 factory upgrades across 4 tiers:**
+
+| Tier | Upgrades | Cost Range |
+|------|----------|-----------|
+| 1 | Six Sigma ($75M), Warehousing ($100M), Lean Manufacturing ($40M), Continuous Improvement ($30M) | $30-100M |
+| 2 | Automation ($75M), Material Refinement ($100M), Modular Lines ($80M), Water Recycling ($25M), Solar Panels ($45M) | $25-100M |
+| 3 | Supply Chain ($200M), Digital Twin ($60M), IoT Integration ($50M), Waste-to-Energy ($35M), Smart Grid ($55M), Rapid Prototyping ($40M) | $35-200M |
+| 4 | Advanced Robotics ($100M), Quality Lab ($60M), Carbon Capture ($70M), Flexible Manufacturing ($90M), Clean Room ($120M) | $60-120M |
+
+**Key upgrade effects:**
+- Six Sigma: -40% defects, -50% warranty, -75% recalls
+- Automation: -35% unit cost, -80% workers needed
+- Supply Chain: -70% shipping costs, -70% stockouts
+- Advanced Robotics: +50% capacity, -30% labor
+
+**Regional cost modifiers:** North America 1.0x, Europe 1.0x, Asia 0.85x, MENA 0.90x
+
+**Cost deduction:** `newState.cash -= totalCosts` at end.
+
+---
+
+### HR Module
+
+**`HRModule.process(state, decisions, ctx) → { newState, result }`**
 
 **Recruitment tiers:**
 
 | Tier | Cost | Candidates | Stat Range |
-|---|---|---|---|
-| Basic | $5,000 | 3 | 70-110 |
-| Premium | $15,000 | 5 | 90-130 |
-| Executive | $50,000 | 4 | 120-160 |
+|------|------|-----------|------------|
+| Basic | $5,000 | 4 | 70-110 |
+| Premium | $15,000 | 6 | 90-130 |
+| Executive | $50,000 | 8 | 120-160 |
 
-**Key mechanics:**
-- Hiring cost: 25% of annual salary
-- Base turnover: 12.5% annually. +15% if morale < 50, +10% if burnout > 50
-- Salary multiplier range: 0.8x (low stats) to 2.2x (high stats), max $500K
-- Training: $50K-$100K per employee. Fatigue kicks in after 2 programs/year (-20% effectiveness per extra)
-- New hire ramp-up: 30% productivity round 1, 70% round 2, 100% round 3
-- Benefits (health insurance, retirement, PTO, parental leave, stock options, flexible work, professional development) impact morale (up to +50%) and turnover reduction (up to -40%)
+**Employee roles:**
 
-### 3. Marketing
+| Role | Base Salary | Output |
+|------|-------------|--------|
+| Worker | $45,000 | 100 units/round |
+| Engineer | $85,000 | 5 R&D points/round |
+| Supervisor | $75,000 | Manages 15 workers |
 
-Build brand awareness and drive demand: set advertising budgets, invest in brand building, and activate sponsorships.
+**Salary formula:**
+```
+salary = baseSalary × (0.8 + avgStat/100 × 1.4)
+multiplier range: 0.8x to 2.2x, max $500K
+hiring cost: 25% of annual salary (one-time)
+```
 
-**Advertising:**
-- Impact: 0.15% market awareness per $1M spent
-- Diminishing returns: 40% decay per $3M chunk (first $3M gives full effect, next $3M gives 60%, etc.)
+**Turnover formula:**
+```
+baseTurnover = 12.5%
+moraleFactor = 1 - (morale - 50) / 100
+salaryFactor = 1 - (salaryVsMarket - 1)
+turnoverCount = headcount × 0.125 × moraleFactor × salaryFactor
+```
 
-**Brand building:**
-- Impact: 0.25% brand value per $1M, logarithmic scaling after $5M
-- Brand decays 2% per round if not maintained
-- Maximum brand growth: 6% per round
-- Brand value (0.0 to 1.0) uses sqrt() for diminishing returns in market scoring
+**Training costs:** Worker $50K, Engineer $75K, Supervisor $100K. Fatigue: -30% effectiveness per extra program beyond 1/year.
 
-**Sponsorship deals:**
+**Benefits (7 types):**
+
+| Benefit | Cost/Employee | Morale Impact | Turnover Reduction |
+|---------|--------------|--------------|-------------------|
+| Health Insurance | $5K per 10pts | +15% | -10% |
+| Retirement Match | $3K per 10pts | +10% | -8% |
+| Paid Time Off | $200/day | +8% | -5% |
+| Parental Leave | $1K/week | +5% | -3% |
+| Stock Options | $2K | +12% | -7% |
+| Flexible Work | $500 | +8% | -4% |
+| Professional Dev | $1/$ budget | +5% | -3% |
+
+---
+
+### R&D Module
+
+**`RDModule.process(state, decisions, ctx) → { newState, result }`**
+
+**R&D point generation:**
+```
+budgetPoints = floor(rdBudget / 100,000)
+engineerOutput = 5 × engineerCount × (1 + (avgInnovation - 65) / 100)
+totalPoints = budgetPoints + engineerOutput
+```
+
+**Product development timeline:**
+```
+devRounds = max(1, base + (targetQuality - 50) × 0.01 - engineerSpeedup)
+engineerSpeedup = min(0.5, engineerCount × 0.08)   // 8% per engineer, max 50%
+```
+
+**Product improvement costs (progressive):**
+
+| Range | Quality Cost/Point | Feature Cost/Point |
+|-------|-------------------|-------------------|
+| 0-69 | $1M | $500K |
+| 70-79 | $1.5M | $750K |
+| 80-89 | $2.5M | $1.25M |
+| 90+ | $5M | $2.5M |
+
+**Tech tree (4 tiers, sequential):**
+
+| Technology | Cost | Points Required | Prerequisite |
+|-----------|------|----------------|-------------|
+| Process Optimization | $5M | 100 | None |
+| Advanced Manufacturing | $15M | 300 | Process Optimization |
+| Industry 4.0 | $30M | 600 | Advanced Manufacturing |
+| Breakthrough Tech | $50M | 1,000 | Industry 4.0 |
+
+**Patent system:** Every 200 R&D points → 1 patent. Bonuses: +5 quality (max +25), -5% cost (max -25%), +3% market share (max +15%).
+
+**Product archetypes:** 15+ phone templates (Basic Phone, Standard Phone, Entry Smartphone, Long-Life Phone, etc.) with preset feature distributions, suggested price ranges, and segment targeting. Unlock as tech prerequisites are met.
+
+---
+
+### Marketing Module
+
+**`MarketingModule.process(state, decisions) → { newState, result }`**
+
+**Advertising impact (per segment, chunked with diminishing returns):**
+```
+chunkSize = $1M
+baseImpact = 0.11% brand per chunk
+decay = 20% per chunk (each chunk is 0.8× the previous)
+
+totalImpact = Σ(chunkImpact × 0.8^chunkNumber)
+
+Segment multipliers: Budget 1.1x, General 1.0x, Enthusiast 0.75x, Professional 0.5x, Active 0.85x
+```
+
+**Branding investment:**
+```
+linear portion (≤$2M): investment × 0.003   // 0.3% per $1M
+log portion (>$2M):    log2(1 + extra/$2M) × 1.5 × 0.003
+
+brandValue = current × (1 - 0.01) + growth   // 1% decay per round, capped [0, 1]
+max growth: 4% per round
+```
+
+**Brand critical mass thresholds:**
+- Below 0.15 brand value: **-30%** market score (brand too weak)
+- 0.15-0.55: 1.0x (normal)
+- Above 0.55: **+10%** market score (brand premium)
+
+**Sponsorships:**
 
 | Sponsorship | Cost | Brand Impact |
-|---|---|---|
+|------------|------|-------------|
 | Influencer Partnership | $3M | +0.6% |
 | Gaming Tournament | $4.5M | +0.9% |
 | Tech Conference | $7.5M | +1.2% |
@@ -199,696 +552,433 @@ Build brand awareness and drive demand: set advertising budgets, invest in brand
 | Sports Jersey | $22M | +3.0% |
 | National TV Campaign | $35M | +4.5% |
 
-### 4. Research & Development
-
-Develop new products, improve existing ones, and research technologies across a 54-node tech tree.
-
-**Product development:**
-- Base development time: 2 rounds + 0.02 rounds per quality point above 50
-- Engineer speedup: 5% per engineer (max 50% speedup)
-- R&D budget converts to progress points at $100K per point
-
-**Tech tree (54 nodes, 6 families):**
-
-| Family | Focus | Example Techs |
-|---|---|---|
-| Battery | Power capacity, charging speed | Fast Charge, Solid State, Graphene Anode |
-| Camera | Image quality, zoom, low-light | AI Night Mode, Periscope Lens, Computational Photography |
-| AI | Smart features, personalization | On-Device AI, Federated Learning, Neural Engine |
-| Durability | Build quality, water/dust resistance | Gorilla Glass, IP68, MIL-STD |
-| Display | Screen quality, refresh rate | OLED, 120Hz, Under-Display Camera |
-| Connectivity | Network speed, range | 5G Advanced, WiFi 7, Satellite Link |
-
-Each family has 9 nodes across 5 tiers. Nodes have AND/OR prerequisites, variable research costs, and research durations. Completed techs provide quality bonuses, feature unlocks, cost reductions, development speed boosts, and cross-family bonuses.
-
-**Phone archetypes (25 definitions, tiers 0-5):** Pre-defined phone templates that unlock as tech prerequisites are met. Each targets specific market segments.
-
-**Patent system:** Teams can file patents on technologies to gain blocking power, license patents to competitors, or challenge existing patents.
-
-### 5. Finance
-
-Manage the balance sheet: issue/buyback shares, take on or repay debt, and monitor financial health.
-
-**Financial instruments:**
-- Share issuance (dilutes EPS, raises cash)
-- Share buyback (boosts EPS, costs cash)
-- Short-term debt (treasury bills, credit lines)
-- Long-term debt (corporate bonds, bank loans)
-
-**Credit rating system:**
-
-| Rating | Spread | Borrowing Impact |
-|---|---|---|
-| AAA | 0.0% | Best rates |
-| AA | 0.5% | |
-| A | 1.0% | |
-| BBB | 2.0% | |
-| BB | 4.0% | |
-| B | 8.0% | |
-| CCC | 15.0% | |
-| D | N/A | Cannot borrow |
-
-**Financial statements generated per round:**
-- **Income Statement** &mdash; revenue, COGS, operating expenses, net income
-- **Balance Sheet** &mdash; assets (cash, inventory, factories), liabilities (short/long-term debt), shareholders' equity
-- **Cash Flow Statement** &mdash; operating, investing, and financing activities
-
-**Market cap:** Calculated using P/E multiple (5x-30x range, 15x baseline) with a floor at 0.5x book value. Share price = market cap / shares outstanding.
-
-**Key financial ratios monitored:** Current ratio, quick ratio, cash ratio, debt-to-equity, ROE, ROA, profit margin, gross margin, operating margin.
-
 ---
 
-## Market Simulation
+### Finance Module
 
-The market simulation is the core competitive layer. After all teams submit decisions, the engine runs `MarketSimulator.simulate()` to determine who wins customers.
+**`FinanceModule.process(state, decisions, marketState) → { newState, result }`**
 
-### Market Segments (5)
+**Instruments:**
+- **Treasury Bills** — short-term debt, lower interest
+- **Corporate Bonds** — long-term debt
+- **Bank Loans** — interest = amount × corpBondRate × termMonths/12
+- **Stock Issuance** — shares × price = proceeds (dilutes EPS)
+- **Share Buyback** — reduces shares, improves EPS, up to 15% price boost
+- **Dividends** — cash payout per share
 
-| Segment | Total Demand | Price Range | Growth Rate | Price Weight | Quality Weight | Brand Weight | ESG Weight | Feature Weight |
-|---|---|---|---|---|---|---|---|---|
-| Budget | 500,000 | $100-$300 | 2% | **65%** | 15% | 5% | 5% | 10% |
-| General | 400,000 | $300-$600 | 3% | 28% | 23% | 17% | 10% | **22%** |
-| Enthusiast | 200,000 | $600-$1000 | 4% | 12% | 30% | 8% | 5% | **45%** |
-| Professional | 100,000 | $1000-$1500 | 2% | 8% | **48%** | 7% | **20%** | 17% |
-| Active Lifestyle | 150,000 | $400-$800 | **5%** | 20% | 34% | 10% | 10% | 26% |
-
-### How Market Share Is Calculated
-
-For each segment, every team's product is scored on 5 axes:
-
-1. **Price Score** &mdash; dynamic pricing uses EMA (Exponential Moving Average) of actual market prices with a tanh sigmoid. Cheaper than expected = higher score. Quality-driven price tolerance allows up to 20% premium for high-quality products.
-2. **Quality Score** &mdash; product quality vs. segment expectations (Budget=50, General=65, Enthusiast=80, Professional=90, Active=70). Exceeding expectations gives diminishing returns via `sqrt()`.
-3. **Brand Score** &mdash; `sqrt(brandValue) * weight * brandMultiplier`. Diminishing returns ensure brand-only strategies plateau.
-4. **ESG Score** &mdash; `(esgScore / 1000) * sustainabilityPremium * weight`. Sustainability premium increases over time.
-5. **Feature Score** &mdash; dot product of product feature set against segment preferences across 6 axes (battery, camera, AI, durability, display, connectivity), or legacy `features/100` fallback.
-
-**Total score** = weighted sum + quality market share bonus + flexibility bonus (for diversified investment).
-
-### Softmax Allocation
-
-Market shares are calculated using the **softmax function** with temperature parameter:
-
+**Market cap calculation:**
 ```
-share_i = exp(score_i / temperature) / sum(exp(score_j / temperature))
+targetPE = 15 (base)
+  + min(10, epsGrowth × 50)           // growth premium
+  + (sentiment - 50) / 5              // investor sentiment
+  + profitBonus                       // +3 if margin>15%, -2 if low
+  - leveragePenalty                   // -5 if D/E>1.0, -2 if D/E>0.6
+
+marketCap = max(floor, EPS × shares × PE)
+floor = max(bookValue × 0.5, totalAssets × 0.3)
+sharePrice = marketCap / sharesIssued
 ```
 
-- Temperature = 4 (tuned via Fano sweep for 7/7 strategy viability)
-- Lower temperature = more winner-take-all
-- Higher temperature = more equal distribution
+**Financial ratios:** Current ratio, quick ratio, cash ratio, debt-to-equity, ROE, ROA, profit margin, gross margin, operating margin.
 
-Example at temperature 4:
-- Close scores (70, 65, 60, 55): ~46%, 28%, 17%, 10%
-- Clear leader (80, 60, 55, 50): ~79%, 11%, 6%, 4%
-
-### Demand Adjustment
-
-Base demand is adjusted by macroeconomic conditions:
-- GDP growth boosts demand
-- Consumer confidence multiplier (normalized to 75)
-- Inflation reduces demand
-- Segment-specific growth rate
-- Random noise (deterministic): +/-5%
+**Board proposals (10 types):** Dividend payout, global expansion, issue bonds, executive comp, R&D spend, spinoff, share buyback, emergency capital, vertical integration, debt refinancing. Approval probability: 10-95% based on financial health, ESG score, and proposal type.
 
 ---
 
-## Competitive Mechanics
+### Market Simulator
 
-### Rubber-Banding
+**`MarketSimulator.simulate(teams, marketState, options, ctx)`**
 
-Activates from round 3 onward when any team's average share drops below 50% of the mean or exceeds 200% of the mean.
+The heart of competition. Determines who wins each market segment.
 
-| Condition | Adjustment |
-|---|---|
-| Trailing team (share < avg * 0.5) | **+15%** boost to market shares |
-| Leading team (share > avg * 2.0) | **-8%** penalty to market shares |
+**5 Market Segments (scoring weights):**
 
-### Segment Crowding
+| Segment | Demand | Price | Quality | Brand | ESG | Features |
+|---------|--------|-------|---------|-------|-----|----------|
+| Budget | 500K | **65%** | 15% | 5% | 5% | 10% |
+| General | 400K | 28% | 23% | 17% | 10% | **22%** |
+| Enthusiast | 200K | 12% | 30% | 8% | 5% | **45%** |
+| Professional | 100K | 8% | **48%** | 7% | **20%** | 17% |
+| Active Lifestyle | 150K | 20% | 34% | 10% | 10% | 26% |
 
-When multiple teams compete in the same segment, a crowding factor penalizes all competitors. More products = smaller slice for everyone.
+**Scoring pipeline (per team, per segment):**
 
-### First-Mover Advantage
+1. **Price Score** — sigmoid of advantage vs EMA-smoothed expected price
+2. **Quality Score** — ratio vs segment expectation (Budget=50, General=65, Enthusiast=80, Professional=90, Active=70). sqrt bonus above, quadratic penalty below 70%
+3. **Brand Score** — `sqrt(brandValue) × weight × criticalMassMultiplier`
+4. **ESG Score** — `(esgScore / 1000) × sustainabilityPremium × weight`
+5. **Feature Score** — dot product of product features vs segment preferences
+6. **Weighted total** — `Σ(component × weight) / 100`
 
-Teams entering an underserved segment (0-1 competitors) receive a temporary market share bonus that decays over subsequent rounds.
+**Adjustments:** quality/feature cap 1.1x, brand critical mass (-30% to +10%), ESG penalty (up to -12% below score 300), crowding factor, first-mover bonus.
 
-### Brand Erosion
-
-When a competitor's product score exceeds yours by more than 20% in a segment, your brand value in that segment decays faster (erosion multiplier proportional to the score gap).
-
-### Arms Race Bonus
-
-The first team to deploy a newly researched technology in a product gains a one-time market score bonus.
-
----
-
-## Financial System
-
-### Economic Conditions (Macro Environment)
-
-The simulation models a dynamic macroeconomic environment that fluctuates each round:
-
-| Parameter | Starting Value | Range | Effect |
-|---|---|---|---|
-| GDP Growth | 2.5% | -5% to 10% | Boosts/reduces demand |
-| Inflation | 2.0% | 0% to 15% | Reduces demand, drives interest rates |
-| Consumer Confidence | 75 | 20 to 100 | Multiplies demand |
-| Unemployment Rate | 4.5% | 2% to 15% | Background economic indicator |
-
-**Interest rates** follow inflation: rates rise when inflation > 3%, fall when < 1.5%. Federal rate: 0-10%, corporate bond = federal + 1%.
-
-**Foreign exchange:** 4 pairs (EUR/USD, GBP/USD, JPY/USD, CNY/USD) with 15-25% volatility. Revenue tracked by factory region for FX impact.
-
-### Economic Cycle Engine
-
-The economy follows a Markov chain with 4 phases:
-
-| From \ To | Expansion | Peak | Contraction | Trough |
-|---|---|---|---|---|
-| **Expansion** | 70% | 30% | 0% | 0% |
-| **Peak** | 10% | 30% | 60% | 0% |
-| **Contraction** | 0% | 0% | 50% | 50% |
-| **Trough** | 60% | 0% | 20% | 20% |
-
-Each phase applies demand multipliers (0.8x to 1.2x) and inflation adjustments.
-
-### Unit Economics
-
-| Segment | Raw Material Cost | Labor Cost | Overhead | Total Unit Cost |
-|---|---|---|---|---|
-| Budget | $50 | $20 | $15 | $85 |
-| General | $100 | $20 | $15 | $135 |
-| Enthusiast | $200 | $20 | $15 | $235 |
-| Professional | $350 | $20 | $15 | $385 |
-| Active Lifestyle | $150 | $20 | $15 | $185 |
-
----
-
-## ESG (Environmental, Social, Governance)
-
-ESG operates as a risk mitigation system rather than a revenue driver.
-
-**Scoring tiers:**
-
-| ESG Score | Effect |
-|---|---|
-| 700+ | Risk mitigation, better board approval |
-| 400-699 | Baseline (no effect) |
-| < 400 | **Penalty:** 1-8% revenue penalty (gradient). Represents boycotts, fines, regulatory action |
-
-**ESG initiatives:**
-- Workplace Safety Program: $2M, +200 points
-- Code of Ethics: Free, +200 points
-- Fair Wage (Workers): +220 points
-- Fair Wage (Supervisors): +40 points
-- Supplier Ethics: +20% supply costs
-
-**Sustainability upgrades** (from factory upgrades): Solar Panels ($45M), Water Recycling ($25M), Waste-to-Energy ($35M), Smart Grid ($55M), Carbon Capture ($70M).
-
----
-
-## Achievement System
-
-The game features ~40 achievement definitions across 7 categories. **Victory condition: highest achievement score wins.**
-
-| Category | Points Range | Focus |
-|---|---|---|
-| Innovation | 5-50 pts | R&D mastery, tech tree completion |
-| Market | 5-40 pts | Market share, segment dominance |
-| Financial | 5-30 pts | Profitability, efficiency metrics |
-| Strategic | 10-50 pts | Long-term planning, patents, combos |
-| Milestone | 5-20 pts | Reaching specific thresholds |
-| Infamy | 0 pts | Tracked but neutral (shame-based) |
-| Bad | 0 pts | Excluded from scoring entirely |
-
-**Victory resolution tiebreakers:** If teams tie on achievement score, tiebreaker goes to total revenue, then total market share.
-
-The `AchievementEngine` evaluates ~40 conditions per round and tracks progress via `AchievementProgress` records (current value, target value, sustained rounds).
-
----
-
-## Tech Tree & R&D Expansions
-
-The expanded R&D system includes a 54-node tech tree organized into 6 technology families with 9 nodes each across 5 tiers.
-
-### Node Structure
-
-Each tech node has:
-- **Prerequisites:** AND (all required) and/or OR (any group sufficient)
-- **Research cost:** Dollar investment required
-- **Research rounds:** Time to complete
-- **Effects:** Quality bonus, feature unlock, cost reduction, dev speed boost, segment bonus, or cross-family bonus
-- **Risk levels:** Conservative (safe), Moderate (balanced), Aggressive (faster but chance of delay/overrun)
-
-### Active Research State
-
+**Market share allocation (softmax with temperature=4):**
 ```
-TechTreeState {
-  unlockedTechs: string[]       // Completed technologies
-  activeResearch: [{
-    techId, roundsRemaining, investmentSoFar,
-    riskLevel, delayedRounds, costOverrun
-  }]
-  researchPoints: number        // Accumulated R&D points
-  techLevel: number             // Overall 1-10
-}
+share_i = exp(score_i × 4) / Σ exp(score_j × 4)
 ```
 
-### Product Feature Sets (6-axis)
+At temperature=4: close scores (70,65,60,55) → ~46%, 28%, 17%, 10%. Clear leader (80,60,55,50) → ~79%, 11%, 6%, 4%.
 
-Products can have a `featureSet` with scores across 6 axes:
-- Battery, Camera, AI, Durability, Display, Connectivity
+**Revenue:** `unitsSold = totalDemand[segment] × marketShare[team]`, `revenue = unitsSold × price`.
 
-Each market segment has different preferences for these axes. The market simulator uses a dot product of product features against segment preferences to calculate feature match score.
-
----
-
-## Facilitator Tools
-
-The facilitator has a dedicated dashboard and reporting suite:
-
-### During Game
-- **Facilitator Dashboard** &mdash; live team health monitoring, resource tensions, decision submission status
-- **Event Injection** &mdash; inject market events mid-game (recession, boom, tech breakthrough, supply chain crisis, etc.)
-- **Complexity Selector** &mdash; adjust game complexity at creation
-
-### Post-Round
-- **Round Brief** &mdash; auto-generated narrative summary of what happened, key tensions, and discussion prompts
-- **Competitive Intelligence** &mdash; aggregated view of team activities without revealing specific numbers
-
-### Post-Game
-- **Post-Game Report** &mdash; full analysis with tabs for each team's journey, key inflection points, and strategy assessment
-- **Discussion Guide** &mdash; auto-generated debrief questions tailored to what actually happened in the game
-- **Participant Scorecard** &mdash; per-team scorecard with achievements, financial performance, and strategic assessment
-
-All reports use template-based narrative generation from `FacilitatorReportEngine` (~327 lines of structured analysis).
+**Rubber-banding (round ≥ 3):** Triggers when team share < 30% of average. Leading teams get 0.8x score penalty (-20%).
 
 ---
 
-## Tutorial System
+### Machinery System
 
-Three levels of tutorial depth, aligned with game presets:
+15 machine types across 5 categories.
 
-| Level | Steps | Interactive Elements | Target |
-|---|---|---|---|
-| Light | 6 | Basic | Quick Game preset |
-| Medium | 10 | Choices, quizzes | Standard Game preset |
-| Full | 14 | Choices, quizzes, action prompts, spotlight | Full Simulation preset |
+**Production Machines:**
 
-**Features:**
-- Auto-starts on Round 1 based on game config
-- Path navigation with automatic tab switching (equipment, production, ESG, recruitment, advertising, upgrades)
-- Interactive elements: choice cards, quiz questions, action prompts
-- CSS mask spotlight overlay highlighting specific UI elements
-- State managed via Zustand store (`tutorialStore`)
+| Machine | Cost | Capacity/Rd | Maint/Rd | Key Effects |
+|---------|------|------------|----------|-------------|
+| Assembly Line | $5M | 10,000 | $50K | — |
+| CNC Machine | $8M | 3,000 | $80K | -1% defects, -10% labor |
+| Welding Station | $4M | 5,000 | $45K | -0.5% defects, -5% labor |
+| Injection Molder | $7M | 12,000 | $70K | -5% labor |
+| PCB Assembler | $10M | 6,000 | $90K | -1.5% defects, -15% labor |
+| Paint Booth | $3M | 8,000 | $35K | — |
+| Laser Cutter | $6M | 4,000 | $55K | -1% defects, -10% labor |
+| Robotic Arm | $12M | 8,000 | $100K | -1% defects, -20% labor |
+| Conveyor System | $3M | 15,000 | $30K | -8% labor |
+| Quality Scanner | $6M | 0 (utility) | $60K | -3% defects |
+| Testing Rig | $4M | 0 (utility) | $40K | -2% defects, -3% labor |
+| 3D Printer | $2M | 500 | $40K | -5% labor |
+| Clean Room Unit | $15M | 2,000 | $150K | -4% defects |
+| Packaging System | $2.5M | 20,000 | $25K | -10% labor, -5% shipping |
+| Forklift Fleet | $1M | 0 (utility) | $15K | -3% labor, -10% shipping |
+
+**Breakdown system:**
+- Base chance: 2%/round
+- Health multipliers: ≤20% → 5.0x, ≤40% → 3.0x, ≤60% → 1.5x, ≤80% → 1.0x, >80% → 0.5x
+- Severity: Minor (50%, 10% loss), Moderate (30%, 25% loss), Major (15%, 50% loss), Critical (5%, 100% loss)
+
+**Maintenance types:** Scheduled (1x cost, +25 health), Emergency (2.5x, +40 health), Major Overhaul (5x, +80 health).
 
 ---
 
-## Engine Architecture
+### Materials & Supply Chain
 
-### Core Pipeline
+Raw material ordering, inventory, supplier selection by region, lead time management (20-42 days).
+
+**Unit costs by segment:** Budget $50, General $100, Enthusiast $200, Professional $350, Active $150. Plus labor $20 and overhead $15 per unit.
+
+**Inventory holding cost:** 2% per round.
+
+---
+
+### Tariffs & Trade
+
+Dynamic tariffs by region pair and material type. 4 scenarios: baseline, escalation, de-escalation, shock. Trade agreements reduce rates. Geopolitical events trigger changes.
+
+---
+
+### Event System
+
+`EventEngine` generates crisis/opportunity events with player choices.
+
+Events have probability, duration, effects (revenue/cost/brand/morale modifiers), and optional branching decisions the team must respond to.
+
+---
+
+### Achievement System
+
+221 achievements across 12 categories, 6 tiers. **Achievement score is the primary victory metric.**
+
+| Tier | Points |
+|------|--------|
+| Bronze | 10 |
+| Silver | 25 |
+| Gold | 50 |
+| Platinum | 100 |
+| Infamy | -25 (negative) |
+| Secret | 75 (hidden) |
+
+**Categories:** Overview, Factory, Finance, HR, Marketing, R&D, Supply Chain, Logistics, News, Results, Secret, Mega.
+
+Tiebreaker: total revenue, then total market share.
+
+---
+
+### Financial Statements
+
+Full three-statement model generated each round:
+
+1. **Income Statement** — Revenue - COGS - Operating Expenses = Net Income
+2. **Cash Flow Statement** — Operating + Investing + Financing
+3. **Balance Sheet** — Assets = Liabilities + Equity
+
+Includes reconciliation validation (cash flow change matches balance sheet change).
+
+---
+
+### Explainability Engine
+
+Transparent breakdowns:
+- Segment score decomposition (5 dimensions)
+- Delta explanations (round-over-round change drivers)
+- Driver trees (revenue & profit decomposition)
+- Natural language narratives
+- Competitor comparison percentiles
+
+---
+
+## Game Constants & Balance
+
+### Starting State
+
+| Parameter | Value |
+|-----------|-------|
+| Starting Cash | $175,000,000 |
+| Market Cap | $500,000,000 |
+| Shares Issued | 10,000,000 |
+| Share Price | $50 |
+| Brand Value | 0.0-0.5 (by preset) |
+| ESG Score | 0-100 (by preset) |
+
+### Game Presets
+
+| Preset | Rounds | Workers | Engineers | Products | Cash | Brand |
+|--------|--------|---------|-----------|----------|------|-------|
+| Quick | 16 | 50 | 8 | 5 launched | $175M | 0.5 |
+| Standard | 24 | 20 | 4 | 2 launched | $175M | 0.3 |
+| Full | 32 | 0 | 0 | 0 | $175M | 0.0 |
+
+### Difficulty Presets
+
+| Setting | Simple | Standard | Advanced |
+|---------|--------|----------|----------|
+| Starting Cash | $300M | $200M | $150M |
+| Market Volatility | 0.5x | 1.0x | 1.5x |
+| Competitor Strength | 0.7x | 1.0x | 1.3x |
+| Rubber-banding | Yes | Yes | No |
+
+### Key Balance Constants
+
+| Constant | Value | Purpose |
+|----------|-------|---------|
+| `DEFAULT_STARTING_CASH` | $175M | Initial cash balance |
+| `NEW_FACTORY_COST` | $50M | Cost per new factory |
+| `SOFTMAX_TEMPERATURE` | 4 | Market share allocation sharpness |
+| `BASE_DEFECT_RATE` | 6% | Factory defect rate before improvements |
+| `BASE_TURNOVER_RATE` | 12.5% | Annual employee turnover |
+| `BASE_WORKER_OUTPUT` | 100 units | Production per worker per round |
+| `WORKERS_PER_MACHINE` | 2.75 | Workers needed per machine |
+| `WORKERS_PER_SUPERVISOR` | 15 | Ratio |
+| `ADVERTISING_BASE_IMPACT` | 0.11% | Brand growth per $1M advertising |
+| `ADVERTISING_DECAY` | 20% | Diminishing returns per chunk |
+| `BRANDING_BASE_IMPACT` | 0.3% | Brand growth per $1M branding |
+| `BRAND_DECAY_RATE` | 1% | Brand decay per round |
+| `BRAND_MAX_GROWTH` | 4% | Max brand growth per round |
+| `RD_BUDGET_TO_POINTS` | $100K/pt | R&D budget conversion rate |
+| `BASE_RD_POINTS_PER_ENGINEER` | 5 | Engineer R&D output |
+| `INVENTORY_HOLDING_COST` | 2%/round | Cost of unsold inventory |
+| `RUBBER_BAND_LEADING_PENALTY` | 0.80 | -20% for leading teams |
+| `RUBBER_BAND_THRESHOLD` | 0.30 | Trigger: share < avg × 0.3 |
+| `ESG_PENALTY_THRESHOLD` | 300 | Below this: up to -12% revenue |
+
+---
+
+## Decision Flow: UI to Engine
+
+Every game module follows the same pattern:
 
 ```
-SimulationEngine.processRound(input)
-  |
-  |-- For each team:
-  |     |-- MaterialEngine.processOrders()     # Check material arrivals
-  |     |-- TariffEngine.processRoundEvents()  # Apply tariff changes
-  |     |-- FactoryModule.process()            # Production, upgrades, maintenance
-  |     |-- HRModule.process()                 # Hiring, training, turnover
-  |     |-- RDModule.process()                 # Product development, tech research
-  |     |-- MarketingModule.process()          # Brand building, advertising
-  |     |-- FinanceModule.process()            # Debt, equity, interest
-  |     |-- applyEvents()                      # Facilitator-injected events
-  |
-  |-- MarketSimulator.simulate()               # Cross-team competition
-  |     |-- calculateDemand()                  # Economic adjustments
-  |     |-- calculateTeamPosition()            # 5-axis scoring per segment
-  |     |-- calculateMarketShares()            # Softmax allocation
-  |     |-- applyRubberBanding()               # Balance mechanic
-  |     |-- applyESGEvents()                   # ESG bonuses/penalties
-  |
-  |-- For each team:
-  |     |-- Calculate revenue, costs, net income
-  |     |-- Generate financial statements (Income, Balance, Cash Flow)
-  |     |-- Update market cap, share price, EPS
-  |
-  |-- calculateRankings()                      # Revenue, EPS, market share
-  |-- generateNextMarketState()                # Evolve economy for next round
-  |-- Return SimulationOutput + audit trail
+1. USER INTERACTION (React component)
+   └──▶ Local state (useState)
+
+2. STATE SYNC (useEffect, bidirectional)
+   └──▶ Zustand store (decisionStore.ts)
+        e.g., setFactoryDecisions({ upgradePurchases })
+
+3. PREVIEW (custom hook, runs client-side)
+   └──▶ decisionConverters.ts: UI types → Engine types
+   └──▶ [Module].process(state, engineDecisions, ctx)
+   └──▶ Returns previewState (live impact shown in UI)
+
+4. SAVE (DecisionSubmitBar click)
+   └──▶ tRPC mutation: team.submitDecisions
+   └──▶ Server stores decisions in database
+   └──▶ Pending state CLEARED from UI (critical pattern)
+
+5. ROUND ADVANCE (facilitator triggers)
+   └──▶ SimulationEngine.processRound()
+   └──▶ All modules process all teams simultaneously
+   └──▶ Market simulation runs
+   └──▶ New state saved to database
+
+6. NEXT ROUND
+   └──▶ Client fetches new TeamState via tRPC query
+   └──▶ UI reflects accumulated state
 ```
 
-### Engine Modules (98+ files)
+### Decision Store (Zustand)
 
-| Module | Location | Purpose |
-|---|---|---|
-| SimulationEngine | `engine/core/` | Main orchestrator, round processing |
-| EngineContext | `engine/core/` | Seeded RNG, determinism, audit trail |
-| FactoryModule | `engine/modules/` | Production, efficiency, upgrades, maintenance |
-| HRModule | `engine/modules/` | Hiring, firing, training, morale, turnover |
-| FinanceModule | `engine/modules/` | Debt, equity, market cap, credit ratings |
-| MarketingModule | `engine/modules/` | Advertising, brand building, sponsorships |
-| RDModule | `engine/modules/` | Product development, quality/feature improvement |
-| RDExpansions | `engine/modules/` | 54-node tech tree, research risk, cross-family bonuses |
-| AchievementEngine | `engine/modules/` | ~40 conditions, victory resolution, tiebreakers |
-| MarketSimulator | `engine/market/` | Softmax allocation, demand, scoring, rubber-banding |
-| EconomicCycle | `engine/economy/` | Markov chain phases, demand multipliers |
-| EconomyEngine | `engine/economy/` | GDP, inflation, consumer confidence evolution |
-| FinancialStatements | `engine/finance/` | Income Statement, Balance Sheet, Cash Flow generation |
-| MaterialEngine | `engine/materials/` | Raw material ordering, inventory, holding costs |
-| LogisticsEngine | `engine/logistics/` | Route optimization, delivery timing |
-| MachineCatalog | `engine/machinery/` | Machine types, costs, capabilities |
-| TariffEngine | `engine/tariffs/` | Trade tariff scenarios, regional cost impacts |
-| EventEngine | `engine/events/` | Random and scripted market events |
-| CompetitiveIntelligence | `engine/intelligence/` | Competitor action summaries |
-| SatisfactionEngine | `engine/satisfaction/` | Customer satisfaction tracking |
-| SupplyChainEngine | `engine/supplychain/` | End-to-end supply chain modeling |
-| ExperienceCurve | `engine/experience/` | Learning curve cost reduction |
-| ExplainabilityEngine | `engine/explainability/` | Plain-English explanations of engine decisions |
-| FacilitatorReportEngine | `engine/modules/` | Narrative report generation |
-
-### State Types
-
-**TeamState** (core team snapshot, stored as JSON in database):
 ```typescript
-{
-  version: StateVersion           // Engine version for compatibility
-  cash: number                    // Available cash ($)
-  revenue: number                 // Current round revenue
-  netIncome: number               // Revenue - costs
-  totalAssets: number             // Cash + factory value
-  totalLiabilities: number        // Short + long-term debt
-  shortTermDebt: number           // Treasury bills, credit lines
-  longTermDebt: number            // Corporate bonds, bank loans
-  shareholdersEquity: number      // Assets - liabilities
-  marketCap: number               // P/E based valuation
-  sharesIssued: number            // Outstanding shares (default 10M)
-  sharePrice: number              // Market cap / shares
-  eps: number                     // Earnings per share
-  inventory: {                    // Finished goods, raw materials, WIP
-    finishedGoods: Record<Segment, number>
-    rawMaterials: number
-    workInProgress: number
-  }
-  cogs: number                    // Cost of goods sold
-  accountsReceivable: number
-  accountsPayable: number
-  materials: MaterialState        // Raw material inventory & orders
-  tariffs: TariffState            // Active tariff scenarios
-  factories: Factory[]            // Array of factory objects
-  products: Product[]             // Array of products (launched + in development)
-  employees: Employee[]           // Individual employee records with stats
-  workforce: WorkforceStats       // Aggregate headcount, morale, efficiency
-  brandValue: number              // 0.0 to 1.0
-  marketShare: Record<Segment, number>  // Per-segment share
-  rdBudget: number                // Current R&D investment
-  rdProgress: number              // Accumulated R&D points
-  patents: number                 // Patent count
-  esgScore: number                // 0-1000
-  co2Emissions: number            // Carbon output metric
-  benefits: CompanyBenefits       // Benefits package configuration
-  financialStatements?: {         // Generated each round
-    income: IncomeStatement
-    balanceSheet: BalanceSheet
-    cashFlow: CashFlowStatement
-    validation: { valid: boolean, errors: string[] }
-  }
+interface DecisionStore {
+  factory: UIFactoryDecisions;    // upgradePurchases, productionAllocations, newFactories
+  hr: UIHRDecisions;              // recruitmentSearches, selectedCandidates, trainingPrograms
+  rd: UIRDDecisions;              // rdInvestment, newProducts, techUpgrades, patentFilings
+  marketing: UIMarketingDecisions; // adBudgets, brandInvestment, brandActivities, promotions
+  finance: UIFinanceDecisions;    // stockIssuance, sharesBuyback, loanRequest, dividends
+  submissionStatus: Record<Module, { isSubmitted: boolean }>;
 }
 ```
 
-**MarketState** (shared economy, evolves each round):
+### Decision Converters (`lib/converters/decisionConverters.ts`)
+
+- **Factory:** Splits `upgradePurchases` into factory upgrades vs machinery purchases using `MACHINE_TYPES` set. Machinery purchases go to `machineryDecisions.purchases`.
+- **HR:** Maps `recruitmentSearches` to engine recruitment, `selectedCandidates` to hires
+- **R&D:** Maps `newProducts` with archetype IDs, tech upgrades, patent filings
+- **Marketing:** Maps `adBudgets` to per-segment advertising, `brandActivities` to engine sponsorships via `BRAND_ACTIVITY_MAP`
+- **Finance:** Direct mapping of financial instrument decisions
+
+### Submission Clearing Pattern
+
+**Critical:** After saving decisions, all pending local state must be cleared. Each page watches `submissionStatus` and clears on fresh submission:
+
 ```typescript
-{
-  roundNumber: number
-  economicConditions: { gdp, inflation, consumerConfidence, unemploymentRate }
-  fxRates: { "EUR/USD", "GBP/USD", "JPY/USD", "CNY/USD" }
-  fxVolatility: number            // 0.15 to 0.25
-  interestRates: { federalRate, tenYearBond, corporateBond }
-  demandBySegment: Record<Segment, { totalDemand, priceRange, growthRate }>
-  marketPressures: { priceCompetition, qualityExpectations, sustainabilityPremium }
-  dynamicPricing?: Record<Segment, DynamicPriceExpectation>  // EMA-based
-}
+useEffect(() => {
+  const wasSubmitted = prevRef.current;
+  const isNowSubmitted = submissionStatus.MODULE?.isSubmitted;
+  prevRef.current = isNowSubmitted;
+  if (!wasSubmitted && isNowSubmitted) {
+    setPendingItems([]);  // Clear pending state
+    // Auto-navigate to next module
+  }
+}, [submissionStatus.MODULE?.isSubmitted]);
 ```
 
----
+Without this pattern, pending purchases/products remain visible even after being submitted to the engine.
 
-## Project Structure
+### Module Submission Order
 
-```
-simsim-repo/
-├── src/                          # Next.js app (Vercel root directory)
-│   ├── app/                      # Pages (App Router)
-│   │   ├── (auth)/               # /login, /join
-│   │   ├── (facilitator)/        # /admin, /admin/games/[gameId]
-│   │   ├── (game)/game/[gameId]/ # All game pages (overview, factory, hr, marketing, rnd, finance, results, achievements, news)
-│   │   ├── demo/                 # Demo mode (no database required)
-│   │   └── api/trpc/             # tRPC HTTP handler
-│   ├── components/               # React components
-│   │   ├── achievements/         # AchievementBadge, Card, Grid, Toast
-│   │   ├── charts/               # MarketSharePie, MetricBar, MetricLine (Recharts)
-│   │   ├── facilitator/          # Dashboard, RoundBrief, PostGameReport, DiscussionGuide, ParticipantScorecard
-│   │   ├── game/                 # GameLayout, DecisionSubmitBar, TutorialGuide, TutorialSpotlight, WorkflowGuide, NewsTicker, ArchetypeCatalog, FeatureRadarChart, PatentPanel, MarketDashboard, CompetitiveIntel, ProductComparison, AchievementLeaderboard, NotificationPanel, PlainEnglishTooltip
-│   │   ├── shared/               # AnimatedCard, ErrorBoundary, LoadingState
-│   │   └── ui/                   # shadcn/ui components (20+), HelpTooltip
-│   ├── engine/                   # Simulation engine (98+ files)
-│   │   ├── core/                 # SimulationEngine, EngineContext
-│   │   ├── modules/              # Factory, HR, Finance, Marketing, RD, RDExpansions, AchievementEngine, FacilitatorReportEngine
-│   │   ├── market/               # MarketSimulator
-│   │   ├── economy/              # EconomicCycle, EconomyEngine
-│   │   ├── finance/              # IncomeStatement, BalanceSheet, CashFlow
-│   │   ├── config/               # defaults, schema, loader, gamePresets
-│   │   ├── achievements/         # Achievement definitions
-│   │   ├── materials/            # MaterialEngine, suppliers
-│   │   ├── logistics/            # LogisticsEngine, routes
-│   │   ├── machinery/            # MachineCatalog
-│   │   ├── tariffs/              # TariffEngine, scenarios
-│   │   ├── events/               # EventEngine
-│   │   ├── intelligence/         # CompetitiveIntelligence
-│   │   ├── satisfaction/         # SatisfactionEngine
-│   │   ├── supplychain/          # SupplyChainEngine
-│   │   ├── experience/           # ExperienceCurve
-│   │   ├── explainability/       # ExplainabilityEngine
-│   │   ├── types/                # All TypeScript interfaces (employee, factory, product, market, state, decisions, results, features, archetypes, patents, achievements, competition, facilitator)
-│   │   └── utils/                # stateUtils, helpers
-│   ├── data/                     # tutorialSteps.ts (3 levels: light/medium/full)
-│   ├── lib/stores/               # Zustand stores (decisionStore, tutorialStore)
-│   ├── server/api/routers/       # tRPC routers (game, team, decision, achievement, facilitator, material)
-│   ├── prisma/                   # schema.prisma (PostgreSQL), schema.sqlite.prisma
-│   └── __tests__/                # 420 tests across 19 test files
-│       ├── e2e/                  # Game flow integration tests
-│       ├── engine/               # Feature demand, archetypes, achievements, competition, patents, dynamic pricing, facilitator reports
-│       ├── logistics/            # LogisticsEngine tests
-│       └── ...                   # Factory, HR, Finance, Marketing, RD, Market, Materials, Economy, Events
-├── tools/balance/                # Balance testing tools
-├── docs/                         # Design documents
-├── vercel.json                   # Vercel config (root dir: src)
-└── package.json
-```
+R&D → Factory → Finance → HR → Marketing (each page auto-navigates to the next).
 
 ---
 
 ## Database Schema
 
-PostgreSQL via Prisma ORM, hosted on Supabase.
+Prisma with dual-database support (PostgreSQL production, SQLite local dev).
 
-### Models
+**Core models:**
 
 | Model | Purpose | Key Fields |
-|---|---|---|
-| **Facilitator** | Instructor account | email (unique), name, passwordHash |
-| **Game** | Game session | name, joinCode (6-char, unique), status, currentRound, maxRounds, config (JSON) |
-| **Team** | Playing team | name, color, sessionToken (auth), currentState (JSON), achievementPoints, achievementState (JSON) |
-| **Round** | Round record | roundNumber, status, marketState (JSON), events (JSON), simulationLog |
-| **TeamDecision** | Per-module decisions | module (FACTORY/FINANCE/HR/MARKETING/RD), decisions (JSON), isLocked |
-| **RoundResult** | Post-simulation results | stateAfter (JSON), metrics (JSON), rank, per-module result breakdowns |
-| **TeamAchievement** | Earned achievements | achievementId, earnedRound, pointsAwarded, wasHidden |
-| **AchievementProgress** | Progress tracking | achievementId, currentValue, targetValue, percentComplete, sustainedRounds, history (JSON) |
+|-------|---------|-----------|
+| **Facilitator** | Instructor account | email, name, passwordHash |
+| **Game** | Game session | name, joinCode (6-char), status, currentRound, maxRounds, config (JSON) |
+| **Team** | Playing team | name, color, sessionToken, currentState (JSON), achievementPoints |
+| **Round** | Round record | roundNumber, status, marketState (JSON), events (JSON) |
+| **TeamDecision** | Per-module decisions | module, decisions (JSON), isLocked |
+| **RoundResult** | Post-round results | stateAfter (JSON), metrics (JSON), rank |
+| **TeamAchievement** | Earned achievements | achievementId, earnedRound, pointsAwarded |
+| **AchievementProgress** | Progress tracking | achievementId, currentValue, targetValue |
 
-### Relationships
-
+**Relationships:**
 ```
-Facilitator 1--* Game 1--* Team
-                       1--* Round
-                              |
-                     Round 1--* TeamDecision (per team per module)
-                     Round 1--* RoundResult (per team)
-Team 1--* TeamDecision
-Team 1--* RoundResult
-Team 1--* TeamAchievement
-Team 1--* AchievementProgress
+Facilitator 1──* Game 1──* Team
+                      1──* Round 1──* TeamDecision (per team per module)
+                                  1──* RoundResult (per team)
+Team 1──* TeamDecision
+Team 1──* RoundResult
+Team 1──* TeamAchievement
 ```
 
-Team authentication uses session tokens (no user accounts required for players). Teams join via the 6-character game code and receive a unique `sessionToken` stored in the browser.
+Team auth uses session tokens (no user accounts for players). Teams join via 6-character game code.
 
 ---
 
-## Key Variables & Constants
+## API Layer (tRPC)
 
-### Starting Values (Default)
-
-| Variable | Value |
-|---|---|
-| Starting Cash | $175M (presets) / $200M (config default) |
-| Market Cap | $500M |
-| Shares Issued | 10,000,000 |
-| Share Price | $50 |
-| Raw Materials Value | $5M |
-| Labor Cost (default) | $5M |
-| ESG Score | 100 |
-| CO2 Emissions | 1,000 |
-| Brand Value | 0-0.5 (depends on preset) |
-
-### Difficulty Presets
-
-| Parameter | Easy | Normal | Hard | Expert |
-|---|---|---|---|---|
-| Starting Cash | $250M | $200M | $150M | $100M |
-| AI Aggressiveness | Low | 0.6 | High | Max |
-| Income Modifier | +20% | - | -10% | -20% |
-| Rubber-banding | Yes | Yes | Yes | **No** |
-| Disruptions | Fewer | Normal | More | Max |
-
-### Market Constants
-
-| Constant | Value | Purpose |
-|---|---|---|
-| `SOFTMAX_TEMPERATURE` | 4 | Controls winner-take-all intensity |
-| `QUALITY_FEATURE_BONUS_CAP` | 1.2x | Limits R&D compounding |
-| `PRICE_FLOOR_PENALTY_THRESHOLD` | 15% | Below segment min |
-| `PRICE_FLOOR_PENALTY_MAX` | 30% | Max score reduction for dumping |
-| `INVENTORY_HOLDING_COST` | 2%/round | Cost of unsold inventory |
-| `FX_VOLATILITY_MIN` | 15% | Minimum FX fluctuation |
-| `FX_VOLATILITY_MAX` | 25% | Maximum FX fluctuation |
-
-### Balance Constants
-
-| Constant | Value | Purpose |
-|---|---|---|
-| `RUBBER_BAND_TRAILING_BOOST` | 1.15 (+15%) | Boost for trailing teams |
-| `RUBBER_BAND_LEADING_PENALTY` | 0.92 (-8%) | Penalty for leaders |
-| `RUBBER_BAND_THRESHOLD` | 0.5 | Trigger when share < avg * 0.5 |
-| `BRAND_DECAY_RATE` | 2%/round | Brand value decay if not maintained |
-| `BRAND_MAX_GROWTH_PER_ROUND` | 6% | Cap on brand growth |
-| `DYNAMIC_PRICE_EMA_ALPHA` | 0.3 | EMA smoothing factor |
-| `UNDERSERVED_PRICE_BONUS` | 0.25 | Bonus for underserved segments |
+| Router | Key Procedures |
+|--------|---------------|
+| `game` | create, join, getById, advanceRound, getMarketState |
+| `team` | getMyState, submitDecisions, getDecisions |
+| `decision` | save, load, getForRound |
+| `facilitator` | getAllTeams, injectEvent, generateReport |
+| `achievement` | getAll, getForTeam |
+| `material` | placeOrder, getInventory |
 
 ---
 
-## Getting Started
+## Frontend Architecture
 
-### Prerequisites
+### Game Pages
 
-- Node.js 18+
-- PostgreSQL database (or use SQLite for local development)
-- npm or yarn
+Each game module page follows a consistent pattern:
 
-### Installation
+1. **Data loading:** `trpc.team.getMyState.useQuery()` — fetches current `TeamState`
+2. **Decision store:** `useDecisionStore()` — provides decisions and setters
+3. **Preview hook:** `use[Module]Preview(state, decisions)` — runs engine client-side
+4. **Local state:** `useState` synced bidirectionally with Zustand store
+5. **Submission detection:** `useEffect` watches `submissionStatus` to clear pending state
+6. **Tab structure:** Most pages use `<Tabs>` with sub-sections
 
-```bash
-# Clone the repository
-git clone https://github.com/vladimirthegreat-EG/Simsim.git
-cd Simsim/src
+### Preview Hooks
 
-# Install dependencies
-npm install
+Run the actual engine modules on the client for instant feedback:
 
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your DATABASE_URL and DIRECT_URL
-
-# Generate Prisma client and push schema
-npx prisma generate
-npx prisma db push
-
-# Start development server
-npm run dev
+```typescript
+export function useFactoryPreview(state: TeamState | null, decisions: UIFactoryDecisions) {
+  return useMemo(() => {
+    const engineDecisions = convertFactoryDecisions(decisions, state);
+    const ctx = createEngineContext("preview", state.round ?? 1, "preview");
+    const { newState, result } = FactoryModule.process(state, engineDecisions, ctx);
+    return { previewState: newState, result, costs: result.costs, messages: result.messages };
+  }, [state, decisions]);
+}
 ```
 
-### Environment Variables
+Available: `useFactoryPreview`, `useHRPreview`, `useRDPreview`, `useMarketingPreview`, `useFinancePreview`.
 
-```env
-DATABASE_URL="postgresql://..."    # Pooled connection (port 6543)
-DIRECT_URL="postgresql://..."      # Direct connection (port 5432)
-```
+### Key Components
 
-### SQLite (Local Development)
+| Component | Purpose |
+|-----------|---------|
+| `GameLayout` | Main game chrome (sidebar, header, module nav) |
+| `DecisionSubmitBar` | Save decisions button with module status |
+| `FinancialStatements` | Full 3-statement renderer |
+| `ArchetypeCatalog` | Product archetype browser |
+| `TutorialGuide` | In-game tutorial (3 depth levels) |
+| `GlossaryPanel` | Business term definitions |
+| `CompetitiveIntel` | Competitor analysis |
+| `MarketDashboard` | Market overview |
 
-```bash
-npm run db:use-sqlite    # Switch to SQLite schema
-npm run dev              # No external DB needed
-```
+### Facilitator Components
+
+| Component | Purpose |
+|-----------|---------|
+| `FacilitatorDashboard` | Live team monitoring |
+| `EventInjectionPanel` | Inject market events mid-game |
+| `PostGameReport` | Full analysis with team journeys |
+| `DiscussionGuide` | Auto-generated debrief questions |
+| `ParticipantScorecard` | Per-team scorecard |
 
 ---
 
-## Scripts
+## Known Issues & Development State
 
-| Script | Description |
-|---|---|
-| `npm run dev` | Start Next.js dev server |
-| `npm run build` | `prisma generate && prisma db push && next build` |
-| `npm start` | Start production server |
-| `npm test` | Run Vitest in watch mode |
-| `npm run test:run` | Run all tests once (CI) |
-| `npm run e2e` | Run Playwright end-to-end tests |
-| `npm run db:generate` | Regenerate Prisma client |
-| `npm run db:push` | Push schema to database |
-| `npm run db:studio` | Open Prisma Studio (DB GUI) |
-| `npm run db:use-sqlite` | Switch to SQLite schema |
-| `npm run db:use-postgres` | Switch to PostgreSQL schema |
+### Pre-existing TypeScript Errors (not blocking runtime)
+- `factory/page.tsx`: `esgScore` property not recognized on tRPC return type
+- `rnd/page.tsx`: `rdPoints` not on TeamState
+- `supply-chain/page.tsx`: `cash` not recognized on tRPC return type
+- Various test files: missing properties on mock objects
 
----
+### Architecture Rules to Maintain
+1. **Engine is pure TypeScript** — no React imports, no Next.js dependencies
+2. **Modules are static classes** with `process()` as main entry point
+3. **State mutations only on deep clones** — never mutate input state
+4. **Preview hooks must use `createEngineContext`** for determinism
+5. **Decision converters are the only bridge** between UI and engine types
+6. **Pending state must clear on submission** (the `!wasSubmitted && isNowSubmitted` pattern)
+7. **Cash accumulates across rounds** — modules deduct costs, SimulationEngine adds revenue. Never reset cash.
+8. **No `Date.now()` or `Math.random()`** in engine code — use EngineContext
 
-## Deployment
+### Cash Flow (Critical)
+Cash carries across rounds. Each round: modules deduct costs → market simulation → `cash += revenue`. Starting cash is only set once during game creation. This is the fundamental economic loop.
 
-Deployed on **Vercel** with **Supabase** PostgreSQL.
-
-- **Vercel root directory:** `src`
-- **Build command:** `prisma generate && next build`
-- **Database:** Supabase PostgreSQL (pooled + direct connections)
-- **Schema migration:** Run `prisma db push` locally before deploying
-
----
-
-## Testing
-
-**420 tests passing** across 19 test files using Vitest.
-
-### Test Coverage
-
-| Area | Tests | Coverage |
-|---|---|---|
-| Engine modules (Factory, HR, Finance, Marketing, RD) | 150+ | Core simulation logic |
-| Market simulation | 40+ | Softmax, scoring, demand |
-| Feature demand & archetypes | 41 | Tech tree, phone templates |
-| Achievements | 24 | Condition evaluation, victory resolution |
-| Competition mechanics | 18 | Crowding, first-mover, brand erosion |
-| Patents | 17 | Filing, licensing, challenges |
-| Dynamic pricing | 15 | EMA updates, underserved bonuses |
-| Facilitator reports | 7 | Narrative generation |
-| Logistics | 10+ | Route optimization |
-| E2E game flow | 20+ | Full round processing integration |
-| Economy & events | 15+ | Cycle transitions, event effects |
-| Materials & supply chain | 15+ | Ordering, inventory, holding costs |
-
-### Tested Strategy Archetypes
-
-4 distinct strategies validated for competitive viability:
-
-| Archetype | Strategy | Key Focus |
-|---|---|---|
-| **Alpha** (Premium) | R&D $10-15M, salary 1.3x, quality 90 | Professional & Enthusiast segments |
-| **Beta** (Cost Leader) | R&D $2-3M, salary 0.9x, quality 55 | Budget & General segments |
-| **Gamma** (Balanced) | R&D $5-7M, salary 1.0x, quality 70 | Diversified across all segments |
-| **Delta** (Marketing) | R&D $3-5M, salary 1.1x, brand $4M | Active Lifestyle focus |
-
-All 4 strategies are viable with 10-15x expected revenue spread for extreme strategies.
-
-```bash
-# Run all tests
-cd src && npm run test:run
-
-# Run specific test file
-npx vitest run __tests__/engine/competition.test.ts
-
-# Watch mode
-npm test
-```
+### Deployment
+- **Vercel** with Supabase PostgreSQL
+- Build: `prisma generate && prisma db push && next build`
+- SQLite for local dev, PostgreSQL for production
