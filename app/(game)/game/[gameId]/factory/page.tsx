@@ -20,6 +20,8 @@ import { useDecisionStore } from "@/lib/stores/decisionStore";
 import { DecisionSubmitBar } from "@/components/game/DecisionSubmitBar";
 import { DecisionImpactPanel } from "@/components/game/DecisionImpactPanel";
 import { WarningBanner } from "@/components/game/WarningBanner";
+import { GamePageSkeleton } from "@/components/game/GamePageSkeleton";
+import { ModuleRecap } from "@/components/game/ModuleRecap";
 import { useFactoryPreview } from "@/lib/hooks/useFactoryPreview";
 import { useCrossModuleWarnings } from "@/lib/hooks/useCrossModuleWarnings";
 import { useMachineryAvailability, type MachineStatus } from "@/lib/hooks/useMachineryAvailability";
@@ -57,6 +59,8 @@ import {
   Lock,
 } from "lucide-react";
 import type { TeamState, Factory as FactoryType, Segment } from "@/engine/types";
+import { CONSTANTS } from "@/engine/types";
+import { getActiveSegments } from "@/lib/utils/stateHelpers";
 import {
   LogisticsEngine,
   SHIPPING_ROUTES,
@@ -531,6 +535,36 @@ export default function FactoryPage({ params }: PageProps) {
     }
   }, [teamState?.state]);
 
+  // Derive which segments have launched products (for production allocation locking)
+  const activeSegments = useMemo(() => {
+    if (!state) return new Set<string>();
+    return new Set<string>(getActiveSegments(state));
+  }, [state]);
+
+  // Auto-distribute allocation evenly among active (launched) segments
+  const activeSegmentCountRef = useRef(0);
+  useEffect(() => {
+    if (activeSegments.size === 0) return;
+    // Only re-distribute when the number of active segments changes
+    if (activeSegments.size === activeSegmentCountRef.current) return;
+    activeSegmentCountRef.current = activeSegments.size;
+
+    const perSegment = Math.floor(100 / activeSegments.size);
+    const remainder = 100 - perSegment * activeSegments.size;
+
+    const newAllocations: Record<string, number> = {};
+    let i = 0;
+    for (const seg of CONSTANTS.SEGMENTS) {
+      if (activeSegments.has(seg)) {
+        newAllocations[seg] = perSegment + (i === 0 ? remainder : 0);
+        i++;
+      } else {
+        newAllocations[seg] = 0;
+      }
+    }
+    setProductionAllocations(newAllocations);
+  }, [activeSegments]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Cross-module warnings
   const warnings = useCrossModuleWarnings(state, "factory");
 
@@ -622,7 +656,11 @@ export default function FactoryPage({ params }: PageProps) {
     };
   }, [state?.inventory]);
 
-  const totalAllocation = Object.values(productionAllocations).reduce((a, b) => a + b, 0);
+  const totalAllocation = useMemo(() => {
+    return Object.entries(productionAllocations)
+      .filter(([seg]) => activeSegments.has(seg))
+      .reduce((sum, [, val]) => sum + val, 0);
+  }, [productionAllocations, activeSegments]);
 
   // Logistics calculations
   const logistics = useMemo(() => {
@@ -783,20 +821,9 @@ export default function FactoryPage({ params }: PageProps) {
   };
 
   // Loading state
-  if (isLoading) {
-    return (
-      <div className="space-y-6 animate-pulse">
-        <div className="h-10 bg-slate-700 rounded w-1/4"></div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-24 bg-slate-700 rounded-xl"></div>
-          ))}
-        </div>
-        <div className="h-12 bg-slate-700 rounded w-full"></div>
-        <div className="h-96 bg-slate-700 rounded-xl"></div>
-      </div>
-    );
-  }
+  if (isLoading) return <GamePageSkeleton statCards={4} sections={2} />;
+
+  const currentRound = teamState?.game?.currentRound ?? 1;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -818,6 +845,9 @@ export default function FactoryPage({ params }: PageProps) {
 
       {/* Cross-module warnings */}
       <WarningBanner warnings={warnings} />
+
+      {/* Last round recap */}
+      <ModuleRecap module="factory" currentRound={currentRound} state={state} history={[]} />
 
       {/* Factory Selector */}
       <div className="flex gap-2 flex-wrap">
@@ -1362,35 +1392,53 @@ export default function FactoryPage({ params }: PageProps) {
                 <HelpTooltip text="Set how many units to produce per segment. Limited by machine capacity and workforce size. Balance production based on your materials and market demand." />
               </CardTitle>
               <CardDescription className="text-slate-400">
-                Allocate production capacity across different market segments.
-                <span className={totalAllocation === 100 ? "text-green-400" : "text-red-400"}> Total must equal 100%.</span>
+                {activeSegments.size > 0 ? (
+                  <>Allocate production capacity across your active market segments.
+                  <span className={totalAllocation === 100 ? "text-green-400" : "text-red-400"}> Total must equal 100%.</span></>
+                ) : (
+                  <>No active segments yet. Develop and launch products in R&D to unlock production allocation.</>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {Object.entries(productionAllocations).map(([segment, allocation]) => (
-                <div key={segment} className="space-y-3 p-4 bg-slate-700/30 rounded-lg">
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-300 font-medium">{segment}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-orange-400 font-semibold">{allocation}%</span>
-                      <span className="text-slate-500 text-sm">
-                        ({Math.floor((totalCapacity * allocation) / 100).toLocaleString()} units)
+              {Object.entries(productionAllocations).map(([segment, allocation]) => {
+                const isActive = activeSegments.has(segment);
+                return (
+                  <div key={segment} className={`space-y-3 p-4 rounded-lg ${isActive ? "bg-slate-700/30" : "bg-slate-800/40 opacity-60"}`}>
+                    <div className="flex justify-between items-center">
+                      <span className={`font-medium flex items-center gap-2 ${isActive ? "text-slate-300" : "text-slate-500"}`}>
+                        {!isActive && <Lock className="w-3.5 h-3.5" />}
+                        {segment}
                       </span>
+                      {isActive ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-orange-400 font-semibold">{allocation}%</span>
+                          <span className="text-slate-500 text-sm">
+                            ({Math.floor((totalCapacity * allocation) / 100).toLocaleString()} units)
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-500 text-xs italic">Launch a product in this segment via R&D first</span>
+                      )}
                     </div>
+                    <Slider
+                      data-testid={`slider-production-${segment.toLowerCase().replace(/\s+/g, '-')}`}
+                      value={[isActive ? allocation : 0]}
+                      onValueChange={(values) => {
+                        if (!isActive) return;
+                        setProductionAllocations(prev => ({
+                          ...prev,
+                          [segment]: values[0]
+                        }));
+                      }}
+                      max={100}
+                      step={5}
+                      variant="orange"
+                      disabled={!isActive}
+                    />
                   </div>
-                  <Slider
-                    data-testid={`slider-production-${segment.toLowerCase().replace(/\s+/g, '-')}`}
-                    value={[allocation]}
-                    onValueChange={(values) => setProductionAllocations(prev => ({
-                      ...prev,
-                      [segment]: values[0]
-                    }))}
-                    max={100}
-                    step={5}
-                    variant="orange"
-                  />
-                </div>
-              ))}
+                );
+              })}
 
               <div className="border-t border-slate-700 pt-4">
                 <div className="flex justify-between items-center">
@@ -1596,15 +1644,18 @@ export default function FactoryPage({ params }: PageProps) {
             </CardHeader>
             <CardContent>
               <div className="grid md:grid-cols-5 gap-4">
-                {Object.entries(productionAllocations).map(([segment, allocation]) => (
-                  <div key={segment} className="text-center p-4 bg-slate-700/50 rounded-lg">
-                    <div className="text-slate-400 text-sm mb-1">{segment}</div>
-                    <div className="text-xl font-bold text-white">
-                      {Math.floor((totalCapacity * allocation) / 100).toLocaleString()}
+                {Object.entries(productionAllocations).map(([segment, allocation]) => {
+                  const isActive = activeSegments.has(segment);
+                  return (
+                    <div key={segment} className={`text-center p-4 rounded-lg ${isActive ? "bg-slate-700/50" : "bg-slate-800/40 opacity-50"}`}>
+                      <div className={`text-sm mb-1 ${isActive ? "text-slate-400" : "text-slate-500"}`}>{segment}</div>
+                      <div className={`text-xl font-bold ${isActive ? "text-white" : "text-slate-600"}`}>
+                        {isActive ? Math.floor((totalCapacity * allocation) / 100).toLocaleString() : "—"}
+                      </div>
+                      <div className="text-xs text-slate-500">{isActive ? "units/day" : "locked"}</div>
                     </div>
-                    <div className="text-xs text-slate-500">units/day</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <div className="mt-4 pt-4 border-t border-slate-700 text-center">
                 <div className="text-slate-400 text-sm mb-1">Total Daily Production</div>
@@ -3507,8 +3558,8 @@ export default function FactoryPage({ params }: PageProps) {
       <DecisionSubmitBar
         module="FACTORY"
         getDecisions={getDecisions}
-        disabled={totalAllocation !== 100}
-        disabledReason={totalAllocation !== 100 ? `Allocation must equal 100% (currently ${totalAllocation}%)` : undefined}
+        disabled={activeSegments.size > 0 && totalAllocation !== 100}
+        disabledReason={activeSegments.size > 0 && totalAllocation !== 100 ? `Allocation must equal 100% (currently ${totalAllocation}%)` : undefined}
       />
 
       {/* Spacer for fixed submit bar */}

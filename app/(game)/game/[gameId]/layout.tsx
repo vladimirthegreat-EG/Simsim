@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { GameLayout } from "@/components/game/GameLayout";
+import { RoundBriefing } from "@/components/game/RoundBriefing";
 import { trpc } from "@/lib/api/trpc";
 import { toast } from "sonner";
 import { ComplexityProvider } from "@/lib/contexts/ComplexityContext";
@@ -104,6 +105,19 @@ export default function GamePageLayout({ children, params }: LayoutProps) {
     // Default to standard complexity
     return getComplexitySettings("standard");
   }, [teamState?.game?.config]);
+
+  // Extract starting cash from team state
+  const startingCash = useMemo(() => {
+    if (!teamState?.state) return 200_000_000;
+    try {
+      const parsed = typeof teamState.state === "string"
+        ? JSON.parse(teamState.state)
+        : teamState.state;
+      return parsed.cash ?? 200_000_000;
+    } catch {
+      return 200_000_000;
+    }
+  }, [teamState?.state]);
 
   // Auto-start tutorial on first load if game config includes a tutorial depth
   const tutorialStarted = useRef(false);
@@ -414,6 +428,15 @@ export default function GamePageLayout({ children, params }: LayoutProps) {
   // Game is in progress - show full layout with complexity context
   return (
     <ComplexityProvider settings={complexitySettings}>
+      <RoundBriefing
+        gameId={gameId}
+        teamId={team.id}
+        currentRound={game.currentRound}
+        totalTeams={game.teams?.length ?? 1}
+        startingCash={startingCash}
+        recentResults={teamState.recentResults ?? []}
+        marketState={teamState.marketState}
+      />
       <GameLayout
         gameId={gameId}
         gameName={game.name}
@@ -423,6 +446,7 @@ export default function GamePageLayout({ children, params }: LayoutProps) {
         maxRounds={game.maxRounds}
         gameStatus={game.status}
         complexityPreset={complexitySettings.preset}
+        startingCash={startingCash}
       >
         {children}
       </GameLayout>

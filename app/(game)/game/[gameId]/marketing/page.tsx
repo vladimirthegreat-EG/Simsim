@@ -19,6 +19,8 @@ import { useDecisionStore } from "@/lib/stores/decisionStore";
 import { DecisionSubmitBar } from "@/components/game/DecisionSubmitBar";
 import { DecisionImpactPanel } from "@/components/game/DecisionImpactPanel";
 import { WarningBanner } from "@/components/game/WarningBanner";
+import { GamePageSkeleton } from "@/components/game/GamePageSkeleton";
+import { ModuleRecap } from "@/components/game/ModuleRecap";
 import { useMarketingPreview } from "@/lib/hooks/useMarketingPreview";
 import { BRAND_ACTIVITY_MAP } from "@/lib/converters/decisionConverters";
 import { useCrossModuleWarnings } from "@/lib/hooks/useCrossModuleWarnings";
@@ -250,7 +252,7 @@ export default function MarketingPage({ params }: PageProps) {
     promotions: marketing.promotions,
   }), [adBudgets, brandInvestment, marketing.promotions]);
 
-  const { data: teamState } = trpc.team.getMyState.useQuery();
+  const { data: teamState, isLoading } = trpc.team.getMyState.useQuery();
 
   // Parse team state
   const state: TeamState | null = useMemo(() => {
@@ -332,6 +334,10 @@ export default function MarketingPage({ params }: PageProps) {
     return Object.values(adBudgets[segmentId] || {}).reduce((sum, val) => sum + val, 0);
   };
 
+  if (isLoading) return <GamePageSkeleton statCards={4} sections={2} />;
+
+  const currentRound = teamState?.game?.currentRound ?? 1;
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Page Header */}
@@ -341,6 +347,9 @@ export default function MarketingPage({ params }: PageProps) {
         icon={<Megaphone className="w-7 h-7" />}
         iconColor="text-pink-400"
       />
+
+      {/* Last round recap */}
+      <ModuleRecap module="marketing" currentRound={currentRound} state={state} history={[]} />
 
       {/* Cross-module warnings */}
       <WarningBanner warnings={marketingWarnings} />

@@ -17,6 +17,8 @@ import { useDecisionStore } from "@/lib/stores/decisionStore";
 import { DecisionSubmitBar } from "@/components/game/DecisionSubmitBar";
 import { DecisionImpactPanel } from "@/components/game/DecisionImpactPanel";
 import { WarningBanner } from "@/components/game/WarningBanner";
+import { GamePageSkeleton } from "@/components/game/GamePageSkeleton";
+import { ModuleRecap } from "@/components/game/ModuleRecap";
 import { useFinancePreview } from "@/lib/hooks/useFinancePreview";
 import { useCrossModuleWarnings } from "@/lib/hooks/useCrossModuleWarnings";
 import { useFeatureFlag } from "@/lib/contexts/ComplexityContext";
@@ -337,7 +339,7 @@ export default function FinancePage({ params }: PageProps) {
     fxHedging,
   }), [finance, dividendAmount, fxHedging]);
 
-  const { data: teamState } = trpc.team.getMyState.useQuery();
+  const { data: teamState, isLoading } = trpc.team.getMyState.useQuery();
 
   // Parse team state
   const state: TeamState | null = useMemo(() => {
@@ -445,6 +447,10 @@ export default function FinancePage({ params }: PageProps) {
     return { status: "critical", color: "text-red-400" };
   };
 
+  if (isLoading) return <GamePageSkeleton statCards={4} sections={2} />;
+
+  const currentRound = teamState?.game?.currentRound ?? 1;
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Page Header */}
@@ -457,6 +463,9 @@ export default function FinancePage({ params }: PageProps) {
 
       {/* Cross-module warnings */}
       <WarningBanner warnings={financeWarnings} />
+
+      {/* Last round recap */}
+      <ModuleRecap module="finance" currentRound={currentRound} state={state} history={[]} />
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>

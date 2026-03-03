@@ -21,6 +21,8 @@ import { useDecisionStore } from "@/lib/stores/decisionStore";
 import { DecisionSubmitBar } from "@/components/game/DecisionSubmitBar";
 import { DecisionImpactPanel } from "@/components/game/DecisionImpactPanel";
 import { WarningBanner } from "@/components/game/WarningBanner";
+import { GamePageSkeleton } from "@/components/game/GamePageSkeleton";
+import { ModuleRecap } from "@/components/game/ModuleRecap";
 import { useHRPreview } from "@/lib/hooks/useHRPreview";
 import { useCrossModuleWarnings } from "@/lib/hooks/useCrossModuleWarnings";
 import { HiringRequirementsPanel } from "@/components/hr/HiringRequirementsPanel";
@@ -283,7 +285,7 @@ export default function HRPage({ params }: PageProps) {
     };
   }, [hr, salaryAdjustment, benefitChanges]);
 
-  const { data: teamState } = trpc.team.getMyState.useQuery();
+  const { data: teamState, isLoading } = trpc.team.getMyState.useQuery();
 
   // Parse the team state JSON
   const state: TeamState | null = useMemo(() => {
@@ -346,6 +348,10 @@ export default function HRPage({ params }: PageProps) {
     return Math.round(score);
   };
 
+  if (isLoading) return <GamePageSkeleton statCards={4} sections={2} />;
+
+  const currentRound = teamState?.game?.currentRound ?? 1;
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Page Header */}
@@ -355,6 +361,9 @@ export default function HRPage({ params }: PageProps) {
         icon={<Users className="w-7 h-7" />}
         iconColor="text-blue-400"
       />
+
+      {/* Last round recap */}
+      <ModuleRecap module="hr" currentRound={currentRound} state={state} history={[]} />
 
       {/* Cross-module warnings */}
       <WarningBanner warnings={warnings} />

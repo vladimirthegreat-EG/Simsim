@@ -145,23 +145,27 @@ export const facilitatorRouter = createTRPCRouter({
    * Check if user has a facilitator session
    */
   checkSession: publicProcedure.query(async ({ ctx }) => {
-    if (!ctx.facilitatorId) {
+    try {
+      if (!ctx.facilitatorId) {
+        return { hasSession: false };
+      }
+
+      const facilitator = await ctx.prisma.facilitator.findUnique({
+        where: { id: ctx.facilitatorId },
+        select: { id: true, email: true, name: true },
+      });
+
+      if (!facilitator) {
+        return { hasSession: false };
+      }
+
+      return {
+        hasSession: true,
+        facilitator,
+      };
+    } catch {
       return { hasSession: false };
     }
-
-    const facilitator = await ctx.prisma.facilitator.findUnique({
-      where: { id: ctx.facilitatorId },
-      select: { id: true, email: true, name: true },
-    });
-
-    if (!facilitator) {
-      return { hasSession: false };
-    }
-
-    return {
-      hasSession: true,
-      facilitator,
-    };
   }),
 
   /**

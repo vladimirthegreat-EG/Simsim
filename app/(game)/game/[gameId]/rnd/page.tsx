@@ -32,6 +32,8 @@ import { FeatureRadarChart } from "@/components/game/FeatureRadarChart";
 import { PatentPanel } from "@/components/game/PatentPanel";
 import { NotificationPanel } from "@/components/game/NotificationPanel";
 import { PlainEnglishTooltip } from "@/components/game/PlainEnglishTooltip";
+import { GamePageSkeleton } from "@/components/game/GamePageSkeleton";
+import { ModuleRecap } from "@/components/game/ModuleRecap";
 import { getArchetype } from "@/engine/types/archetypes";
 import { toast } from "sonner";
 import {
@@ -265,7 +267,7 @@ export default function RDPage({ params }: PageProps) {
     patentChallenges: pendingChallenges,
   }), [rdInvestment, pendingProducts, pendingTechUpgrades, pendingPatentFilings, pendingLicenses, pendingChallenges]);
 
-  const { data: teamState } = trpc.team.getMyState.useQuery();
+  const { data: teamState, isLoading } = trpc.team.getMyState.useQuery();
   const hasProductTimeline = useFeatureFlag("productDevelopmentTimeline");
 
   // Parse team state
@@ -433,6 +435,10 @@ export default function RDPage({ params }: PageProps) {
     };
   };
 
+  if (isLoading) return <GamePageSkeleton statCards={4} sections={2} />;
+
+  const currentRound = teamState?.game?.currentRound ?? 1;
+
   return (
     <div className="space-y-6 animate-fade-in">
       <PageHeader
@@ -441,6 +447,9 @@ export default function RDPage({ params }: PageProps) {
         icon={<Lightbulb className="w-7 h-7" />}
         iconColor="text-purple-400"
       />
+
+      {/* Last round recap */}
+      <ModuleRecap module="rnd" currentRound={currentRound} state={state} history={[]} />
 
       {/* Cross-module warnings */}
       <WarningBanner warnings={warnings} />

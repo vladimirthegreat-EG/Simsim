@@ -32,6 +32,8 @@ import {
 import { useDecisionStore, GameModule } from "@/lib/stores/decisionStore";
 import { useComplexity } from "@/lib/contexts/ComplexityContext";
 import { ComplexityPreset } from "@/engine/types";
+import { BudgetBar } from "@/components/game/BudgetBar";
+import { DecisionStepper } from "@/components/game/DecisionStepper";
 import { NewsTicker } from "@/components/game/NewsTicker";
 import { TutorialGuide } from "@/components/game/TutorialGuide";
 import { WorkflowGuide } from "@/components/game/WorkflowGuide";
@@ -59,6 +61,7 @@ interface GameLayoutProps {
   maxRounds: number;
   gameStatus: string;
   complexityPreset?: ComplexityPreset;
+  startingCash?: number;
 }
 
 // Map module IDs to complexity module keys
@@ -158,6 +161,7 @@ export function GameLayout({
   maxRounds,
   gameStatus,
   complexityPreset = "standard",
+  startingCash = 200_000_000,
 }: GameLayoutProps) {
   const pathname = usePathname();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -441,14 +445,20 @@ export function GameLayout({
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto p-4 pt-16 lg:pt-6 lg:p-8 pb-16">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {children}
-        </motion.div>
+      <main className="flex-1 overflow-auto pt-14 lg:pt-0 pb-16">
+        {/* Budget + Decision flow */}
+        <BudgetBar startingCash={startingCash} currentRound={currentRound} />
+        <DecisionStepper gameId={gameId} startingCash={startingCash} />
+
+        <div className="p-4 lg:p-8">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {children}
+          </motion.div>
+        </div>
       </main>
 
       {/* Tutorial Overlay */}

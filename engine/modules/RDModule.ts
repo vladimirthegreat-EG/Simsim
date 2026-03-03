@@ -164,6 +164,14 @@ export class RDModule {
       }
     }
 
+    // Auto-launch any products stuck in "ready" state from previous rounds
+    for (const product of newState.products) {
+      if (product.developmentStatus === "ready") {
+        product.developmentStatus = "launched";
+        messages.push(`${product.name} launched to market!`);
+      }
+    }
+
     // Progress existing in-development products
     for (const product of newState.products) {
       if (product.developmentStatus === "in_development") {
@@ -172,11 +180,11 @@ export class RDModule {
 
         if (product.roundsRemaining === 0) {
           // Development complete - upgrade to full quality
-          product.developmentStatus = "ready";
+          product.developmentStatus = "launched";
           product.quality = product.targetQuality;
           product.features = product.targetFeatures;
           product.developmentProgress = 100;
-          messages.push(`${product.name} development complete! Ready for launch.`);
+          messages.push(`${product.name} development complete! Launched to market.`);
         }
       }
     }

@@ -133,8 +133,8 @@ const initialFactoryDecisions: FactoryDecisions = {
   efficiencyInvestment: { workers: 0, engineers: 0, equipment: 0 },
   esgInvestment: 0,
   productionAllocations: {
-    Budget: 40,
-    General: 60,
+    Budget: 0,
+    General: 0,
     Enthusiast: 0,
     Professional: 0,
     "Active Lifestyle": 0,

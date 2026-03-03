@@ -194,36 +194,40 @@ export const teamRouter = createTRPCRouter({
    * Check if user has an active session
    */
   checkSession: publicProcedure.query(async ({ ctx }) => {
-    if (!ctx.sessionToken) {
-      return { hasSession: false };
-    }
+    try {
+      if (!ctx.sessionToken) {
+        return { hasSession: false };
+      }
 
-    const team = await ctx.prisma.team.findUnique({
-      where: { sessionToken: ctx.sessionToken },
-      include: {
-        game: {
-          select: {
-            id: true,
-            name: true,
-            status: true,
+      const team = await ctx.prisma.team.findUnique({
+        where: { sessionToken: ctx.sessionToken },
+        include: {
+          game: {
+            select: {
+              id: true,
+              name: true,
+              status: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    if (!team) {
+      if (!team) {
+        return { hasSession: false };
+      }
+
+      return {
+        hasSession: true,
+        team: {
+          id: team.id,
+          name: team.name,
+          color: team.color,
+        },
+        game: team.game,
+      };
+    } catch {
       return { hasSession: false };
     }
-
-    return {
-      hasSession: true,
-      team: {
-        id: team.id,
-        name: team.name,
-        color: team.color,
-      },
-      game: team.game,
-    };
   }),
 
   /**
