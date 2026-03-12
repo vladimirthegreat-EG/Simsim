@@ -314,6 +314,7 @@ export class EconomicCycleEngine {
     const gdpEffect = state.gdpGrowth / 100;
     let demandMultiplier = 1 + confidenceEffect * 0.3 + gdpEffect * 0.2;
     demandMultiplier *= config.difficulty.economy.demandGrowthMultiplier;
+    demandMultiplier = Math.max(0.1, demandMultiplier); // FORMULA-05: Floor at 0.1 to prevent zero/negative demand
 
     // Cost multiplier based on inflation and commodities
     const inflationEffect = state.inflation / 100;

@@ -9,8 +9,10 @@ import {
   MarketState,
   CONSTANTS,
 } from "../types";
-import { createErrorResult, random } from "../utils";
+import { createErrorResult } from "../utils";
 import { cloneTeamState } from "../utils/stateUtils";
+import type { EngineContext } from "../core/EngineContext";
+import type { SeededRNG } from "../core/EngineContext";
 
 export interface FinancialRatios {
   currentRatio: number;
@@ -45,10 +47,11 @@ export class FinanceModule {
   static process(
     state: TeamState,
     decisions: FinanceDecisions,
-    marketState: MarketState
+    marketState: MarketState,
+    ctx?: EngineContext
   ): { newState: TeamState; result: ModuleResult } {
     try {
-      return this.processInternal(state, decisions, marketState);
+      return this.processInternal(state, decisions, marketState, ctx);
     } catch (error) {
       return createErrorResult("FinanceModule", error, state);
     }
@@ -60,15 +63,22 @@ export class FinanceModule {
   private static processInternal(
     state: TeamState,
     decisions: FinanceDecisions,
-    marketState: MarketState
+    marketState: MarketState,
+    ctx?: EngineContext
   ): { newState: TeamState; result: ModuleResult } {
     let newState = cloneTeamState(state);
     let totalCosts = 0;
     let totalRevenue = 0;
     const messages: string[] = [];
 
+    // EXPLOIT-03: Check if credit is frozen (D/E > 2.0) before allowing new debt
+    const currentTotalDebt = newState.shortTermDebt + newState.longTermDebt;
+    const currentDE = newState.shareholdersEquity > 0
+      ? currentTotalDebt / newState.shareholdersEquity : 999;
+    const creditFrozen = currentDE > CONSTANTS.CREDIT_FROZEN_DE_THRESHOLD;
+
     // Process Treasury Bills issuance (PATCH 1: Short-term debt)
-    if (decisions.treasuryBillsIssue && decisions.treasuryBillsIssue > 0) {
+    if (decisions.treasuryBillsIssue && decisions.treasuryBillsIssue > 0 && !creditFrozen) {
       newState.cash += decisions.treasuryBillsIssue;
       newState.shortTermDebt += decisions.treasuryBillsIssue;
       newState.totalLiabilities += decisions.treasuryBillsIssue;
@@ -77,16 +87,28 @@ export class FinanceModule {
     }
 
     // Process Corporate Bonds issuance (PATCH 1: Long-term debt)
-    if (decisions.corporateBondsIssue && decisions.corporateBondsIssue > 0) {
-      newState.cash += decisions.corporateBondsIssue;
-      newState.longTermDebt += decisions.corporateBondsIssue;
-      newState.totalLiabilities += decisions.corporateBondsIssue;
-      messages.push(`Issued $${(decisions.corporateBondsIssue / 1_000_000).toFixed(1)}M in Corporate Bonds`);
-      // -5% investor sentiment (tracked elsewhere)
+    // Board approval required for large issuances (>$20M)
+    if (decisions.corporateBondsIssue && decisions.corporateBondsIssue > 0 && !creditFrozen) {
+      let bondApproved = true;
+      if (ctx && decisions.corporateBondsIssue > 20_000_000) {
+        const ratios = this.calculateRatios(newState);
+        const prob = this.calculateProposalProbability("expansion", newState, ratios);
+        const vote = this.simulateBoardVote(prob, ctx.rng.finance);
+        bondApproved = vote.approved;
+        if (!bondApproved) {
+          messages.push(`Board rejected $${(decisions.corporateBondsIssue / 1_000_000).toFixed(1)}M bond issuance: ${vote.message}`);
+        }
+      }
+      if (bondApproved) {
+        newState.cash += decisions.corporateBondsIssue;
+        newState.longTermDebt += decisions.corporateBondsIssue;
+        newState.totalLiabilities += decisions.corporateBondsIssue;
+        messages.push(`Issued $${(decisions.corporateBondsIssue / 1_000_000).toFixed(1)}M in Corporate Bonds`);
+      }
     }
 
     // Process bank loan request (PATCH 1: Categorize by term)
-    if (decisions.loanRequest && decisions.loanRequest.amount > 0) {
+    if (decisions.loanRequest && decisions.loanRequest.amount > 0 && !creditFrozen) {
       const { amount, termMonths } = decisions.loanRequest;
       // Interest rate based on market conditions
       const interestRate = marketState.interestRates.corporateBond / 100;
@@ -104,53 +126,101 @@ export class FinanceModule {
       messages.push(`Secured $${(amount / 1_000_000).toFixed(1)}M ${termMonths <= 12 ? 'short-term' : 'long-term'} bank loan at ${(interestRate * 100).toFixed(1)}%`);
     }
 
-    // Process stock issuance
+    // Process stock issuance (requires board approval)
     if (decisions.stockIssuance) {
       const { shares, pricePerShare } = decisions.stockIssuance;
-      const proceeds = shares * pricePerShare;
+      const ratios = this.calculateRatios(newState);
 
-      newState.cash += proceeds;
-      newState.sharesIssued += shares;
-      newState.shareholdersEquity += proceeds;
-      // Dilution effect on share price
-      newState.sharePrice = newState.marketCap / newState.sharesIssued;
-      totalRevenue += proceeds;
-      messages.push(`Issued ${shares.toLocaleString()} shares at $${pricePerShare}, raised $${(proceeds / 1_000_000).toFixed(1)}M`);
+      // Board approval required for stock issuance
+      let boardApproved = true;
+      if (ctx) {
+        const prob = this.calculateProposalProbability("stock_issuance", newState, ratios);
+        const vote = this.simulateBoardVote(prob, ctx.rng.finance);
+        boardApproved = vote.approved;
+        if (!boardApproved) {
+          messages.push(`Board rejected stock issuance: ${vote.message}`);
+        }
+      }
+
+      if (boardApproved) {
+        // Dilution-based price impact: more shares issued relative to float = bigger discount
+        const dilutionRatio = shares / (newState.sharesIssued + shares);
+        // Supply increase depresses price: price impact scales with dilution squared (convex penalty)
+        const priceImpact = 1 - (dilutionRatio * dilutionRatio * 2);
+        const effectivePrice = pricePerShare * Math.max(0.5, priceImpact);
+        const proceeds = shares * effectivePrice;
+
+        newState.cash += proceeds;
+        newState.sharesIssued += shares;
+        newState.shareholdersEquity += proceeds;
+        // Recalculate share price from market cap and new share count
+        newState.sharePrice = newState.marketCap / newState.sharesIssued;
+        totalRevenue += proceeds;
+        messages.push(
+          `Issued ${shares.toLocaleString()} shares at $${effectivePrice.toFixed(2)} ` +
+          `(${(dilutionRatio * 100).toFixed(1)}% dilution), raised $${(proceeds / 1_000_000).toFixed(1)}M`
+        );
+      }
     }
 
     // PATCH 2: Enhanced share buyback with PE ratio impact
+    // CRIT-05: Guard against division by zero and over-purchase
     if (decisions.sharesBuyback && decisions.sharesBuyback > 0) {
       const buybackAmount = decisions.sharesBuyback;
       const currentSharePrice = newState.sharePrice;
-      const sharesToBuy = Math.floor(buybackAmount / currentSharePrice);
 
-      if (newState.cash >= buybackAmount) {
-        const oldShares = newState.sharesIssued;
-        const oldEPS = newState.eps;
+      // Board approval required for large buybacks (>$10M)
+      let buybackApproved = true;
+      if (ctx && buybackAmount > 10_000_000) {
+        const ratios = this.calculateRatios(newState);
+        const prob = this.calculateProposalProbability("stock_buyback", newState, ratios);
+        const vote = this.simulateBoardVote(prob, ctx.rng.finance);
+        buybackApproved = vote.approved;
+        if (!buybackApproved) {
+          messages.push(`Board rejected $${(buybackAmount / 1_000_000).toFixed(1)}M buyback: ${vote.message}`);
+        }
+      }
 
-        // Reduce outstanding shares
-        newState.sharesIssued = Math.max(1_000_000, newState.sharesIssued - sharesToBuy); // Floor at 1M shares
-        newState.cash -= buybackAmount;
-
-        // PATCH 2: Recalculate EPS with fewer shares (earnings concentrated)
-        newState.eps = newState.sharesIssued > 0 ? newState.netIncome / newState.sharesIssued : 0;
-
-        // PATCH 2: Share price increases based on EPS improvement
-        const epsGrowth = oldEPS > 0 ? (newState.eps - oldEPS) / oldEPS : 0;
-        const priceBoost = 1 + Math.min(0.15, epsGrowth * 0.5); // Up to 15% boost
-        newState.sharePrice = currentSharePrice * priceBoost;
-
-        // Update market cap
-        newState.marketCap = newState.sharePrice * newState.sharesIssued;
-
-        totalCosts += buybackAmount;
-        const pctReduction = (sharesToBuy / oldShares) * 100;
-        messages.push(
-          `Bought back ${sharesToBuy.toLocaleString()} shares (${pctReduction.toFixed(1)}%) for $${(buybackAmount / 1_000_000).toFixed(1)}M. ` +
-          `EPS increased ${(epsGrowth * 100).toFixed(1)}% to $${newState.eps.toFixed(2)}`
-        );
+      if (!buybackApproved) {
+        // Skip buyback
+      } else if (currentSharePrice <= 0) {
+        // Guard: cannot buy back at zero or negative price
+        messages.push("Cannot execute share buyback: share price is $0 or negative");
       } else {
-        messages.push("Insufficient funds for share buyback");
+        const rawSharesToBuy = Math.floor(buybackAmount / currentSharePrice);
+        // Never buy more shares than would bring us below the 1M floor
+        const sharesToBuy = Math.min(rawSharesToBuy, Math.max(0, newState.sharesIssued - 1_000_000));
+
+        if (sharesToBuy <= 0) {
+          messages.push("Cannot buy back shares: already at minimum share count");
+        } else if (newState.cash >= buybackAmount) {
+          const oldShares = newState.sharesIssued;
+          const oldEPS = newState.eps;
+
+          // Reduce outstanding shares
+          newState.sharesIssued = Math.max(1_000_000, newState.sharesIssued - sharesToBuy);
+          newState.cash -= buybackAmount;
+
+          // PATCH 2: Recalculate EPS with fewer shares (earnings concentrated)
+          newState.eps = newState.sharesIssued > 0 ? newState.netIncome / newState.sharesIssued : 0;
+
+          // PATCH 2: Share price increases based on EPS improvement
+          const epsGrowth = oldEPS > 0 ? (newState.eps - oldEPS) / oldEPS : 0;
+          const priceBoost = 1 + Math.min(0.15, epsGrowth * 0.5); // Up to 15% boost
+          newState.sharePrice = currentSharePrice * priceBoost;
+
+          // Update market cap
+          newState.marketCap = newState.sharePrice * newState.sharesIssued;
+
+          totalCosts += buybackAmount;
+          const pctReduction = (sharesToBuy / oldShares) * 100;
+          messages.push(
+            `Bought back ${sharesToBuy.toLocaleString()} shares (${pctReduction.toFixed(1)}%) for $${(buybackAmount / 1_000_000).toFixed(1)}M. ` +
+            `EPS increased ${(epsGrowth * 100).toFixed(1)}% to $${newState.eps.toFixed(2)}`
+          );
+        } else {
+          messages.push("Insufficient funds for share buyback");
+        }
       }
     }
 
@@ -198,8 +268,42 @@ export class FinanceModule {
       }
     }
 
-    // Update EPS
-    newState.eps = newState.sharesIssued > 0 ? newState.netIncome / newState.sharesIssued : 0;
+    // EXPLOIT-03: Debt covenant enforcement — penalize excessive leverage
+    const totalDebt = newState.shortTermDebt + newState.longTermDebt;
+    const debtToEquity = newState.shareholdersEquity > 0
+      ? totalDebt / newState.shareholdersEquity : 999;
+
+    if (debtToEquity > CONSTANTS.DEBT_COVENANT_DE_THRESHOLD_1) {
+      // Covenant violation: 50% interest rate surcharge
+      const interestSurcharge = totalDebt * CONSTANTS.COVENANT_INTEREST_SURCHARGE * 0.5; // ~1% extra per round
+      newState.cash -= interestSurcharge;
+      totalCosts += interestSurcharge;
+      messages.push(`Debt covenant triggered (D/E ${debtToEquity.toFixed(2)}): $${(interestSurcharge / 1_000_000).toFixed(1)}M interest surcharge`);
+
+      if (debtToEquity > CONSTANTS.DEBT_COVENANT_DE_THRESHOLD_2) {
+        // Forced partial repayment: 10% of debt
+        const forcedRepayment = Math.min(newState.cash * CONSTANTS.FORCED_REPAYMENT_CASH_LIMIT, totalDebt * CONSTANTS.FORCED_REPAYMENT_DEBT_PERCENT);
+        if (forcedRepayment > 0) {
+          newState.cash -= forcedRepayment;
+          // Reduce long-term debt first
+          const ltReduction = Math.min(forcedRepayment, newState.longTermDebt);
+          newState.longTermDebt -= ltReduction;
+          const stReduction = forcedRepayment - ltReduction;
+          newState.shortTermDebt -= stReduction;
+          newState.totalLiabilities -= forcedRepayment;
+          totalCosts += forcedRepayment;
+          messages.push(`Severe covenant violation: forced $${(forcedRepayment / 1_000_000).toFixed(1)}M debt repayment`);
+        }
+      }
+
+      if (debtToEquity > CONSTANTS.CREDIT_FROZEN_DE_THRESHOLD) {
+        // Credit frozen — no new debt instruments available (enforced by blocking above)
+        messages.push(`Credit frozen: D/E ratio ${debtToEquity.toFixed(2)} exceeds ${CONSTANTS.CREDIT_FROZEN_DE_THRESHOLD} — no new borrowing allowed`);
+      }
+    }
+
+    // v5.1.0 Audit F-15: EPS removed — calculated in SimulationEngine after market
+    // (FinanceModule runs before market sim, so netIncome is stale here)
 
     return {
       newState,
@@ -241,7 +345,8 @@ export class FinanceModule {
       roe: state.shareholdersEquity > 0 ? state.netIncome / state.shareholdersEquity : 0,
       roa: state.totalAssets > 0 ? state.netIncome / state.totalAssets : 0,
       profitMargin: state.revenue > 0 ? state.netIncome / state.revenue : 0,
-      grossMargin: state.revenue > 0 ? (state.revenue - state.revenue * 0.6) / state.revenue : 0, // Assume 60% COGS
+      // v5.1.0 Audit F-08: Use actual COGS from state instead of 60% approximation
+      grossMargin: state.revenue > 0 ? (state.revenue - (state.cogs || state.revenue * 0.6)) / state.revenue : 0,
       operatingMargin: state.revenue > 0 ? (state.netIncome * 1.2) / state.revenue : 0, // Approximate
     };
   }
@@ -295,60 +400,108 @@ export class FinanceModule {
   }
 
   /**
-   * Calculate board proposal approval probability
+   * Calculate board proposal approval probability.
+   *
+   * Board satisfaction is driven by:
+   *   1. Achievement score (primary — this is the game's win condition)
+   *   2. Achievement count and recency (are we earning them?)
+   *   3. Absence of "Bad" achievements (shame penalties)
+   *   4. Financial health (supporting factor — D/E, cash, profitability)
+   *   5. ESG reputation
+   *
+   * A high-performing team (many achievements, no bad ones, healthy finances)
+   * gets easy board approval. A struggling team with bad achievements gets scrutiny.
    */
   static calculateProposalProbability(
     proposalType: string,
     state: TeamState,
     ratios: FinancialRatios
   ): number {
-    let baseProbability = 50;
+    // ── Board satisfaction score (0-100) ──
+    let satisfaction: number = CONSTANTS.BOARD_SATISFACTION_BASELINE; // Neutral baseline
 
-    // Base adjustments
-    if (ratios.roe > 0.15) baseProbability += 10;
-    if (ratios.currentRatio > 2.0) baseProbability += 5;
-    if (ratios.debtToEquity > 0.6) baseProbability -= 15;
+    // 1. Achievement score: +1 satisfaction per 10 achievement points (up to +30)
+    const achievementScore = state.achievementScore ?? 0;
+    satisfaction += Math.min(30, Math.floor(achievementScore / 10));
 
-    // PATCH 4: ESG affects board approval (high ESG improves trust)
-    if (state.esgScore > 600) {
-      baseProbability += 8; // High ESG = better board relations
-    } else if (state.esgScore < 300) {
-      baseProbability -= 12; // Low ESG = board concerned about reputation risk
-    }
+    // 2. Achievement count: board likes consistent progress
+    const achievements = state.achievements ?? [];
+    const positiveCount = achievements.filter(a => a.points > 0).length;
+    satisfaction += Math.min(10, positiveCount * 2); // +2 per positive achievement, cap +10
 
-    // Proposal-specific adjustments
+    // 3. Bad achievements: board is displeased by shame events
+    const badCount = achievements.filter(a => a.points === 0).length;
+    satisfaction -= badCount * 5; // -5 per bad/infamy achievement
+
+    // 4. Recent achievement momentum: any achievement earned this round?
+    const currentRound = state.round || 0;
+    const recentAchievements = achievements.filter(a => a.roundUnlocked >= currentRound - 1).length;
+    if (recentAchievements > 0) satisfaction += 5; // Recent progress boosts confidence
+
+    // 5. Financial health (secondary factors — board still checks the books)
+    if (ratios.roe > 0.15) satisfaction += 5;
+    if (ratios.currentRatio > 2.0) satisfaction += 3;
+    if (ratios.debtToEquity > 1.0) satisfaction -= 8;
+    if (ratios.debtToEquity > 2.0) satisfaction -= 10; // Severe leverage concern
+    if (state.cash < 0) satisfaction -= 10; // Negative cash is alarming
+
+    // 6. Profitability trend: positive net income = board trust
+    if (state.netIncome > 0) satisfaction += 5;
+    else if (state.netIncome < -10_000_000) satisfaction -= 8; // Large losses
+
+    // 7. ESG reputation: board cares about public image
+    if (state.esgScore > 600) satisfaction += 5;
+    else if (state.esgScore < 200) satisfaction -= 8;
+
+    // Clamp satisfaction to 10-95 range
+    satisfaction = Math.max(10, Math.min(95, satisfaction));
+
+    // ── Proposal-specific modifier ──
+    // Board satisfaction sets the baseline, then specific proposal types shift it
+    let modifier = 0;
+
     switch (proposalType.toLowerCase()) {
       case "dividend":
-        if (ratios.roe > 0.12 && ratios.cashRatio > 1.0) baseProbability += 20;
-        else baseProbability -= 20;
+        // Board approves dividends if company is profitable and has cash
+        modifier = (ratios.roe > 0.12 && ratios.cashRatio > 1.0) ? 10 : -15;
         break;
       case "expansion":
-        if (ratios.debtToEquity < 0.5) baseProbability += 15;
-        else baseProbability -= 10;
+        // Board approves growth if debt is manageable
+        modifier = ratios.debtToEquity < 0.5 ? 10 : -8;
         break;
       case "acquisition":
-        if (state.cash > 100_000_000 && ratios.debtToEquity < 0.4) baseProbability += 10;
-        else baseProbability -= 25;
+        // Board is cautious about acquisitions
+        modifier = (state.cash > 100_000_000 && ratios.debtToEquity < 0.4) ? 5 : -20;
         break;
       case "emergency_capital":
-        if (ratios.debtToEquity > 2) baseProbability = 65;
-        else baseProbability = 15;
+        // Emergency funding: boards almost always approve because the alternative is insolvency.
+        // Even a skeptical board would rather dilute than let the company collapse.
+        // Override: floor at 65%, high-satisfaction boards reach 85%+
+        modifier = Math.max(65 - satisfaction, 10); // At minimum +10, pushes low-satisfaction to 65+
         break;
       case "stock_buyback":
-        if (ratios.roe > 0.1 && state.cash > 50_000_000) baseProbability += 15;
+        // Board likes buybacks when profitable
+        modifier = (ratios.roe > 0.1 && state.cash > 50_000_000) ? 8 : -5;
+        break;
+      case "stock_issuance":
+        // Board approves dilution reluctantly — only if company needs it
+        if (ratios.cashRatio < 0.3) modifier += 15; // low cash = approve
+        if (ratios.debtToEquity > 1.0) modifier += 8; // high debt = approve equity over more debt
+        if (ratios.roe > 0.15) modifier -= 8; // profitable = why dilute?
         break;
     }
 
-    // Clamp between 10 and 95
-    return Math.max(10, Math.min(95, baseProbability));
+    // Final probability = satisfaction + proposal modifier, clamped
+    return Math.max(10, Math.min(95, satisfaction + modifier));
   }
 
   /**
    * Simulate board vote
    */
-  static simulateBoardVote(probability: number): BoardProposalResult {
-    const totalVotes = 6;
-    const approved = random() * 100 < probability;
+  static simulateBoardVote(probability: number, rng?: SeededRNG): BoardProposalResult {
+    const totalVotes = CONSTANTS.BOARD_TOTAL_VOTES;
+    const roll = rng ? rng.next() : Math.random();
+    const approved = roll * 100 < probability;
 
     let votesFor: number;
     if (approved) {
@@ -371,138 +524,9 @@ export class FinanceModule {
     };
   }
 
-  /**
-   * Apply FX impact to factory operations (legacy method)
-   */
-  static calculateFXImpact(
-    marketState: MarketState,
-    factoryRegion: string
-  ): { costImpact: number; message: string } {
-    const volatility = marketState.fxVolatility;
-
-    // Random FX movement within volatility range
-    const fxChange = (random() - 0.5) * volatility;
-
-    // Impact: $20K per factory per 1% FX change
-    const costImpact = fxChange * 20_000;
-
-    let message: string;
-    if (fxChange > 0.05) {
-      message = `Unfavorable FX movement in ${factoryRegion}: +$${(costImpact / 1000).toFixed(0)}K costs`;
-    } else if (fxChange < -0.05) {
-      message = `Favorable FX movement in ${factoryRegion}: -$${(Math.abs(costImpact) / 1000).toFixed(0)}K costs`;
-    } else {
-      message = `Stable FX in ${factoryRegion}`;
-    }
-
-    return { costImpact, message };
-  }
-
-  /**
-   * PATCH 6: Calculate FX impact on foreign revenue
-   * Assumes home region is North America, all other regions are foreign
-   * @param revenueByRegion Revenue earned in each region
-   * @param marketState Current market conditions with FX rates
-   * @returns Net FX gain/loss and breakdown messages
-   */
-  static calculateForeignRevenueFXImpact(
-    revenueByRegion: Record<string, number>,
-    marketState: MarketState
-  ): { fxImpact: number; messages: string[] } {
-    const HOME_REGION = "North America";
-    const messages: string[] = [];
-    let totalFXImpact = 0;
-
-    // FX rates are relative to USD (home currency)
-    // Rate > 1.0 = foreign currency stronger = favorable for exports
-    // Rate < 1.0 = foreign currency weaker = unfavorable for exports
-
-    for (const [region, revenue] of Object.entries(revenueByRegion)) {
-      if (region === HOME_REGION || revenue === 0) continue;
-
-      // Get FX rate for this region
-      let fxRate = 1.0;
-      if (region === "Europe") fxRate = marketState.fxRates.EUR_USD;
-      else if (region === "Asia") fxRate = marketState.fxRates.JPY_USD / 100; // Yen is in hundreds
-      else if (region === "MENA") fxRate = 0.98; // Approximate (not in market state)
-
-      // FX impact: (rate - 1.0) × revenue
-      // Positive = gain (foreign currency appreciated)
-      // Negative = loss (foreign currency depreciated)
-      const impact = (fxRate - 1.0) * revenue;
-      totalFXImpact += impact;
-
-      if (Math.abs(impact) > 10_000) {
-        const direction = impact > 0 ? "gain" : "loss";
-        messages.push(
-          `FX ${direction} from ${region}: $${(Math.abs(impact) / 1_000_000).toFixed(2)}M ` +
-          `(${revenue > 0 ? ((impact / revenue) * 100).toFixed(1) : '0'}% of ${region} revenue)`
-        );
-      }
-    }
-
-    if (messages.length === 0 && totalFXImpact !== 0) {
-      messages.push(`Net FX impact: $${(totalFXImpact / 1_000_000).toFixed(2)}M`);
-    }
-
-    return { fxImpact: totalFXImpact, messages };
-  }
-
-  /**
-   * Generate cash flow statement
-   */
-  static generateCashFlowStatement(
-    state: TeamState,
-    previousState: TeamState
-  ): {
-    operatingCashFlow: number;
-    investingCashFlow: number;
-    financingCashFlow: number;
-    netCashFlow: number;
-  } {
-    // Operating: Revenue - Expenses + Working Capital Changes
-    const operatingCashFlow = state.revenue - state.workforce.laborCost;
-
-    // Investing: CapEx and asset purchases (negative)
-    const investingCashFlow = -(state.factories.length - previousState.factories.length) * CONSTANTS.NEW_FACTORY_COST;
-
-    // Financing: Debt changes + Equity changes - Dividends
-    const debtChange = state.totalLiabilities - previousState.totalLiabilities;
-    const equityChange = state.shareholdersEquity - previousState.shareholdersEquity;
-    const financingCashFlow = debtChange + equityChange;
-
-    const netCashFlow = operatingCashFlow + investingCashFlow + financingCashFlow;
-
-    return {
-      operatingCashFlow,
-      investingCashFlow,
-      financingCashFlow,
-      netCashFlow,
-    };
-  }
-
-  /**
-   * Check if team can call board meeting
-   */
-  static canCallBoardMeeting(
-    meetingsThisYear: number,
-    ratios: FinancialRatios
-  ): { canCall: boolean; reason: string } {
-    // Can always call if in financial distress
-    if (ratios.debtToEquity > 1.5) {
-      return { canCall: true, reason: "Emergency meeting allowed due to high leverage" };
-    }
-    if (ratios.cashRatio < 0.5) {
-      return { canCall: true, reason: "Emergency meeting allowed due to low cash" };
-    }
-
-    // Normal limit: 2 per year
-    if (meetingsThisYear >= CONSTANTS.BOARD_MEETINGS_PER_YEAR) {
-      return { canCall: false, reason: "Maximum board meetings (2) for this year reached" };
-    }
-
-    return { canCall: true, reason: "Regular meeting available" };
-  }
+  // Dead code removed: calculateFXImpact, calculateForeignRevenueFXImpact (use FXEngine directly)
+  // Dead code removed: generateCashFlowStatement (superseded by FinancialStatementsEngine)
+  // Dead code removed: canCallBoardMeeting (board votes handled via simulateBoardVote)
 
   /**
    * Calculate EPS ranking percentile
@@ -534,10 +558,10 @@ export class FinanceModule {
     epsGrowth: number,
     sentiment: number
   ): number {
-    let basePE = 15; // Market average
+    let basePE = CONSTANTS.BASE_PE_RATIO; // Market average
 
     // Growth premium: High-growth companies get higher multiples
-    const growthPremium = epsGrowth > 0 ? Math.min(10, epsGrowth * 50) : 0;
+    const growthPremium = epsGrowth > 0 ? Math.min(CONSTANTS.PE_GROWTH_PREMIUM_MAX, epsGrowth * 50) : 0;
 
     // Sentiment adjustment: -10 to +10 PE points
     const sentimentAdjustment = (sentiment - 50) / 5;
@@ -552,8 +576,8 @@ export class FinanceModule {
 
     const targetPE = basePE + growthPremium + sentimentAdjustment + profitabilityBonus + leveragePenalty;
 
-    // Clamp between 5 and 30
-    return Math.max(5, Math.min(30, targetPE));
+    // Clamp between MIN_PE_RATIO and MAX_PE_RATIO
+    return Math.max(CONSTANTS.MIN_PE_RATIO, Math.min(CONSTANTS.MAX_PE_RATIO, targetPE));
   }
 
   /**
@@ -567,10 +591,10 @@ export class FinanceModule {
     let sentiment = baseSentiment;
 
     // PATCH 4: High ESG improves investor sentiment (ESG investing trend)
-    if (state.esgScore > 600) {
-      sentiment += 8; // High ESG = attracts ESG-focused investors
-    } else if (state.esgScore < 300) {
-      sentiment -= 10; // Low ESG = reputation risk concerns
+    if (state.esgScore > CONSTANTS.INVESTOR_SENTIMENT_ESG_HIGH) {
+      sentiment += CONSTANTS.INVESTOR_SENTIMENT_ESG_BONUS; // High ESG = attracts ESG-focused investors
+    } else if (state.esgScore < CONSTANTS.INVESTOR_SENTIMENT_ESG_LOW) {
+      sentiment -= CONSTANTS.INVESTOR_SENTIMENT_ESG_PENALTY; // Low ESG = reputation risk concerns
     }
 
     // Clamp between 0 and 100
@@ -588,21 +612,28 @@ export class FinanceModule {
     // PATCH 2: Use target PE ratio calculation
     const targetPE = this.calculateTargetPERatio(state, epsGrowth, marketSentiment);
 
-    // Calculate market cap from PE ratio: Market Cap = EPS × Shares × PE
+    // CRIT-03: Blended market cap near EPS=0 to prevent valuation discontinuity
+    // Pure PE method for EPS > $0.50, pure P/S for EPS < -$0.50, blend in between
+    const priceToSales = Math.max(0.5, CONSTANTS.PRICE_TO_SALES_BASE + (marketSentiment - 50) / 25);
     let newMarketCap: number;
 
-    if (state.eps > 0) {
-      // Positive earnings: use PE multiple
+    if (state.eps > CONSTANTS.MARKET_CAP_BLEND_ZONE.high) {
+      // Pure PE method
       newMarketCap = state.eps * state.sharesIssued * targetPE;
-    } else {
-      // Negative earnings: use price-to-sales or book value
-      const priceToSales = Math.max(0.5, 2 + (marketSentiment - 50) / 25); // 0.5x to 3.5x sales
+    } else if (state.eps < CONSTANTS.MARKET_CAP_BLEND_ZONE.low) {
+      // Pure P/S method
       newMarketCap = state.revenue * priceToSales;
+    } else {
+      // Blend zone: [low, high] — smooth transition
+      const blend = (state.eps - CONSTANTS.MARKET_CAP_BLEND_ZONE.low) / (CONSTANTS.MARKET_CAP_BLEND_ZONE.high - CONSTANTS.MARKET_CAP_BLEND_ZONE.low); // 0 at low, 1 at high
+      const mcPE = Math.max(0.01, state.eps) * state.sharesIssued * targetPE;
+      const mcPS = state.revenue * priceToSales;
+      newMarketCap = mcPE * blend + mcPS * (1 - blend);
     }
 
     // Floor at 0.5x book value (asset backing)
     const bookValue = state.totalAssets - state.totalLiabilities;
-    const minMarketCap = Math.max(bookValue * 0.5, state.totalAssets * 0.3);
+    const minMarketCap = Math.max(bookValue * CONSTANTS.MARKET_CAP_BOOK_VALUE_FLOOR, state.totalAssets * CONSTANTS.MARKET_CAP_ASSETS_FLOOR);
 
     return Math.max(minMarketCap, newMarketCap);
   }

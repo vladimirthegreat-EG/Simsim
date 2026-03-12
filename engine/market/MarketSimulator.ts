@@ -11,6 +11,7 @@ import {
   Product,
   CONSTANTS,
 } from "../types";
+import type { RubberBandingFactors } from "../types/state";
 import type { DynamicPriceExpectation } from "../types/market";
 import { random, randomRange } from "../utils";
 import { cloneMarketState, cloneTeamState } from "../utils/stateUtils";
@@ -87,6 +88,114 @@ export interface MarketSimulationResult {
 }
 
 export class MarketSimulator {
+  /**
+   * Calculate rubber-banding factors for all teams based on previous round's market shares.
+   * v6.0.0: Replaces threshold-based system with continuous, indirect mechanisms.
+   *
+   * Returns neutral factors (no effect) if:
+   * - Round is before RUBBER_BAND_ACTIVATION_ROUND (3)
+   * - Only 1 team
+   * - Input shares contain NaN/Infinity
+   */
+  static calculateRubberBandingFactors(
+    teams: Array<{ id: string; state: TeamState }>,
+    roundNumber: number
+  ): Record<string, RubberBandingFactors> {
+    const result: Record<string, RubberBandingFactors> = {};
+    const neutral: RubberBandingFactors = {
+      position: 0,
+      costReliefFactor: 0,
+      perceptionBonus: 0,
+      brandDecayMultiplier: 1.0,
+      qualityExpectationBoost: 0,
+    };
+
+    // Pre-activation: all neutral
+    if (roundNumber < CONSTANTS.RUBBER_BAND_ACTIVATION_ROUND) {
+      for (const team of teams) {
+        result[team.id] = { ...neutral };
+      }
+      return result;
+    }
+
+    const numTeams = teams.length;
+
+    // Solo team: always at average
+    if (numTeams <= 1) {
+      for (const team of teams) {
+        result[team.id] = { ...neutral };
+      }
+      return result;
+    }
+
+    const globalAvgShare = 1 / numTeams;
+
+    // Calculate each team's average share across segments they participate in
+    for (const team of teams) {
+      const shares = team.state.marketShare || {};
+      const shareValues = Object.values(shares).filter(
+        (v): v is number => typeof v === "number" && isFinite(v) && !isNaN(v)
+      );
+
+      // EXPLOIT-04: Teams with no market presence get no rubber-banding benefits
+      // Prevents tanking exploit (withdraw → collect cost relief → re-enter)
+      if (shareValues.length === 0) {
+        result[team.id] = { ...neutral };
+        continue;
+      }
+
+      // Also require active participation: at least 1 segment with meaningful share
+      const activeSegments = shareValues.filter(s => s > 0.001).length;
+      if (activeSegments === 0) {
+        // Team has market share data but negligible presence — no benefits
+        result[team.id] = { ...neutral };
+        continue;
+      }
+
+      const teamAvgShare = shareValues.reduce((sum, s) => sum + s, 0) / shareValues.length;
+
+      // Guard against NaN from calculation
+      if (!isFinite(teamAvgShare)) {
+        result[team.id] = { ...neutral };
+        continue;
+      }
+
+      const position = (teamAvgShare - globalAvgShare) / globalAvgShare;
+
+      let costReliefFactor = 0;
+      let perceptionBonus = 0;
+      let brandDecayMultiplier = 1.0;
+      let qualityExpectationBoost = 0;
+
+      if (position < 0) {
+        // Trailing team: Mechanism A (cost relief) + Mechanism B (perception boost)
+        const rawRelief = Math.abs(position);
+        costReliefFactor = Math.tanh(rawRelief * CONSTANTS.RB_COST_RELIEF_SENSITIVITY)
+          * CONSTANTS.RB_MAX_COST_RELIEF;
+        perceptionBonus = Math.tanh(rawRelief * CONSTANTS.RB_PERCEPTION_SENSITIVITY)
+          * CONSTANTS.RB_MAX_PERCEPTION_BONUS;
+      } else if (position > 0) {
+        // Leading team: Mechanism C (incumbent drag)
+        const rawLead = position;
+        const dragFactor = Math.tanh(rawLead * CONSTANTS.RB_DRAG_SENSITIVITY)
+          * CONSTANTS.RB_MAX_DRAG;
+        brandDecayMultiplier = 1.0 + dragFactor;
+        qualityExpectationBoost = dragFactor * CONSTANTS.RB_MAX_QUALITY_EXPECTATION_BOOST;
+      }
+      // position === 0: all factors remain neutral
+
+      result[team.id] = {
+        position,
+        costReliefFactor,
+        perceptionBonus,
+        brandDecayMultiplier,
+        qualityExpectationBoost,
+      };
+    }
+
+    return result;
+  }
+
   /**
    * Simulate market competition for a round
    * @param teams Teams participating in the market
@@ -245,12 +354,47 @@ export class MarketSimulator {
       // Calculate market shares using softmax
       const shares = this.calculateMarketShares(segmentPositions);
 
-      // Allocate sales based on shares
+      // Allocate sales based on shares, capped by production capacity
       const segmentDemand = totalDemand[segment];
+
+      // First pass: calculate demand and cap by production capacity
+      const demandByTeam: Array<{ index: number; demandUnits: number; cappedUnits: number; spareCapacity: number }> = [];
+      let totalUnfulfilled = 0;
+
       for (let i = 0; i < segmentPositions.length; i++) {
         const position = segmentPositions[i];
         const share = shares[i];
-        const units = Math.floor(segmentDemand * share);
+        const demandUnits = Math.floor(segmentDemand * share);
+        const team = teams.find(t => t.id === position.teamId);
+        const allocationPct = team?.state?.productionAllocations?.[segment];
+        const productionCapacity = team
+          ? MarketSimulator.getTeamProductionCapacity(team.state, segment, allocationPct)
+          : 0;
+        const cappedUnits = Math.min(demandUnits, productionCapacity);
+        const spareCapacity = Math.max(0, productionCapacity - demandUnits);
+        totalUnfulfilled += (demandUnits - cappedUnits);
+        demandByTeam.push({ index: i, demandUnits, cappedUnits, spareCapacity });
+      }
+
+      // Second pass: redistribute unfulfilled demand to teams with spare capacity
+      if (totalUnfulfilled > 0) {
+        const teamsWithSpare = demandByTeam.filter(t => t.spareCapacity > 0);
+        const totalSpare = teamsWithSpare.reduce((s, t) => s + t.spareCapacity, 0);
+        if (totalSpare > 0) {
+          for (const t of teamsWithSpare) {
+            const extraUnits = Math.min(
+              Math.floor(totalUnfulfilled * (t.spareCapacity / totalSpare)),
+              t.spareCapacity
+            );
+            t.cappedUnits += extraUnits;
+          }
+        }
+      }
+
+      for (let i = 0; i < segmentPositions.length; i++) {
+        const position = segmentPositions[i];
+        const share = shares[i];
+        const units = demandByTeam[i].cappedUnits;
 
         position.marketShare = share;
         position.unitsSold = units;
@@ -315,69 +459,19 @@ export class MarketSimulator {
       }
     }
 
-    // Apply rubber-banding if enabled and conditions are met
-    let rubberBandingApplied = false;
-    if (options?.applyRubberBanding && marketState.roundNumber >= 3) {
-      // Create position lookup map for O(1) access
-      const positionMap = new Map<string, TeamMarketPosition>();
-      for (const pos of positions) {
-        positionMap.set(`${pos.teamId}:${pos.segment}`, pos);
-      }
-
-      // Get overall market positions for each team
-      const teamTotalShares = teams.map(t => {
-        const totalShare = Object.values(marketShares[t.id]).reduce((sum, s) => sum + s, 0) / CONSTANTS.SEGMENTS.length;
-        return { teamId: t.id, totalShare };
-      });
-
-      const avgShare = teamTotalShares.length > 0
-        ? teamTotalShares.reduce((sum, t) => sum + t.totalShare, 0) / teamTotalShares.length
-        : 0;
-
-      // Check if rubber-banding should be applied
-      const needsRubberBanding = teamTotalShares.some(
-        t => t.totalShare < avgShare * 0.5 || t.totalShare > avgShare * 2
-      );
-
-      if (needsRubberBanding) {
-        rubberBandingApplied = true;
-
-        // Adjust shares for trailing/leading teams
-        for (const team of teamTotalShares) {
-          const multiplier = team.totalShare < avgShare * CONSTANTS.RUBBER_BAND_THRESHOLD
-            ? CONSTANTS.RUBBER_BAND_TRAILING_BOOST  // Boost trailing teams
-            : team.totalShare > avgShare * 2
-              ? CONSTANTS.RUBBER_BAND_LEADING_PENALTY // Penalize leading teams
-              : 1.0;
-
-          if (multiplier !== 1.0) {
-            for (const segment of CONSTANTS.SEGMENTS) {
-              const originalShare = marketShares[team.teamId][segment];
-              marketShares[team.teamId][segment] = originalShare * multiplier;
-
-              // Recalculate sales and revenue
-              const units = Math.floor(totalDemand[segment] * marketShares[team.teamId][segment]);
-              salesByTeam[team.teamId][segment] = units;
-
-              // Find the position and update it (O(1) lookup via Map)
-              const pos = positionMap.get(`${team.teamId}:${segment}`);
-              if (pos) {
-                pos.marketShare = marketShares[team.teamId][segment];
-                pos.unitsSold = units;
-                pos.revenue = units * (pos.product?.price || 0);
-              }
-            }
-
-            // Recalculate total revenue for this team
-            revenueByTeam[team.teamId] = Object.values(salesByTeam[team.teamId]).reduce((sum, units, idx) => {
-              const seg = CONSTANTS.SEGMENTS[idx];
-              const pos = positionMap.get(`${team.teamId}:${seg}`);
-              return sum + (units * (pos?.product?.price || 0));
-            }, 0);
-          }
-        }
-      }
-    }
+    // v6.0.0: Old threshold-based rubber-banding REMOVED.
+    // Rubber-banding now works through three indirect mechanisms:
+    // - Mechanism A (cost relief) applied in COGS calculation
+    // - Mechanism B (perception boost) applied in calculateTeamPosition scoring
+    // - Mechanism C (incumbent drag) applied in MarketingModule brand decay + quality expectations
+    // Factors are pre-calculated at Step 0 of the pipeline and stored on team state.
+    const rubberBandingApplied = teams.some(t =>
+      t.state.rubberBanding && (
+        t.state.rubberBanding.costReliefFactor > 0 ||
+        t.state.rubberBanding.perceptionBonus > 0 ||
+        t.state.rubberBanding.brandDecayMultiplier > 1.0
+      )
+    );
 
     return {
       positions,
@@ -407,30 +501,41 @@ export class MarketSimulator {
    * - MID (400-699): 2% revenue bonus
    * - LOW (<400): 1-8% penalty (gradient based on score)
    */
-  // PATCH 4: ESG redesigned as risk mitigation, not revenue bonuses
+  // BAL-01: Continuous ESG curve — eliminates step discontinuities
+  // Penalty zone: 0-300 (linear from -12% to 0%), Bonus ramp: 300-700 (0% to +5%), Cap at +5%
   static applyESGEvents(
     esgScore: number,
     revenue: number
   ): { type: "bonus" | "penalty"; amount: number; message: string } | null {
-    // PATCH 4: Only penalize very low ESG - represents actual regulatory/PR disasters
-    if (esgScore < CONSTANTS.ESG_PENALTY_THRESHOLD) {
-      // Linear interpolation: penalty = MAX - (score/threshold) * (MAX - MIN)
-      const MAX_PENALTY = CONSTANTS.ESG_PENALTY_MAX;
-      const MIN_PENALTY = CONSTANTS.ESG_PENALTY_MIN;
-      const penaltyRange = MAX_PENALTY - MIN_PENALTY;
-      const scoreRatio = esgScore / CONSTANTS.ESG_PENALTY_THRESHOLD; // 0 to ~1
-      const penaltyRate = MAX_PENALTY - (scoreRatio * penaltyRange);
-      const penalty = -revenue * penaltyRate;
+    let modifier: number;
 
+    if (esgScore < 300) {
+      // Penalty zone: linear from -12% at 0 to 0% at 300
+      modifier = -(1 - esgScore / 300) * CONSTANTS.ESG_PENALTY_MAX;
+    } else if (esgScore < 700) {
+      // Bonus ramp: linear from 0% at 300 to +5% at 700
+      modifier = ((esgScore - 300) / 400) * CONSTANTS.ESG_HIGH_BONUS;
+    } else {
+      // Cap at +5%
+      modifier = CONSTANTS.ESG_HIGH_BONUS;
+    }
+
+    if (modifier < -0.001) {
+      const penalty = revenue * modifier; // negative
       return {
         type: "penalty",
         amount: penalty,
-        message: `ESG Crisis (boycotts/fines): -${(penaltyRate * 100).toFixed(1)}% revenue ($${(Math.abs(penalty) / 1_000_000).toFixed(1)}M)`,
+        message: `ESG risk (boycotts/fines): ${(modifier * 100).toFixed(1)}% revenue ($${(Math.abs(penalty) / 1_000_000).toFixed(1)}M)`,
+      };
+    } else if (modifier > 0.001) {
+      const bonus = revenue * modifier;
+      return {
+        type: "bonus",
+        amount: bonus,
+        message: `ESG premium: +${(modifier * 100).toFixed(1)}% revenue ($${(bonus / 1_000_000).toFixed(1)}M)`,
       };
     }
 
-    // PATCH 4: Mid ESG (300-600) = baseline (no effect)
-    // High ESG (> 600) = risk mitigation, better board approval (handled elsewhere)
     return null;
   }
 
@@ -520,6 +625,25 @@ export class MarketSimulator {
     const segmentData = marketState.demandBySegment[segment];
     const weights = this.getSegmentWeights(segment);
 
+    // EXPLOIT-06: Reject invalid prices — zero or negative prices get zero score
+    if (product.price <= 0) {
+      return {
+        teamId,
+        segment,
+        product,
+        priceScore: 0,
+        qualityScore: 0,
+        brandScore: 0,
+        esgScore: 0,
+        featureScore: 0,
+        totalScore: 0,
+        marketShare: 0,
+        unitsSold: 0,
+        revenue: 0,
+        warrantyCost: 0,
+      };
+    }
+
     // Price Score - dynamic pricing when available, legacy otherwise
     const dynamicPrice = marketState.dynamicPricing?.[segment];
     let priceScore: number;
@@ -571,23 +695,37 @@ export class MarketSimulator {
 
     // Quality Score: Product quality vs expectations
     // v2.2.0: Allow exceeding expectations with diminishing returns
-    // This rewards premium strategies for investing in quality
-    const qualityExpectation = this.getQualityExpectation(segment);
+    // v6.0.0: Rubber-banding Mechanism C raises expectations for leaders
+    const baseQualityExpectation = this.getQualityExpectation(segment);
+    const rbFactors = state.rubberBanding;
+    const qualityExpectationBoost = rbFactors?.qualityExpectationBoost ?? 0;
+    const qualityExpectation = baseQualityExpectation + qualityExpectationBoost;
+
     const qualityRatio = product.quality / qualityExpectation;
     // Beyond 1.0, use sqrt for diminishing returns: sqrt(1.2) = 1.095, sqrt(1.5) = 1.22
     // v4.0.2: Cap limits R&D-focused dominance
     // v5.0.0: Soft quality curve — quadratic penalty below 70% of expectation
+    // FORMULA-01: Fixed quadratic zone to be continuous at 0.7 boundary
     let qualityMultiplier: number;
     if (qualityRatio >= 1.0) {
       qualityMultiplier = 1.0 + Math.sqrt(qualityRatio - 1) * 0.5; // 50% of excess via sqrt
     } else if (qualityRatio >= 0.7) {
-      qualityMultiplier = qualityRatio; // Linear zone
+      qualityMultiplier = qualityRatio; // Linear zone: 0.7 at boundary
     } else {
       // Accelerating penalty: quadratic below 70% of expectation
-      // Continuity at 0.7: 0.7² / 0.49 = 0.7
-      qualityMultiplier = (qualityRatio * qualityRatio) / 0.49;
+      // Continuous at 0.7: (0.7/0.7)² × 0.7 = 1.0 × 0.7 = 0.7 ✓
+      // At 0.35: (0.35/0.7)² × 0.7 = 0.25 × 0.7 = 0.175
+      // At 0.0: 0.0
+      qualityMultiplier = Math.pow(qualityRatio / 0.7, 2) * 0.7;
     }
-    const qualityScore = Math.min(CONSTANTS.QUALITY_FEATURE_BONUS_CAP, qualityMultiplier) * weights.quality;
+    let qualityScore = Math.min(CONSTANTS.QUALITY_FEATURE_BONUS_CAP, qualityMultiplier) * weights.quality;
+
+    // v6.0.0: Rubber-banding Mechanism B — perception boost for trailing teams
+    // Additive bonus to quality score, scaled by quality weight
+    const perceptionBonus = rbFactors?.perceptionBonus ?? 0;
+    if (perceptionBonus > 0) {
+      qualityScore += perceptionBonus * weights.quality;
+    }
 
     // Brand Score: Brand value contribution (already 0-1)
     // sqrt() for diminishing returns - high brand values give less incremental benefit
@@ -598,7 +736,7 @@ export class MarketSimulator {
     } else if (state.brandValue < CONSTANTS.BRAND_CRITICAL_MASS_LOW) {
       brandMultiplier = CONSTANTS.BRAND_LOW_MULTIPLIER;
     }
-    const brandScore = Math.sqrt(state.brandValue) * weights.brand * brandMultiplier;
+    const brandScore = Math.sqrt(Math.max(0, state.brandValue)) * weights.brand * brandMultiplier; // FORMULA-02: guard sqrt(negative)
 
     // ESG Score: Sustainability premium (0-1 scale from 0-1000 score)
     const esgRatio = state.esgScore / 1000;
@@ -684,6 +822,62 @@ export class MarketSimulator {
   }
 
   /**
+   * Calculate a team's production capacity for a given segment.
+   * Capacity = machineCapacity × workerRatio × avgEfficiency × (1 - avgDefectRate)
+   * Fallback: workers × BASE_WORKER_OUTPUT if no machines.
+   */
+  static getTeamProductionCapacity(state: TeamState, segment: Segment, allocationPercent?: number): number {
+    // Production capacity is driven by machines + workers. No arbitrary caps.
+
+    // 1. Machine capacity: sum from all operational machines across factories
+    let machineCapacity = 0;
+    if (state.machineryStates) {
+      for (const fm of Object.values(state.machineryStates)) {
+        machineCapacity += fm.totalCapacity || 0;
+      }
+    }
+
+    // 2. Worker-based capacity: workers × BASE_WORKER_OUTPUT (100 units/worker)
+    const workers = state.employees.filter(e => e.role === 'worker').length;
+    const workerCapacity = workers * CONSTANTS.BASE_WORKER_OUTPUT;
+
+    // Use whichever is the binding constraint: machine capacity or worker capacity
+    // If no machines purchased yet, capacity is purely worker-driven
+    let rawCapacity: number;
+    if (machineCapacity > 0) {
+      // With machines: capacity is machine-driven, but constrained by worker staffing
+      const totalMachines = Object.values(state.machineryStates!).reduce((sum, fm) =>
+        sum + (fm.machines?.filter(m => m.status === 'operational').length || 0), 0);
+      const workersNeeded = Math.ceil(totalMachines * CONSTANTS.WORKERS_PER_MACHINE);
+      const workerRatio = workersNeeded > 0 ? Math.min(1.0, workers / workersNeeded) : 1.0;
+      rawCapacity = machineCapacity * workerRatio;
+    } else {
+      // No machines: worker-driven production (early game)
+      rawCapacity = workerCapacity;
+    }
+
+    // Apply user's production allocation percentage (0-100) for this segment
+    if (allocationPercent !== undefined && allocationPercent >= 0) {
+      rawCapacity = Math.floor(rawCapacity * (allocationPercent / 100));
+    }
+
+    // Apply factory efficiency (baseline 0.7) and defect rate (baseline 0.06)
+    const avgEfficiency = state.factories.length > 0
+      ? state.factories.reduce((sum, f) => sum + f.efficiency, 0) / state.factories.length
+      : 0.7;
+    const avgDefectRate = state.factories.length > 0
+      ? state.factories.reduce((sum, f) => sum + f.defectRate, 0) / state.factories.length
+      : 0.06;
+
+    // Check for automation upgrade across factories
+    const hasAutomation = state.factories.some(f => f.upgrades.includes("automation"));
+    const automationMultiplier = hasAutomation ? 5 : 1;
+
+    // Final capacity = raw × efficiency × (1 - defects) × automation
+    return Math.floor(rawCapacity * avgEfficiency * (1 - avgDefectRate) * automationMultiplier);
+  }
+
+  /**
    * Calculate market shares using softmax function
    * This ensures shares sum to 1 and higher scores get more share
    */
@@ -697,14 +891,7 @@ export class MarketSimulator {
     }
 
     // Softmax with temperature for competition intensity
-    // Temperature controls how "winner-take-all" the market is:
-    // - Lower temp (e.g., 5) = leader dominates
-    // - Higher temp (e.g., 30) = more equal distribution
-    // Temperature 10 gives moderate competition:
-    // - Close scores (70,65,60,55): ~46%, 28%, 17%, 10%
-    // - Clear leader (80,60,55,50): ~79%, 11%, 6%, 4%
-    // - Dominant (90,50,45,40): ~97%, 2%, 1%, 1%
-    const temperature = CONSTANTS.SOFTMAX_TEMPERATURE; // v3.1.0: Read from CONSTANTS for tuning (Fix 1.1)
+    const temperature = CONSTANTS.SOFTMAX_TEMPERATURE;
 
     // Calculate exp(score/temperature) for valid positions
     const maxScore = Math.max(...validPositions.map(p => p.totalScore));
@@ -720,7 +907,22 @@ export class MarketSimulator {
       return positions.map(() => 1 / positions.length);
     }
 
-    return expScores.map(exp => exp / sumExp);
+    let shares = expScores.map(exp => exp / sumExp);
+
+    // CRIT-06: Ensure minimum share allocation to prevent downstream division-by-zero
+    // when a team gets exactly 0% share (exp underflow)
+    const MIN_SHARE = 0.001; // 0.1% minimum per team with a product
+    const teamsWithProduct = shares.filter(s => s > 0).length;
+    if (teamsWithProduct > 0) {
+      shares = shares.map(s => s > 0 ? Math.max(MIN_SHARE, s) : s);
+      // Re-normalize so shares sum to 1.0
+      const newSum = shares.reduce((a, b) => a + b, 0);
+      if (newSum > 0) {
+        shares = shares.map(s => s / newSum);
+      }
+    }
+
+    return shares;
   }
 
   /**

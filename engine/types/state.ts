@@ -73,6 +73,25 @@ export interface ESGState {
 }
 
 // ============================================
+// RUBBER-BANDING FACTORS (v6.0.0)
+// ============================================
+
+/** Rubber-banding factors computed from previous round's market shares.
+ *  Stored on TeamState for use by Marketing, Market, and COGS modules. */
+export interface RubberBandingFactors {
+  /** How far above/below average: (teamAvgShare - globalAvgShare) / globalAvgShare */
+  position: number;
+  /** Mechanism A: COGS/hiring cost reduction for trailing teams (0 to MAX_COST_RELIEF) */
+  costReliefFactor: number;
+  /** Mechanism B: Quality perception bonus for trailing teams (0 to MAX_PERCEPTION_BONUS) */
+  perceptionBonus: number;
+  /** Mechanism C: Brand decay multiplier for leading teams (1.0 to 1.0 + MAX_DRAG) */
+  brandDecayMultiplier: number;
+  /** Mechanism C: Quality expectation boost for leading teams (0 to MAX_QUALITY_EXPECTATION_BOOST) */
+  qualityExpectationBoost: number;
+}
+
+// ============================================
 // TEAM STATE
 // ============================================
 
@@ -155,6 +174,12 @@ export interface TeamState {
   esgScore: number;
   co2Emissions: number;
 
+  // Material tier choices per segment (1-5, set via Factory decisions)
+  materialTierChoices?: Record<string, number>;
+
+  // FX hedging percentage (0-100, average across hedged pairs)
+  fxHedgePercentage?: number;
+
   // Benefits
   benefits: CompanyBenefits;
 
@@ -166,6 +191,22 @@ export interface TeamState {
 
   // Machinery states per factory
   machineryStates?: Record<string, FactoryMachineryState>;
+
+  // Rubber-banding factors (calculated at Step 0, used by other modules)
+  rubberBanding?: RubberBandingFactors;
+
+  /** Auto-funding events triggered this round by CashEnforcement */
+  autoFunding?: {
+    debtAutoIssued: number;
+    equityRaised: number;
+    sharesAutoIssued: number;
+    dilutionPercent: number;       // newShares / (old + new)
+    interestRateApplied: number;   // annual rate on auto-loan
+    boardVoteHeld: boolean;
+    boardApproved: boolean | null; // null if no vote needed
+    liquidityCrisis: boolean;
+    messages: string[];
+  };
 
   // === Phase 6: New Game Mechanics ===
 
@@ -188,6 +229,9 @@ export interface TeamState {
 
   /** Research decay timers: techId -> rounds since completion without application */
   researchDecayTimers?: Record<string, number>;
+
+  /** Production allocation percentages per segment (0-100), set by user in Factory */
+  productionAllocations?: Record<string, number>;
 
   /** Collaborative research proposals (multiplayer only) */
   researchProposals?: ResearchProposal[];

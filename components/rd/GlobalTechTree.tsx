@@ -2,12 +2,14 @@
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { CONSTANTS } from "@/engine/types";
-import { CheckCircle2, Lock, Loader2, Beaker } from "lucide-react";
+import { CheckCircle2, Lock, Loader2, Beaker, Sparkles } from "lucide-react";
 
 interface GlobalTechTreeProps {
   unlockedTechs: string[];
   currentRdPoints?: number;
+  previousUnlockedTechs?: string[];
 }
 
 const TECH_LEVELS = [
@@ -45,7 +47,7 @@ const TECH_LEVELS = [
   },
 ];
 
-export function GlobalTechTree({ unlockedTechs, currentRdPoints = 0 }: GlobalTechTreeProps) {
+export function GlobalTechTree({ unlockedTechs, currentRdPoints = 0, previousUnlockedTechs }: GlobalTechTreeProps) {
   return (
     <Card className="bg-slate-800 border-slate-700">
       <CardHeader className="pb-3">
@@ -54,7 +56,7 @@ export function GlobalTechTree({ unlockedTechs, currentRdPoints = 0 }: GlobalTec
           <div>
             <h3 className="text-white font-semibold text-base">R&D Tech Levels</h3>
             <p className="text-slate-400 text-sm">
-              {currentRdPoints} R&D points accumulated
+              {Math.floor(currentRdPoints)} R&D points accumulated
             </p>
           </div>
         </div>
@@ -66,13 +68,20 @@ export function GlobalTechTree({ unlockedTechs, currentRdPoints = 0 }: GlobalTec
             const prevUnlocked = idx === 0 || unlockedTechs.includes(TECH_LEVELS[idx - 1].id);
             const isNext = !isUnlocked && prevUnlocked;
             const isLocked = !isUnlocked && !isNext;
+            const isNewlyUnlocked = isUnlocked && previousUnlockedTechs !== undefined && !previousUnlockedTechs.includes(tech.id);
+
+            const progressPercent = isNext
+              ? Math.min(100, (currentRdPoints / tech.pointsRequired) * 100)
+              : 0;
 
             return (
               <div
                 key={tech.id}
-                className={`flex items-center gap-4 p-3 rounded-lg border ${
+                className={`flex items-center gap-4 p-3 rounded-lg border transition-all ${
                   isUnlocked
-                    ? "bg-purple-500/10 border-purple-500/30"
+                    ? isNewlyUnlocked
+                      ? "bg-purple-500/15 border-purple-400/50 ring-2 ring-purple-400/30 animate-pulse"
+                      : "bg-purple-500/10 border-purple-500/30"
                     : isNext
                     ? "bg-cyan-500/5 border-cyan-500/30"
                     : "bg-slate-700/30 border-slate-700"
@@ -82,7 +91,9 @@ export function GlobalTechTree({ unlockedTechs, currentRdPoints = 0 }: GlobalTec
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
                   isUnlocked ? "bg-purple-500/20" : isNext ? "bg-cyan-500/20" : "bg-slate-700"
                 }`}>
-                  {isUnlocked ? (
+                  {isNewlyUnlocked ? (
+                    <Sparkles className="w-5 h-5 text-purple-400" />
+                  ) : isUnlocked ? (
                     <CheckCircle2 className="w-5 h-5 text-purple-400" />
                   ) : isNext ? (
                     <Loader2 className="w-5 h-5 text-cyan-400" />
@@ -97,7 +108,10 @@ export function GlobalTechTree({ unlockedTechs, currentRdPoints = 0 }: GlobalTec
                     <span className={`font-medium text-sm ${isUnlocked ? "text-purple-300" : isNext ? "text-white" : "text-slate-500"}`}>
                       Level {tech.level}: {tech.name}
                     </span>
-                    {isUnlocked && (
+                    {isNewlyUnlocked && (
+                      <Badge className="bg-purple-500/30 text-purple-300 text-[10px] animate-pulse">NEW</Badge>
+                    )}
+                    {isUnlocked && !isNewlyUnlocked && (
                       <Badge className="bg-purple-500/20 text-purple-400 text-[10px]">Unlocked</Badge>
                     )}
                     {isNext && (
@@ -107,6 +121,14 @@ export function GlobalTechTree({ unlockedTechs, currentRdPoints = 0 }: GlobalTec
                   <p className={`text-xs mt-0.5 ${isLocked ? "text-slate-600" : "text-slate-400"}`}>
                     {tech.description}
                   </p>
+                  {isNext && (
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <Progress value={progressPercent} className="h-1.5 flex-1" />
+                      <span className="text-[10px] text-cyan-400 shrink-0">
+                        {Math.floor(currentRdPoints)}/{tech.pointsRequired}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Requirements */}

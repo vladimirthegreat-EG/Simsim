@@ -93,10 +93,16 @@ export class RDModule {
     messages.push(`Engineers generated ${rdOutput.toFixed(0)} R&D points`);
 
     // v3.1.0: R&D budget also generates rdProgress (Fix: budget was previously wasted)
+    // CRIT-01: Cap budget-derived points to prevent R&D dump strategy dominance
     if (decisions.rdBudget && decisions.rdBudget > 0) {
-      const budgetPoints = Math.floor(decisions.rdBudget / CONSTANTS.RD_BUDGET_TO_POINTS_RATIO);
+      const rawBudgetPoints = Math.floor(decisions.rdBudget / CONSTANTS.RD_BUDGET_TO_POINTS_RATIO);
+      const budgetPoints = Math.min(CONSTANTS.MAX_RD_BUDGET_POINTS_PER_ROUND, rawBudgetPoints);
       newState.rdProgress += budgetPoints;
-      messages.push(`R&D budget generated ${budgetPoints} additional R&D points`);
+      if (rawBudgetPoints > budgetPoints) {
+        messages.push(`R&D budget generated ${budgetPoints} R&D points (capped; ${rawBudgetPoints - budgetPoints} pts wasted from overspend)`);
+      } else {
+        messages.push(`R&D budget generated ${budgetPoints} additional R&D points`);
+      }
     }
 
     // Process new product development (now starts in "in_development" status)
@@ -169,6 +175,7 @@ export class RDModule {
       if (product.developmentStatus === "ready") {
         product.developmentStatus = "launched";
         messages.push(`${product.name} launched to market!`);
+        RDModule.ensureProductionLine(newState, product);
       }
     }
 
@@ -185,6 +192,7 @@ export class RDModule {
           product.features = product.targetFeatures;
           product.developmentProgress = 100;
           messages.push(`${product.name} development complete! Launched to market.`);
+          RDModule.ensureProductionLine(newState, product);
         }
       }
     }
@@ -220,11 +228,52 @@ export class RDModule {
       }
     }
 
-    // Patent generation from R&D progress (v3.1.0: threshold 500→200, Fix 3.1)
-    while (newState.rdProgress >= 200) {
-      newState.patents += 1;
-      newState.rdProgress -= 200;
-      messages.push(`New patent acquired! (Total: ${newState.patents})`);
+    // Patent generation — milestone-based, non-consuming (rdProgress accumulates freely)
+    const patentThreshold = 200;
+    const currentPatents = typeof newState.patents === "number" ? newState.patents : 0;
+    const totalPatentsEarned = Math.floor(newState.rdProgress / patentThreshold);
+    const newPatents = totalPatentsEarned - currentPatents;
+    if (newPatents > 0) {
+      newState.patents = totalPatentsEarned;
+      messages.push(`${newPatents} new patent(s) earned! (Total: ${totalPatentsEarned})`);
+    }
+
+    // Auto-unlock technologies based on accumulated rdProgress thresholds
+    if (!newState.unlockedTechnologies) {
+      newState.unlockedTechnologies = [];
+    }
+    const techUnlocks: Array<{ id: string; threshold: number; prerequisite?: string }> = [
+      { id: "process_optimization", threshold: CONSTANTS.RD_TECH_TREE.process_optimization.rdPointsRequired },
+      { id: "advanced_manufacturing", threshold: CONSTANTS.RD_TECH_TREE.advanced_manufacturing.rdPointsRequired, prerequisite: "process_optimization" },
+      { id: "industry_4_0", threshold: CONSTANTS.RD_TECH_TREE.industry_4_0.rdPointsRequired, prerequisite: "advanced_manufacturing" },
+      { id: "breakthrough_tech", threshold: CONSTANTS.RD_TECH_TREE.breakthrough_tech.rdPointsRequired, prerequisite: "industry_4_0" },
+    ];
+    for (const tech of techUnlocks) {
+      if (newState.unlockedTechnologies.includes(tech.id)) continue;
+      if (newState.rdProgress < tech.threshold) continue;
+      if (tech.prerequisite && !newState.unlockedTechnologies.includes(tech.prerequisite)) continue;
+      newState.unlockedTechnologies.push(tech.id);
+      messages.push(`Technology unlocked: ${tech.id.replace(/_/g, " ")}!`);
+    }
+
+    // Auto-bridge: legacy tech levels grant corresponding RDExpansion tech nodes
+    // process_optimization → Tier 1, advanced_manufacturing → Tier 2,
+    // industry_4_0 → Tier 3, breakthrough_tech → Tier 4+5
+    const LEGACY_TO_EXPANSION_TIER: Record<string, number[]> = {
+      process_optimization: [1],
+      advanced_manufacturing: [2],
+      industry_4_0: [3],
+      breakthrough_tech: [4, 5],
+    };
+    const allExpansionNodes = RDExpansions.getTechTree();
+    for (const [legacyId, expansionTiers] of Object.entries(LEGACY_TO_EXPANSION_TIER)) {
+      if (!newState.unlockedTechnologies.includes(legacyId)) continue;
+      const nodesToGrant = allExpansionNodes.filter(n => expansionTiers.includes(n.tier));
+      for (const node of nodesToGrant) {
+        if (!newState.unlockedTechnologies.includes(node.id)) {
+          newState.unlockedTechnologies.push(node.id);
+        }
+      }
     }
 
     // Research decay: technologies not applied to products decay over time
@@ -274,13 +323,36 @@ export class RDModule {
           rdPointsGenerated: rdOutput,
           newProductsStarted: decisions.newProducts?.length || 0,
           productsImproved: decisions.productImprovements?.length || 0,
-          patentsEarned: newState.patents - state.patents,
+          patentsEarned: (typeof newState.patents === "number" ? newState.patents : 0) - (typeof state.patents === "number" ? state.patents : 0),
         },
         costs: totalCosts,
         revenue: 0,
         messages,
       },
     };
+  }
+
+  /**
+   * Ensure a production line exists on the first factory for a product's segment.
+   * Called when products transition to "launched" so MarketSimulator can calculate capacity.
+   */
+  private static ensureProductionLine(state: TeamState, product: Product): void {
+    if (state.factories.length === 0) return;
+    const factory = state.factories[0];
+    if (!factory.productionLines) factory.productionLines = [];
+    // Check if a production line already exists for this segment
+    const existingLine = factory.productionLines.find(
+      l => l.segment === product.segment
+    );
+    if (existingLine) return;
+
+    factory.productionLines.push({
+      id: `line-${product.segment.toLowerCase().replace(/\s+/g, "-")}-${factory.productionLines.length + 1}`,
+      segment: product.segment,
+      productId: product.id,
+      capacity: 50_000,
+      efficiency: factory.efficiency || 0.7,
+    });
   }
 
   /**
@@ -548,50 +620,27 @@ export class RDModule {
     return qualityScore + featuresScore + priceScore + reliabilityBonus;
   }
 
-  /**
-   * Calculate time to develop a product
-   * Base: 6 months, modified by engineer quality and R&D budget
-   */
-  static calculateDevelopmentTime(
-    targetQuality: number,
-    engineerCount: number,
-    averageEngineerEfficiency: number,
-    rdBudget: number
-  ): number {
-    // Base time: 6 months (2 rounds)
-    let baseTime = 2;
-
-    // Higher quality = longer development
-    baseTime += Math.floor((targetQuality - 50) / 25);
-
-    // More engineers = faster
-    const engineerSpeedup = Math.min(0.5, engineerCount * 0.05);
-
-    // Better engineers = faster
-    const efficiencySpeedup = (averageEngineerEfficiency - 50) / 200;
-
-    // Higher budget = faster
-    const budgetSpeedup = Math.min(0.3, rdBudget / 50_000_000 * 0.1);
-
-    const totalSpeedup = 1 - engineerSpeedup - efficiencySpeedup - budgetSpeedup;
-
-    return Math.max(1, Math.round(baseTime * Math.max(0.3, totalSpeedup)));
-  }
+  // Dead code removed: calculateDevelopmentTime (duplicate of calculateDevelopmentRounds)
 
   /**
    * Calculate patent value
    * Patents provide competitive advantage
+   * EXPLOIT-01: Gate bonuses behind active production — must sell units to benefit
+   * @param patents Number of patents held
+   * @param unitsSoldLastRound Total units sold last round (0 = no bonuses)
    */
-  static calculatePatentValue(patents: number): {
+  static calculatePatentValue(patents: number, unitsSoldLastRound: number = 10_000): {
     qualityBonus: number;
     costReduction: number;
     marketShareBonus: number;
   } {
     // v3.1.0: Boosted patent rewards to make R&D strategy viable (Fix 3.1)
+    // EXPLOIT-01: Scale bonuses by production — need ≥PATENT_PRODUCTION_GATE_UNITS for full effect
+    const productionGate = Math.min(1.0, unitsSoldLastRound / CONSTANTS.PATENT_PRODUCTION_GATE_UNITS);
     return {
-      qualityBonus: Math.min(25, patents * 5),       // Up to +25 quality (was +10, +2/patent)
-      costReduction: Math.min(0.25, patents * 0.05), // Up to 25% cost reduction (was 15%, 3%/patent)
-      marketShareBonus: Math.min(0.15, patents * 0.03), // Up to 15% market share bonus (was 5%, 1%/patent)
+      qualityBonus: Math.min(CONSTANTS.PATENT_QUALITY_BONUS_MAX, patents * 5) * productionGate,
+      costReduction: Math.min(CONSTANTS.PATENT_COST_REDUCTION_MAX, patents * 0.05) * productionGate,
+      marketShareBonus: Math.min(CONSTANTS.PATENT_SHARE_BONUS_MAX, patents * 0.03) * productionGate,
     };
   }
 

@@ -141,6 +141,14 @@ export function validateNumber(value: number, name: string): number {
 }
 
 /**
+ * VAL-02: Safe number write — replaces NaN/Infinity with fallback value
+ * Use at state write boundaries to prevent non-finite corruption
+ */
+export function safeNumber(value: number, fallback: number = 0): number {
+  return Number.isFinite(value) ? value : fallback;
+}
+
+/**
  * Clamp a value between min and max
  */
 export function clamp(value: number, min: number, max: number): number {

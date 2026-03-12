@@ -18,10 +18,10 @@
  * Usage: npx tsx tools/balance/comprehensive-sweep.ts [--resume]
  */
 
-import { SimulationEngine } from "../../src/engine/core/SimulationEngine";
-import type { SimulationInput } from "../../src/engine/core/SimulationEngine";
-import type { TeamState, MarketState, Segment } from "../../src/engine/types";
-import { CONSTANTS } from "../../src/engine/types";
+import { SimulationEngine } from "../../engine/core/SimulationEngine";
+import type { SimulationInput } from "../../engine/core/SimulationEngine";
+import type { TeamState, MarketState, Segment } from "../../engine/types";
+import { CONSTANTS } from "../../engine/types";
 import {
   STRATEGIES,
   type StrategyArchetype,

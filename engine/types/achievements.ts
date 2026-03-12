@@ -394,6 +394,124 @@ export const ALL_ACHIEVEMENTS: AchievementDefinition[] = [
     points: 0,
     description: "File 3+ patents and never license any",
   },
+
+  // --- Financial Milestones (from requirements-based engine) ---
+  {
+    id: "fin_first_profit",
+    name: "In the Black",
+    category: "Financial",
+    points: 10,
+    description: "Achieve positive net income for the first time",
+  },
+  {
+    id: "fin_hundred_million",
+    name: "Hundred Million Club",
+    category: "Financial",
+    points: 20,
+    description: "Reach $100M in revenue",
+  },
+  {
+    id: "fin_billionaire",
+    name: "Billionaire",
+    category: "Financial",
+    points: 30,
+    description: "Reach $1B in revenue",
+  },
+  {
+    id: "fin_cash_king",
+    name: "Cash King",
+    category: "Financial",
+    points: 25,
+    description: "Accumulate $500M in cash reserves",
+  },
+  {
+    id: "fin_market_titan",
+    name: "Market Titan",
+    category: "Financial",
+    points: 30,
+    description: "Reach $5B market capitalization",
+    businessMeaning: "Your company is valued among the top-tier corporations",
+  },
+
+  // --- Growth Milestones ---
+  {
+    id: "growth_market_leader",
+    name: "Market Leader",
+    category: "Market",
+    points: 20,
+    description: "Achieve #1 market share (>20%) in any segment",
+  },
+  {
+    id: "growth_domination",
+    name: "Market Dominator",
+    category: "Market",
+    points: 30,
+    description: "Achieve 50% market share in any single segment",
+  },
+  {
+    id: "growth_diversified",
+    name: "Diversified Portfolio",
+    category: "Market",
+    points: 20,
+    description: "Have launched products in all 5 market segments",
+  },
+
+  // --- Innovation Milestones ---
+  {
+    id: "innov_quality_excellence",
+    name: "Quality Excellence",
+    category: "Innovation",
+    points: 20,
+    description: "Achieve average product quality of 85+",
+  },
+
+  // --- Sustainability Milestones ---
+  {
+    id: "esg_green_starter",
+    name: "Going Green",
+    category: "Milestone",
+    points: 10,
+    description: "Achieve ESG score of 500+",
+  },
+  {
+    id: "esg_sustainability_leader",
+    name: "Sustainability Champion",
+    category: "Milestone",
+    points: 20,
+    description: "Achieve ESG score of 800+",
+  },
+  {
+    id: "esg_carbon_neutral",
+    name: "Carbon Neutral",
+    category: "Strategic",
+    points: 30,
+    description: "Achieve ESG score of 950+ (near carbon neutral)",
+  },
+
+  // --- Operational Milestones ---
+  {
+    id: "ops_big_employer",
+    name: "Major Employer",
+    category: "Milestone",
+    points: 15,
+    description: "Employ 500+ workers across all factories",
+  },
+  {
+    id: "ops_dream_team",
+    name: "Dream Team",
+    category: "Innovation",
+    points: 20,
+    description: "Employ 50+ engineers",
+  },
+
+  // --- Challenge Milestones ---
+  {
+    id: "challenge_survivor",
+    name: "Survivor",
+    category: "Strategic",
+    points: 25,
+    description: "Complete 12+ rounds without going bankrupt (cash never below -$50M)",
+  },
 ];
 
 /**

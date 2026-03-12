@@ -42,9 +42,19 @@ export interface ExperienceResult {
 // CONSTANTS
 // ============================================
 
-const BASE_LEARNING_RATE = 0.85; // 15% cost reduction per doubling
-const MIN_COST_MULTIPLIER = 0.5; // Cap at 50% cost reduction
+const BASE_LEARNING_RATE = 0.85; // 15% cost reduction per doubling (default/General)
+const MIN_COST_MULTIPLIER = 0.65; // EXPLOIT-02: Raised from 0.50 to 0.65 (max 35% reduction)
 const INITIAL_PRODUCTION = 10000; // Starting production for learning calc
+
+// EXPLOIT-02: Segment-dependent learning rates
+// Budget learns slowly (commodity), Professional learns fast (complex products, fewer units)
+const SEGMENT_LEARNING_RATES: Record<Segment, number> = {
+  "Budget": 0.90,           // 10% per doubling — commodity products learn slowly
+  "General": 0.87,          // 13% per doubling
+  "Active Lifestyle": 0.85, // 15% per doubling (baseline)
+  "Enthusiast": 0.83,       // 17% per doubling
+  "Professional": 0.80,     // 20% per doubling — complex products learn faster but need fewer units
+};
 
 // ============================================
 // ENGINE
@@ -74,13 +84,8 @@ export class ExperienceCurveEngine {
     // Calculate learning modifiers
     const modifiers = this.calculateLearningModifiers(state);
 
-    // Calculate effective learning rate
-    const effectiveLearningRate = this.calculateEffectiveLearningRate(
-      BASE_LEARNING_RATE,
-      modifiers
-    );
-
     // Calculate cost multipliers per segment
+    // EXPLOIT-02: Use segment-dependent learning rates
     const costMultipliers: Record<Segment, number> = {} as Record<Segment, number>;
     const doublings: Record<Segment, number> = {} as Record<Segment, number>;
     const projectedSavings: Record<Segment, number> = {} as Record<Segment, number>;
@@ -89,6 +94,13 @@ export class ExperienceCurveEngine {
       const cumulative = cumulativeProduction[segment];
       const doublingsCount = Math.log2(cumulative / INITIAL_PRODUCTION);
       doublings[segment] = doublingsCount;
+
+      // EXPLOIT-02: Each segment has its own base learning rate
+      const segmentBaseRate = SEGMENT_LEARNING_RATES[segment] ?? BASE_LEARNING_RATE;
+      const effectiveLearningRate = this.calculateEffectiveLearningRate(
+        segmentBaseRate,
+        modifiers
+      );
 
       // Wright's Law formula
       const rawMultiplier = Math.pow(effectiveLearningRate, doublingsCount);
@@ -130,7 +142,7 @@ export class ExperienceCurveEngine {
     return {
       state: {
         cumulativeProduction,
-        learningRate: effectiveLearningRate,
+        learningRate: this.calculateEffectiveLearningRate(SEGMENT_LEARNING_RATES["General"] ?? BASE_LEARNING_RATE, modifiers),
         currentCostMultiplier: costMultipliers,
         totalCostSavings,
         doublings,

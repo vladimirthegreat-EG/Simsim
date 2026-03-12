@@ -31,6 +31,7 @@ import { MarketingModule } from "../modules/MarketingModule";
 import { RDModule } from "../modules/RDModule";
 import { MarketSimulator, type TeamMarketPosition } from "../market/MarketSimulator";
 import { cloneTeamState, cloneDecisions } from "../utils/stateUtils";
+import { safeNumber } from "../utils";
 import {
   createEngineContext,
   deriveSeedBundle,
@@ -42,6 +43,11 @@ import {
 import { MaterialEngine } from "../materials/MaterialEngine";
 import { TariffEngine } from "../tariffs/TariffEngine";
 import { FinancialStatementsEngine } from "../finance";
+import { FXEngine } from "../fx/FXEngine";
+import { CashEnforcement } from "../finance/CashEnforcement";
+import { AchievementEngine } from "../modules/AchievementEngine";
+import type { AchievementCheckContext } from "../modules/AchievementEngine";
+import { FacilitatorReportEngine } from "../modules/FacilitatorReportEngine";
 
 export interface TeamInput {
   id: string;
@@ -72,6 +78,8 @@ export interface SimulationOutput {
   summaryMessages: string[];
   /** Market positions per team per segment from MarketSimulator */
   marketPositions: TeamMarketPosition[];
+  /** Facilitator brief for this round (narrative summary for game facilitators) */
+  facilitatorBrief?: import("../types/facilitator").FacilitatorBrief;
   /** Audit trail for verification and replay */
   auditTrail: {
     /** Seed bundle used for this round */
@@ -104,6 +112,20 @@ export class SimulationEngine {
     summaryMessages.push(`=== Processing Round ${roundNumber} ===`);
     summaryMessages.push(`Seed: ${seedBundle.matchSeed}, Round seed: ${seedBundle.roundSeed}`);
 
+    // Step 0 (v6.0.0): Calculate rubber-banding factors from previous round's market shares
+    // INTEG-01: Uses input states (previous round end-state) — NOT post-processing states
+    // Must happen BEFORE module processing so brand decay (Marketing) and hiring costs (HR) use them
+    const rbFactors = MarketSimulator.calculateRubberBandingFactors(
+      teams.map(t => ({ id: t.id, state: t.state })),
+      roundNumber
+    );
+    const rbActive = Object.values(rbFactors).some(f =>
+      f.costReliefFactor > 0 || f.perceptionBonus > 0 || f.brandDecayMultiplier > 1.0
+    );
+    if (rbActive) {
+      summaryMessages.push("Rubber-banding factors calculated (continuous system active).");
+    }
+
     // Step 1: Process each team's decisions through all modules
     const processedTeams: Array<{
       id: string;
@@ -130,6 +152,12 @@ export class SimulationEngine {
       if (!currentState.version) {
         currentState.version = CURRENT_ENGINE_VERSION;
       }
+
+      // v6.0.0: Store rubber-banding factors on state for use by modules
+      currentState.rubberBanding = rbFactors[team.id] || {
+        position: 0, costReliefFactor: 0, perceptionBonus: 0,
+        brandDecayMultiplier: 1.0, qualityExpectationBoost: 0,
+      };
 
       const decisions = team.decisions || {};
 
@@ -179,6 +207,24 @@ export class SimulationEngine {
       );
       currentState = factoryResult.newState;
 
+      // Wire: FactoryModule.calculateStaffingPenalty() — apply as workforce efficiency drag
+      // Does NOT mutate factory.efficiency (which reflects capital investment)
+      let totalStaffingPenalty = 0;
+      for (const factory of currentState.factories) {
+        const actualStaff = {
+          workers: factory.workers,
+          engineers: factory.engineers || 0,
+          supervisors: factory.supervisors || 0,
+        };
+        totalStaffingPenalty += FactoryModule.calculateStaffingPenalty(factory, actualStaff);
+      }
+      if (totalStaffingPenalty > 0 && currentState.factories.length > 0) {
+        const avgPenalty = totalStaffingPenalty / currentState.factories.length;
+        currentState.workforce.averageEfficiency = Math.max(10,
+          currentState.workforce.averageEfficiency * (1 - avgPenalty)
+        );
+      }
+
       // Process HR Module (with context for deterministic hiring/turnover)
       const hrResult = HRModule.process(currentState, decisions.hr || {}, ctx);
       currentState = hrResult.newState;
@@ -194,17 +240,31 @@ export class SimulationEngine {
       );
       currentState = marketingResult.newState;
 
-      // Process Finance Module (needs market state for interest rates)
+      // Process Finance Module (needs market state for interest rates, ctx for board votes)
       const financeResult = FinanceModule.process(
         currentState,
         decisions.finance || {},
-        marketState
+        marketState,
+        ctx
       );
       currentState = financeResult.newState;
 
       // Apply any events targeting this team
       if (events) {
         currentState = this.applyEvents(currentState, team.id, events);
+      }
+
+      // Step 1.5: Cash enforcement — auto-fund if below floor
+      const cashFloor = CashEnforcement.getCashFloor(currentState);
+      if (currentState.cash < cashFloor) {
+        const funding = CashEnforcement.enforce(currentState, marketState, ctx);
+        if (funding) {
+          if (funding.messages.length > 0) {
+            summaryMessages.push(...funding.messages.map(m => `  ${team.id}: ${m}`));
+          }
+          // Add auto-funding costs to finance result for reporting
+          financeResult.result.messages.push(...funding.messages);
+        }
       }
 
       processedTeams.push({
@@ -228,12 +288,12 @@ export class SimulationEngine {
     const marketResult = MarketSimulator.simulate(
       processedTeams.map(t => ({ id: t.id, state: t.state })),
       marketState,
-      { applyRubberBanding: roundNumber >= 3 },
+      {},
       marketCtx
     );
 
     if (marketResult.rubberBandingApplied) {
-      summaryMessages.push("Rubber-banding adjustments applied to balance competition.");
+      summaryMessages.push("Rubber-banding mechanisms active this round.");
     }
 
     // Step 3: Update team states with market results and generate final results
@@ -246,20 +306,77 @@ export class SimulationEngine {
       team.state.marketShare = teamMarketShares;
       team.state.revenue = teamRevenue;
 
+      // INTEG-02: Sync products' unitsSold from market results (cappedUnits)
+      // Must happen BEFORE COGS calculation so we use actual sold quantities
+      for (const product of team.state.products || []) {
+        const segmentSales = teamSales[product.segment as keyof typeof teamSales];
+        if (segmentSales !== undefined) {
+          (product as unknown as Record<string, unknown>).unitsSold = segmentSales;
+        }
+      }
+
+      // v5.1.0 Audit F-08: Compute actual COGS from unitCost × unitsSold
+      // v6.0.0: Rubber-banding Mechanism A — trailing teams get reduced COGS
+      const cogsCostRelief = team.state.rubberBanding?.costReliefFactor ?? 0;
+      team.state.cogs = safeNumber((team.state.products || []).reduce((sum, p) => {
+        return sum + (((p as unknown as Record<string, unknown>).unitsSold as number || 0) * (p.unitCost || 0));
+      }, 0) * (1 - cogsCostRelief));
+
+      // FX impact on costs: materials from foreign regions and factory labor
+      // Material costs are adjusted per-product based on segment material source regions
+      let fxCostImpact = 0;
+      for (const product of team.state.products || []) {
+        const segmentMaterials = MaterialEngine.SEGMENT_MATERIAL_REQUIREMENTS[product.segment as keyof typeof MaterialEngine.SEGMENT_MATERIAL_REQUIREMENTS];
+        if (segmentMaterials) {
+          const unitsSold = ((product as unknown as Record<string, unknown>).unitsSold as number) || 0;
+          if (unitsSold > 0) {
+            // Build per-material FX-adjusted cost
+            for (const mat of segmentMaterials.materials) {
+              const baseCost = mat.costPerUnit * unitsSold;
+              const fxAdjusted = FXEngine.adjustCost(baseCost, mat.source, marketState);
+              fxCostImpact += fxAdjusted - baseCost;
+            }
+          }
+        }
+      }
+
+      // Factory labor FX: workers in foreign regions paid in local currency
+      for (const factory of team.state.factories) {
+        if (factory.region !== "North America") {
+          const factoryLabor = factory.workers * 45_000 / 12; // Monthly labor cost estimate
+          const { fxImpact: laborFX } = FXEngine.calculateFactoryFXImpact(
+            factory.region, factoryLabor, marketState
+          );
+          fxCostImpact += laborFX;
+        }
+      }
+
+      // Apply FX cost impact to COGS and cash
+      if (fxCostImpact !== 0) {
+        team.state.cogs = safeNumber(team.state.cogs + fxCostImpact);
+        team.state.cash = safeNumber(team.state.cash - fxCostImpact);
+        if (Math.abs(fxCostImpact) > 100_000) {
+          const direction = fxCostImpact > 0 ? "increased" : "decreased";
+          summaryMessages.push(
+            `  ${team.id}: FX ${direction} costs by $${(Math.abs(fxCostImpact) / 1_000_000).toFixed(2)}M`
+          );
+        }
+      }
+
       // Add revenue to cash — modules already deducted their costs from cash,
       // so adding revenue ensures cash accumulates correctly across rounds
-      team.state.cash += teamRevenue;
+      team.state.cash = safeNumber(team.state.cash + teamRevenue);
 
       // Calculate costs (for net income reporting only — already deducted from cash by modules)
       const totalCosts = this.calculateTotalCosts(team.state, team.moduleResults);
 
       // Calculate net income
-      team.state.netIncome = teamRevenue - totalCosts;
+      team.state.netIncome = safeNumber(teamRevenue - totalCosts);
 
       // Update EPS
-      team.state.eps = team.state.sharesIssued > 0
+      team.state.eps = safeNumber(team.state.sharesIssued > 0
         ? team.state.netIncome / team.state.sharesIssued
-        : 0;
+        : 0);
 
       // Generate complete financial statements (Income, Cash Flow, Balance Sheet)
       try {
@@ -286,24 +403,115 @@ export class SimulationEngine {
         );
       }
 
+      // VAL-02: Guard all critical financial state writes against NaN/Infinity
       // Update total assets
-      team.state.totalAssets = team.state.cash +
-        team.state.factories.length * CONSTANTS.NEW_FACTORY_COST;
+      team.state.totalAssets = safeNumber(team.state.cash +
+        team.state.factories.length * CONSTANTS.NEW_FACTORY_COST);
 
       // Update shareholders equity
-      team.state.shareholdersEquity = team.state.totalAssets - team.state.totalLiabilities;
+      team.state.shareholdersEquity = safeNumber(team.state.totalAssets - team.state.totalLiabilities);
+
+      // Wire: FinanceModule.calculateInvestorSentiment() — replaces hardcoded 50
+      const investorSentiment = FinanceModule.calculateInvestorSentiment(team.state);
 
       // Update market cap
-      team.state.marketCap = FinanceModule.updateMarketCap(
+      team.state.marketCap = safeNumber(FinanceModule.updateMarketCap(
         team.state,
         0, // EPS growth (would need previous state)
-        50 // Market sentiment (neutral)
-      );
+        investorSentiment
+      ));
 
       // Update share price
-      team.state.sharePrice = team.state.sharesIssued > 0
+      team.state.sharePrice = safeNumber(team.state.sharesIssued > 0
         ? team.state.marketCap / team.state.sharesIssued
-        : 0;
+        : 0);
+
+      // Step 3.5: Second cash enforcement — after revenue, COGS, and FX are applied
+      // The first checkpoint (Step 1.5) catches pre-revenue shortfalls.
+      // This one catches cases where COGS + FX costs exceed revenue.
+      const postRevenueCashFloor = CashEnforcement.getCashFloor(team.state);
+      if (team.state.cash < postRevenueCashFloor) {
+        const postFunding = CashEnforcement.enforce(team.state, marketState, team.ctx);
+        if (postFunding && postFunding.messages.length > 0) {
+          summaryMessages.push(...postFunding.messages.map(m => `  ${team.id}: ${m}`));
+          team.moduleResults.finance.messages.push(...postFunding.messages);
+        }
+        // Re-sync balance sheet and market cap after auto-funding changed cash/debt
+        team.state.totalAssets = safeNumber(team.state.cash +
+          team.state.factories.length * CONSTANTS.NEW_FACTORY_COST);
+        team.state.shareholdersEquity = safeNumber(team.state.totalAssets - team.state.totalLiabilities);
+        team.state.marketCap = safeNumber(FinanceModule.updateMarketCap(
+          team.state, 0, investorSentiment
+        ));
+        team.state.sharePrice = safeNumber(team.state.sharesIssued > 0
+          ? team.state.marketCap / team.state.sharesIssued : 0);
+      }
+
+      // Step 3.6: Wire factory utilization and burnout — update after market demand is known
+      for (const factory of team.state.factories) {
+        // Total units sold = actual demand served by this team
+        const totalUnitsSold = Object.values(teamSales).reduce((sum, v) => sum + v, 0);
+        // Max capacity = workers × base output × efficiency
+        const maxCapacity = factory.workers * CONSTANTS.BASE_WORKER_OUTPUT * factory.efficiency;
+        FactoryModule.updateUtilizationAndBurnout(factory, totalUnitsSold, maxCapacity);
+      }
+
+      // Step 3.7: Wire AchievementEngine — evaluate achievements and milestones
+      const achievementCtx: AchievementCheckContext = {
+        teamId: team.id,
+        state: team.state,
+        round: roundNumber,
+        marketResult: marketResult,
+        allTeams: processedTeams.map(t => ({ id: t.id, state: t.state })),
+      };
+      const newAchievements = AchievementEngine.evaluate(achievementCtx);
+      if (newAchievements.length > 0) {
+        // Append to existing achievements
+        team.state.achievements = [...(team.state.achievements || []), ...newAchievements];
+        team.state.achievementScore = (team.state.achievements || []).reduce((sum, a) => sum + a.points, 0);
+        for (const ach of newAchievements) {
+          summaryMessages.push(`  ${team.id}: Achievement unlocked: ${ach.id} (+${ach.points} pts)`);
+        }
+      }
+
+      // Check milestones (time-gated bonuses/penalties)
+      const milestoneResults = AchievementEngine.checkMilestones(team.state, roundNumber);
+      for (const ms of milestoneResults) {
+        summaryMessages.push(`  ${team.id}: ${ms.message}`);
+        // Apply milestone effects
+        if (ms.effect.type === "brand") {
+          team.state.brandValue = Math.max(0, Math.min(1, team.state.brandValue + ms.effect.value));
+        } else if (ms.effect.type === "morale") {
+          for (const emp of team.state.employees) {
+            emp.morale = Math.max(0, Math.min(100, emp.morale + ms.effect.value));
+          }
+        }
+        // sentiment effects stored for next round's market cap (logged only for now)
+      }
+
+      // Step 3.8: Wire RDModule.calculatePatentValue() — apply patent bonuses to products
+      const patentCount = Array.isArray(team.state.patents) ? team.state.patents.length : (team.state.patents || 0);
+      if (patentCount > 0) {
+        const totalUnitsSold = Object.values(teamSales).reduce((sum, v) => sum + v, 0);
+        const patentBonus = RDModule.calculatePatentValue(patentCount, totalUnitsSold);
+        // Apply quality bonus to launched products
+        for (const product of team.state.products) {
+          if (product.developmentStatus === "launched") {
+            product.quality = Math.min(100, product.quality + patentBonus.qualityBonus);
+          }
+        }
+      }
+
+      // Step 3.9: Wire HRModule.calculateEmployeeValue() into workforce stats
+      if (team.state.employees.length > 0) {
+        const avgValue = team.state.employees.reduce(
+          (sum, e) => sum + HRModule.calculateEmployeeValue(e.stats), 0
+        ) / team.state.employees.length;
+        // Feed into workforce efficiency (blend with existing)
+        team.state.workforce.averageEfficiency = safeNumber(
+          team.state.workforce.averageEfficiency * 0.7 + avgValue * 0.3
+        );
+      }
 
       // Create round result
       const result: RoundResults = {
@@ -335,6 +543,15 @@ export class SimulationEngine {
       marketResult
     );
 
+    // Wire: FinanceModule.calculateEPSRanking() — compute EPS percentile for each team
+    const allEps = processedTeams.map(t => t.state.eps);
+    for (const team of processedTeams) {
+      const peerEps = allEps.filter((_, i) => processedTeams[i].id !== team.id);
+      const epsPercentile = FinanceModule.calculateEPSRanking(team.state.eps, peerEps);
+      // Store on state for reporting (optional field)
+      (team.state as Record<string, unknown>)._epsPercentile = epsPercentile;
+    }
+
     // Update results with rankings (using Map for O(1) lookup)
     const rankingMap = new Map(rankings.map(r => [r.teamId, r]));
     for (const result of results) {
@@ -357,6 +574,23 @@ export class SimulationEngine {
 
     summaryMessages.push(`Round ${roundNumber} complete. Leader: Team ${rankings[0]?.teamId}`);
 
+    // Step 6: Wire FacilitatorReportEngine — generate round brief for facilitators
+    let facilitatorBrief: import("../types/facilitator").FacilitatorBrief | undefined;
+    try {
+      const facilitatorTeams = processedTeams.map(t => ({
+        id: t.id,
+        name: t.id, // Team ID as name fallback
+        state: t.state,
+      }));
+      facilitatorBrief = FacilitatorReportEngine.generateRoundBrief(
+        roundNumber,
+        facilitatorTeams,
+        marketResult
+      );
+    } catch {
+      // Facilitator reports are optional — don't break simulation
+    }
+
     // Generate final state hashes for audit trail
     const finalStateHashes: Record<string, string> = {};
     for (const result of results) {
@@ -370,6 +604,7 @@ export class SimulationEngine {
       rankings,
       summaryMessages,
       marketPositions: marketResult.positions,
+      facilitatorBrief,
       auditTrail: {
         seedBundle,
         finalStateHashes,
@@ -518,6 +753,63 @@ export class SimulationEngine {
       }
     }
 
+    // EXPLOIT-06: Validate product pricing — reject negative/zero prices
+    if (decisions.marketing?.productPricing) {
+      for (const pricing of decisions.marketing.productPricing) {
+        if (pricing.newPrice <= 0) {
+          errors.push(`Invalid price: $${pricing.newPrice} — price must be positive`);
+          pricing.newPrice = Math.max(1, pricing.newPrice);
+        }
+      }
+    }
+
+    // VAL-01: Validate material tier choices are in valid range [1, 5]
+    if (decisions.factory?.materialTierChoices) {
+      for (const [segment, tier] of Object.entries(decisions.factory.materialTierChoices)) {
+        if (typeof tier !== "number" || !isFinite(tier) || tier < 1 || tier > 5) {
+          errors.push(`Invalid material tier for ${segment}: ${tier} — must be 1-5`);
+          (decisions.factory.materialTierChoices as Record<string, number>)[segment] = Math.max(1, Math.min(5, Math.round(tier) || 2));
+        }
+      }
+    }
+
+    // VAL-01: Validate R&D budget is non-negative
+    if (decisions.rd?.rdBudget !== undefined && decisions.rd.rdBudget < 0) {
+      errors.push("R&D budget cannot be negative");
+      correctedDecisions.rd!.rdBudget = 0;
+    }
+
+    // VAL-01: Validate dividend is non-negative
+    if (decisions.finance?.dividendPerShare !== undefined && decisions.finance.dividendPerShare < 0) {
+      errors.push("Dividend per share cannot be negative");
+      correctedDecisions.finance!.dividendPerShare = 0;
+    }
+
+    // VAL-01: Validate fire targets exist
+    if (decisions.hr?.fires) {
+      const employeeIds = new Set(state.employees.map(e => e.id));
+      correctedDecisions.hr!.fires = decisions.hr.fires.filter(f => {
+        if (!employeeIds.has(f.employeeId)) {
+          errors.push(`Cannot fire non-existent employee: ${f.employeeId}`);
+          return false;
+        }
+        return true;
+      });
+    }
+
+    // VAL-01: Detect duplicate sponsorships
+    if (decisions.marketing?.sponsorships) {
+      const seen = new Set<string>();
+      correctedDecisions.marketing!.sponsorships = decisions.marketing.sponsorships.filter(s => {
+        if (seen.has(s.name)) {
+          errors.push(`Duplicate sponsorship: ${s.name}`);
+          return false;
+        }
+        seen.add(s.name);
+        return true;
+      });
+    }
+
     // Validate finance decisions
     if (decisions.finance?.sharesBuyback) {
       if (decisions.finance.sharesBuyback > projectedCash) {
@@ -561,12 +853,14 @@ export class SimulationEngine {
     const brandVal = presetConfig?.brandValue ?? 0.5;
 
     // All 5 segments in priority order (General & Budget first as entry-level)
+    // Product specs sourced from CONSTANTS.INITIAL_PRODUCT_SPECS
+    const specs = CONSTANTS.INITIAL_PRODUCT_SPECS;
     const ALL_SEGMENT_DEFS = [
-      { segment: "General" as const, id: "initial-product", name: "Standard Phone", price: 450, quality: 65, features: 50, reliability: 70 },
-      { segment: "Budget" as const, id: "budget-product", name: "Budget Phone", price: 200, quality: 50, features: 30, reliability: 60 },
-      { segment: "Enthusiast" as const, id: "enthusiast-product", name: "Pro Phone", price: 800, quality: 80, features: 70, reliability: 75 },
-      { segment: "Professional" as const, id: "professional-product", name: "Enterprise Phone", price: 1250, quality: 90, features: 85, reliability: 90 },
-      { segment: "Active Lifestyle" as const, id: "active-product", name: "Active Phone", price: 600, quality: 70, features: 60, reliability: 80 },
+      { segment: "General" as const, id: "initial-product", name: "Standard Phone", ...specs["General"] },
+      { segment: "Budget" as const, id: "budget-product", name: "Budget Phone", ...specs["Budget"] },
+      { segment: "Enthusiast" as const, id: "enthusiast-product", name: "Pro Phone", ...specs["Enthusiast"] },
+      { segment: "Professional" as const, id: "professional-product", name: "Enterprise Phone", ...specs["Professional"] },
+      { segment: "Active Lifestyle" as const, id: "active-product", name: "Active Phone", ...specs["Active Lifestyle"] },
     ];
 
     // Pick segments based on startingSegments count
@@ -582,8 +876,8 @@ export class SimulationEngine {
       id: `line-${i + 1}`,
       segment: seg.segment,
       productId: seg.id,
-      capacity: 50000,
-      efficiency: 0.7,
+      capacity: CONSTANTS.DEFAULT_PRODUCT_CAPACITY,
+      efficiency: CONSTANTS.BASE_FACTORY_EFFICIENCY,
     }));
 
     // Create products only for active segments
@@ -605,15 +899,16 @@ export class SimulationEngine {
     }));
 
     // Default benefits package
+    const bp = CONSTANTS.DEFAULT_BENEFITS_PACKAGE;
     const defaultBenefits = {
       package: {
-        healthInsurance: 50,
-        retirementMatch: 30,
-        paidTimeOff: 15,
-        parentalLeave: 6,
+        healthInsurance: bp.healthInsurance,
+        retirementMatch: bp.retirementMatch,
+        paidTimeOff: bp.paidTimeOff,
+        parentalLeave: bp.parentalLeave,
         stockOptions: false,
         flexibleWork: false,
-        professionalDevelopment: 1000,
+        professionalDevelopment: bp.professionalDevelopment,
       },
       totalAnnualCost: 0,
       moraleImpact: 0,
@@ -639,20 +934,20 @@ export class SimulationEngine {
     const factoryId = defaultFactory.id;
 
     const createInitialEmployee = (role: EmployeeRole, index: number): Employee => {
+      const s = CONSTANTS.BASE_EMPLOYEE_STAT;
       const baseStats: EmployeeStats = {
-        efficiency: 65, accuracy: 65, speed: 65, stamina: 65,
-        discipline: 65, loyalty: 65, teamCompatibility: 65, health: 65,
+        efficiency: s, accuracy: s, speed: s, stamina: s,
+        discipline: s, loyalty: s, teamCompatibility: s, health: s,
       };
       let stats: EmployeeStats | EngineerStats | SupervisorStats = baseStats;
       if (role === "engineer") {
-        stats = { ...baseStats, innovation: 65, problemSolving: 65 };
+        stats = { ...baseStats, innovation: s, problemSolving: s };
       } else if (role === "supervisor") {
-        stats = { ...baseStats, leadership: 65, tacticalPlanning: 65 };
+        stats = { ...baseStats, leadership: s, tacticalPlanning: s };
       }
-      // Salary with avgStat=65: multiplier = 0.8 + 0.65 * 1.4 = 1.71
       const baseSalaries: Record<EmployeeRole, number> = { worker: 45_000, engineer: 85_000, supervisor: 75_000 };
       const multiplier = CONSTANTS.SALARY_MULTIPLIER_MIN +
-        (65 / 100) * (CONSTANTS.SALARY_MULTIPLIER_MAX - CONSTANTS.SALARY_MULTIPLIER_MIN);
+        (s / 100) * (CONSTANTS.SALARY_MULTIPLIER_MAX - CONSTANTS.SALARY_MULTIPLIER_MIN);
       const salary = Math.min(CONSTANTS.MAX_SALARY, Math.round(baseSalaries[role] * multiplier));
 
       return {
@@ -663,7 +958,7 @@ export class SimulationEngine {
         salary,
         hiredRound: 0,
         factoryId,
-        morale: 75,
+        morale: CONSTANTS.BASE_EMPLOYEE_MORALE,
         burnout: 0,
         trainingHistory: { programsThisYear: 0, lastTrainingRound: 0, totalProgramsCompleted: 0 },
       };
@@ -675,7 +970,7 @@ export class SimulationEngine {
 
     const startingCash = config?.cash ?? CONSTANTS.DEFAULT_STARTING_CASH;
 
-    return {
+    const baseState: TeamState = {
       // State versioning for compatibility checks
       version: CURRENT_ENGINE_VERSION,
 
@@ -689,7 +984,7 @@ export class SimulationEngine {
       shareholdersEquity: startingCash + CONSTANTS.NEW_FACTORY_COST,
       marketCap: CONSTANTS.DEFAULT_MARKET_CAP,
       sharesIssued: CONSTANTS.DEFAULT_SHARES_ISSUED,
-      sharePrice: 50,
+      sharePrice: CONSTANTS.DEFAULT_SHARE_PRICE,
       eps: 0,
       inventory: emptyInventory,
       cogs: 0,
@@ -706,11 +1001,11 @@ export class SimulationEngine {
       // Initialize tariff state
       tariffs: TariffEngine.initializeTariffState(),
       factories: [defaultFactory],
-      products: config?.products ?? (includeProducts ? initialProducts : []),
+      products: includeProducts ? initialProducts : [],
       employees: initialEmployees,
       workforce: {
         totalHeadcount: workers + engineers + supervisors,
-        averageMorale: (workers + engineers + supervisors) > 0 ? 75 : 0,
+        averageMorale: (workers + engineers + supervisors) > 0 ? CONSTANTS.BASE_EMPLOYEE_MORALE : 0,
         averageEfficiency: (workers + engineers + supervisors) > 0 ? 70 : 0,
         laborCost: (workers + engineers + supervisors) > 0 ? CONSTANTS.DEFAULT_LABOR_COST : 0,
         turnoverRate: (workers + engineers + supervisors) > 0 ? CONSTANTS.BASE_TURNOVER_RATE : 0,
@@ -724,6 +1019,12 @@ export class SimulationEngine {
       co2Emissions: 1000,
       benefits: defaultBenefits,
     };
+
+    // Apply any config overrides (cash, rdProgress, products, etc.)
+    if (config) {
+      return { ...baseState, ...config };
+    }
+    return baseState;
   }
 
   /**
@@ -738,12 +1039,7 @@ export class SimulationEngine {
         consumerConfidence: 75,
         unemploymentRate: 4.5,
       },
-      fxRates: {
-        "EUR/USD": 1.10,
-        "GBP/USD": 1.27,
-        "JPY/USD": 0.0067,
-        "CNY/USD": 0.14,
-      },
+      fxRates: { ...CONSTANTS.FX_BASELINE_RATES },
       fxVolatility: 0.15,
       interestRates: {
         federalRate: 5.0,
@@ -762,6 +1058,19 @@ export class SimulationEngine {
         qualityExpectations: 0.6,
         sustainabilityPremium: 0.3,
       },
+      // v5.1.0 Audit F-13: Initialize dynamic pricing from CONSTANTS.INITIAL_PRODUCT_SPECS
+      dynamicPricing: Object.fromEntries(
+        CONSTANTS.SEGMENTS.map(seg => {
+          const p = CONSTANTS.INITIAL_PRODUCT_SPECS[seg].price;
+          return [seg, {
+            expectedPrice: p,
+            underservedFactor: 0.5,
+            competitorCount: 0,
+            priceFloor: Math.round(p * 0.5),
+            priceCeiling: Math.round(p * 1.5),
+          }];
+        })
+      ),
     };
   }
 

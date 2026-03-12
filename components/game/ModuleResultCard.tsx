@@ -11,6 +11,7 @@ import {
   Info,
   AlertTriangle,
   CheckCircle2,
+  Sparkles,
 } from "lucide-react";
 
 const MODULE_META: Record<string, { label: string; icon: React.ElementType; color: string }> = {
@@ -23,6 +24,8 @@ const MODULE_META: Record<string, { label: string; icon: React.ElementType; colo
 
 function getMessageIcon(msg: string) {
   const lower = msg.toLowerCase();
+  if (lower.includes("technology unlocked"))
+    return <Sparkles className="w-3.5 h-3.5 text-purple-400 shrink-0" />;
   if (lower.includes("warning") || lower.includes("risk") || lower.includes("penalty"))
     return <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />;
   if (lower.includes("improved") || lower.includes("success") || lower.includes("increased"))
@@ -59,12 +62,15 @@ export function ModuleResultCard({ moduleId, messages, costs }: ModuleResultCard
       </CardHeader>
       <CardContent>
         <div className="space-y-1.5">
-          {messages.map((msg, i) => (
-            <div key={i} className="flex items-start gap-2 text-sm text-slate-300">
-              {getMessageIcon(msg)}
-              <span>{msg}</span>
-            </div>
-          ))}
+          {messages.map((msg, i) => {
+            const isTechUnlock = msg.toLowerCase().includes("technology unlocked");
+            return (
+              <div key={i} className={`flex items-start gap-2 text-sm ${isTechUnlock ? "text-purple-300" : "text-slate-300"}`}>
+                {getMessageIcon(msg)}
+                <span className={isTechUnlock ? "font-medium" : ""}>{msg}</span>
+              </div>
+            );
+          })}
         </div>
       </CardContent>
     </Card>

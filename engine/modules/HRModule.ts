@@ -112,7 +112,7 @@ export class HRModule {
             salary: hire.candidateData.salary,
             hiredRound: ctx?.roundNumber ?? state.round ?? 0,
             factoryId,
-            morale: 75,
+            morale: CONSTANTS.BASE_EMPLOYEE_MORALE,
             burnout: 0,
             trainingHistory: {
               programsThisYear: 0,
@@ -130,7 +130,9 @@ export class HRModule {
           );
         }
 
-        const hiringCost = newEmployee.salary * CONSTANTS.HIRING_COST_MULTIPLIER;
+        // v6.0.0: Rubber-banding Mechanism A — trailing teams get reduced hiring costs
+        const costRelief = newState.rubberBanding?.costReliefFactor ?? 0;
+        const hiringCost = newEmployee.salary * CONSTANTS.HIRING_COST_MULTIPLIER * (1 - costRelief);
 
         if (newState.cash >= hiringCost) {
           newState.employees.push(newEmployee);
@@ -171,7 +173,7 @@ export class HRModule {
             const { effectiveness } = this.calculateTrainingEffectiveness(employee);
 
             // Base improvement: +5-15% efficiency (deterministic with context)
-            const baseImprovement = 5 + getRandomValue(ctx) * 10;
+            const baseImprovement = CONSTANTS.TRAINING_BASE_IMPROVEMENT.min + getRandomValue(ctx) * (CONSTANTS.TRAINING_BASE_IMPROVEMENT.max - CONSTANTS.TRAINING_BASE_IMPROVEMENT.min);
             const actualImprovement = baseImprovement * effectiveness;
 
             employee.stats.efficiency = Math.min(100, employee.stats.efficiency + actualImprovement);
@@ -196,6 +198,24 @@ export class HRModule {
       newState.benefits = benefitResult.newBenefits;
       totalCosts += benefitResult.additionalCost;
       messages.push(...benefitResult.messages);
+    }
+
+    // BAL-06: Fixed burnout recovery — morale 50+ starts recovery, not 70+
+    // This prevents the burnout ratchet where burnout only ever increases
+    for (const employee of newState.employees) {
+      // Burnout accumulates from overwork (low morale, high workload)
+      const moraleStress = employee.morale < CONSTANTS.BURNOUT_RECOVERY_MORALE_THRESHOLD ? (CONSTANTS.BURNOUT_RECOVERY_MORALE_THRESHOLD - employee.morale) / 100 : 0; // 0-0.5
+      const baseBurnoutGain = 1 + moraleStress * CONSTANTS.BURNOUT_MORALE_STRESS_MULTIPLIER; // 1-5 points per round (was 3-8)
+      employee.burnout = Math.min(100, (employee.burnout || 0) + baseBurnoutGain);
+
+      // Natural recovery: starts at morale > 50 (was > 70)
+      // At morale 80: recovery = 6, gain = 1, net = -5 (decreasing)
+      // At morale 60: recovery = 2, gain = 1, net = -1 (slowly decreasing)
+      // At morale 50: recovery = 0, gain = 1, net = +1 (slowly increasing)
+      if (employee.morale > CONSTANTS.BURNOUT_RECOVERY_MORALE_THRESHOLD) {
+        const recovery = (employee.morale - CONSTANTS.BURNOUT_RECOVERY_MORALE_THRESHOLD) / CONSTANTS.BURNOUT_RECOVERY_RATE_DIVISOR; // 0-10 points recovery (was /10 from 70+)
+        employee.burnout = Math.max(0, employee.burnout - recovery);
+      }
     }
 
     // Calculate turnover (deterministic with context)
@@ -359,7 +379,7 @@ export class HRModule {
       salary: this.calculateSalary(role, stats),
       hiredRound: ctx?.roundNumber ?? 0,
       factoryId: factoryId || defaultFactoryId,
-      morale: 75,
+      morale: CONSTANTS.BASE_EMPLOYEE_MORALE,
       burnout: 0,
       trainingHistory: {
         programsThisYear: 0,
@@ -430,16 +450,16 @@ export class HRModule {
       let turnoverRate = monthlyBaseRate;
 
       // Morale adjustment
-      if (employee.morale < 50) {
-        turnoverRate += 0.15 / 12; // +15% annual
+      if (employee.morale < CONSTANTS.LOW_MORALE_THRESHOLD) {
+        turnoverRate += CONSTANTS.LOW_MORALE_TURNOVER_PENALTY / 12; // +15% annual
       }
 
       // Loyalty adjustment (higher loyalty = lower turnover)
       turnoverRate *= (150 - employee.stats.loyalty) / 100;
 
       // Burnout adjustment
-      if (employee.burnout > 50) {
-        turnoverRate += 0.1 / 12; // +10% annual if burned out
+      if (employee.burnout > CONSTANTS.HIGH_BURNOUT_THRESHOLD) {
+        turnoverRate += CONSTANTS.BURNOUT_TURNOVER_PENALTY / 12; // +10% annual if burned out
       }
 
       // Random check (deterministic with context)
@@ -475,7 +495,7 @@ export class HRModule {
     // Estimate turnover rate based on current workforce morale and loyalty
     const avgLoyalty = employees.reduce((sum, e) => sum + e.stats.loyalty, 0) / employees.length;
     let turnoverRate = CONSTANTS.BASE_TURNOVER_RATE;
-    if (averageMorale < 50) turnoverRate += 0.15;
+    if (averageMorale < CONSTANTS.LOW_MORALE_THRESHOLD) turnoverRate += CONSTANTS.LOW_MORALE_TURNOVER_PENALTY;
     turnoverRate *= (150 - avgLoyalty) / 100;
 
     return {
@@ -629,8 +649,8 @@ export class HRModule {
     const newBenefits: CompanyBenefits = {
       package: newPackage,
       totalAnnualCost: totalCost,
-      moraleImpact: Math.min(0.5, moraleImpact),  // Cap at 50% bonus
-      turnoverReduction: Math.min(0.4, turnoverReduction),  // Cap at 40% reduction
+      moraleImpact: Math.min(CONSTANTS.MORALE_IMPACT_CAP, moraleImpact),  // Cap at 50% bonus
+      turnoverReduction: Math.min(CONSTANTS.TURNOVER_REDUCTION_CAP, turnoverReduction),  // Cap at 40% reduction
       esgContribution,
     };
 

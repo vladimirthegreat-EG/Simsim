@@ -15,9 +15,9 @@
  * Usage: npx tsx src/engine/balance/run-monte-carlo.ts
  */
 
-import { SimulationEngine } from "../core/SimulationEngine";
-import type { SimulationInput } from "../core/SimulationEngine";
-import type { TeamState, MarketState, AllDecisions } from "../types";
+import { SimulationEngine } from "../../engine/core/SimulationEngine";
+import type { SimulationInput } from "../../engine/core/SimulationEngine";
+import type { TeamState, MarketState, AllDecisions } from "../../engine/types";
 import {
   STRATEGIES,
   type StrategyArchetype,

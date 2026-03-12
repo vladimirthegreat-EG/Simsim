@@ -386,9 +386,151 @@ export class AchievementEngine {
         return !anyLicensed;
       }
 
+      // --- Financial Milestones ---
+      case "fin_first_profit":
+        return (state.netIncome ?? 0) > 0;
+
+      case "fin_hundred_million":
+        return (state.revenue ?? 0) >= 100_000_000;
+
+      case "fin_billionaire":
+        return (state.revenue ?? 0) >= 1_000_000_000;
+
+      case "fin_cash_king":
+        return state.cash >= 500_000_000;
+
+      case "fin_market_titan":
+        return (state.marketCap ?? 0) >= 5_000_000_000;
+
+      // --- Growth Milestones ---
+      case "growth_market_leader": {
+        const shares = state.marketShare;
+        if (!shares || typeof shares !== "object") return false;
+        return Math.max(...Object.values(shares), 0) > 0.20;
+      }
+
+      case "growth_domination": {
+        const shares = state.marketShare;
+        if (!shares || typeof shares !== "object") return false;
+        return Math.max(...Object.values(shares), 0) >= 0.50;
+      }
+
+      case "growth_diversified": {
+        const launchedSegments = new Set(
+          state.products.filter(p => p.developmentStatus === "launched").map(p => p.segment)
+        );
+        return launchedSegments.size >= 5;
+      }
+
+      // --- Innovation Milestones ---
+      case "innov_quality_excellence": {
+        const launched = state.products.filter(p => p.developmentStatus === "launched");
+        if (launched.length === 0) return false;
+        const avgQuality = launched.reduce((sum, p) => sum + p.quality, 0) / launched.length;
+        return avgQuality >= 85;
+      }
+
+      // --- Sustainability Milestones ---
+      case "esg_green_starter":
+        return (state.esgScore ?? 0) >= 500;
+
+      case "esg_sustainability_leader":
+        return (state.esgScore ?? 0) >= 800;
+
+      case "esg_carbon_neutral":
+        return (state.esgScore ?? 0) >= 950;
+
+      // --- Operational Milestones ---
+      case "ops_big_employer":
+        return (state.workforce?.totalHeadcount ?? 0) >= 500;
+
+      case "ops_dream_team": {
+        const engineerCount = state.employees.filter(e => e.role === "engineer").length;
+        return engineerCount >= 50;
+      }
+
+      // --- Challenge Milestones ---
+      case "challenge_survivor":
+        return round >= 12 && state.cash >= -50_000_000;
+
       default:
         return false;
     }
+  }
+
+  // ============================================
+  // MILESTONES (time-gated checks with bonuses/penalties)
+  // ============================================
+
+  static readonly MILESTONES = [
+    {
+      id: "profitability_milestone",
+      name: "Path to Profitability",
+      description: "Achieve positive net income by round 4",
+      targetRound: 4,
+      check: (state: TeamState) => (state.netIncome ?? 0) > 0,
+      bonusIfMet: { type: "sentiment" as const, value: 10, description: "+10 investor sentiment" },
+      penaltyIfMissed: { type: "sentiment" as const, value: -15, description: "-15 investor sentiment" },
+    },
+    {
+      id: "market_presence",
+      name: "Market Presence",
+      description: "Achieve 10% market share in any segment by round 6",
+      targetRound: 6,
+      check: (state: TeamState) => {
+        const shares = state.marketShare;
+        if (!shares || typeof shares !== "object") return false;
+        return Math.max(...Object.values(shares), 0) >= 0.10;
+      },
+      bonusIfMet: { type: "brand" as const, value: 0.05, description: "+5% brand value" },
+      penaltyIfMissed: { type: "brand" as const, value: -0.03, description: "-3% brand value" },
+    },
+    {
+      id: "scale_operations",
+      name: "Scale Operations",
+      description: "Reach 200 employees by round 8",
+      targetRound: 8,
+      check: (state: TeamState) => (state.workforce?.totalHeadcount ?? 0) >= 200,
+      bonusIfMet: { type: "efficiency" as const, value: 0.05, description: "+5% operational efficiency" },
+      penaltyIfMissed: { type: "morale" as const, value: -10, description: "-10 workforce morale" },
+    },
+    {
+      id: "revenue_target",
+      name: "Revenue Milestone",
+      description: "Reach $500M in revenue by round 10",
+      targetRound: 10,
+      check: (state: TeamState) => (state.revenue ?? 0) >= 500_000_000,
+      bonusIfMet: { type: "sentiment" as const, value: 15, description: "+15 investor sentiment" },
+      penaltyIfMissed: { type: "sentiment" as const, value: -20, description: "-20 investor sentiment" },
+    },
+  ];
+
+  /**
+   * Check milestones for the current round. Returns effects to apply.
+   */
+  static checkMilestones(
+    state: TeamState,
+    round: number
+  ): Array<{ milestoneId: string; name: string; met: boolean; effect: { type: string; value: number; description: string }; message: string }> {
+    const results: Array<{ milestoneId: string; name: string; met: boolean; effect: { type: string; value: number; description: string }; message: string }> = [];
+
+    for (const milestone of this.MILESTONES) {
+      if (round !== milestone.targetRound) continue;
+
+      const met = milestone.check(state);
+      const effect = met ? milestone.bonusIfMet : milestone.penaltyIfMissed;
+      results.push({
+        milestoneId: milestone.id,
+        name: milestone.name,
+        met,
+        effect,
+        message: met
+          ? `Milestone achieved: ${milestone.name} — ${effect.description}`
+          : `Milestone missed: ${milestone.name} — ${effect.description}`,
+      });
+    }
+
+    return results;
   }
 
   /**

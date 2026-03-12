@@ -236,6 +236,23 @@ export class FactoryModule {
       }
     }
 
+    // Process material tier choices — affects quality multiplier and adds material costs
+    if (decisions.materialTierChoices) {
+      const result = this.processMaterialTiers(newState, decisions.materialTierChoices);
+      totalCosts += result.cost;
+      messages.push(...result.messages);
+      // Store material tier choices on state for MarketSimulator quality adjustments
+      newState.materialTierChoices = decisions.materialTierChoices;
+    }
+
+    // Store production allocations for MarketSimulator
+    if (decisions.productionAllocations?.length) {
+      newState.productionAllocations = {};
+      for (const alloc of decisions.productionAllocations) {
+        newState.productionAllocations[alloc.segment] = alloc.quantity;
+      }
+    }
+
     // Deduct costs from cash
     newState.cash -= totalCosts;
 
@@ -259,6 +276,61 @@ export class FactoryModule {
     };
   }
 
+  // Natural material tier for each segment — delegated to CONSTANTS
+  private static get NATURAL_MATERIAL_TIERS(): Record<string, number> {
+    return CONSTANTS.NATURAL_MATERIAL_TIERS;
+  }
+
+  // Material cost per unit by tier — delegated to CONSTANTS
+  private static get MATERIAL_TIER_COSTS(): Record<number, number> {
+    return CONSTANTS.MATERIAL_TIER_COSTS;
+  }
+
+  /**
+   * Process material tier choices — teams pick material quality per segment.
+   * Higher tier = better quality + fewer defects, but higher cost.
+   * Each segment has a natural tier; teams can choose ±1 from natural.
+   */
+  static processMaterialTiers(
+    state: TeamState,
+    tierChoices: Record<string, number>
+  ): { cost: number; messages: string[] } {
+    let cost = 0;
+    const messages: string[] = [];
+
+    for (const [segment, chosenTier] of Object.entries(tierChoices)) {
+      const naturalTier = this.NATURAL_MATERIAL_TIERS[segment] ?? 2;
+      const clampedTier = Math.max(1, Math.min(5, Math.max(naturalTier - 1, Math.min(naturalTier + 1, chosenTier))));
+
+      // Estimate production units for cost calculation based on number of products in segment
+      const segmentProducts = state.products.filter(p => p.segment === segment);
+      const estimatedUnits = segmentProducts.length > 0 ? segmentProducts.length * 10000 : 10000;
+
+      const unitCost = this.MATERIAL_TIER_COSTS[clampedTier] ?? 100;
+      const materialCost = estimatedUnits * unitCost;
+      cost += materialCost;
+
+      const tierDiff = clampedTier - naturalTier;
+      if (tierDiff > 0) {
+        // Premium materials: +10% quality, -20% defects
+        for (const factory of state.factories) {
+          factory.defectRate = Math.max(0, (factory.defectRate ?? 0.06) * 0.8);
+        }
+        messages.push(`${segment}: Premium materials (Tier ${clampedTier}) — improved quality, fewer defects`);
+      } else if (tierDiff < 0) {
+        // Economy materials: -15% quality, +30% defects
+        for (const factory of state.factories) {
+          factory.defectRate = Math.min(0.15, (factory.defectRate ?? 0.06) * 1.3);
+        }
+        messages.push(`${segment}: Economy materials (Tier ${clampedTier}) — lower quality, more defects`);
+      } else {
+        messages.push(`${segment}: Standard materials (Tier ${clampedTier})`);
+      }
+    }
+
+    return { cost, messages };
+  }
+
   /**
    * Calculate efficiency improvement from investment
    * Formula: 1% per $1M, with diminishing returns after $10M cumulative
@@ -273,13 +345,7 @@ export class FactoryModule {
       factory?: number;
     }
   ): { newEfficiency: number; cost: number } {
-    const multipliers = {
-      workers: 0.01,        // 1% per $1M
-      supervisors: 0.015,   // 1.5% per $1M
-      engineers: 0.02,      // 2% per $1M
-      machinery: 0.012,     // 1.2% per $1M
-      factory: 0.008,       // 0.8% per $1M
-    };
+    const multipliers = CONSTANTS.EFFICIENCY_INVESTMENT_MULTIPLIERS;
 
     let totalInvestment = 0;
     let efficiencyGain = 0;
@@ -475,7 +541,7 @@ export class FactoryModule {
       workers: 0,
       engineers: 0,
       supervisors: 0,
-      efficiency: 0.7,     // Starting efficiency (worker/machine effectiveness)
+      efficiency: CONSTANTS.BASE_FACTORY_EFFICIENCY,     // Starting efficiency (worker/machine effectiveness)
       utilization: 0,      // PATCH 3: Actual demand / max capacity
       defectRate: CONSTANTS.BASE_DEFECT_RATE,
       materialLevel: 1,
@@ -491,11 +557,11 @@ export class FactoryModule {
       upgrades: [],
       // PATCH 7: Upgrade economic benefits (initialized to baseline)
       warrantyReduction: 0,         // No reduction initially
-      recallProbability: 0.05,      // 5% base recall risk
+      recallProbability: CONSTANTS.BASE_RECALL_PROBABILITY,      // 5% base recall risk
       stockoutReduction: 0,         // No benefit initially
       demandSpikeCapture: 0,        // No spike handling initially
-      costVolatility: 0.15,         // 15% base cost variance
-      co2Emissions: 1000, // Base emissions
+      costVolatility: CONSTANTS.BASE_COST_VOLATILITY,         // 15% base cost variance
+      co2Emissions: CONSTANTS.BASE_CO2_EMISSIONS, // Base emissions
       greenInvestment: 0,
       burnoutRisk: 0,           // PATCH 3: Accumulates when utilization > 95%
       maintenanceBacklog: 0,    // PATCH 3: Deferred maintenance hours
@@ -719,6 +785,9 @@ export class FactoryModule {
       baseOutput * factoryMultiplier * workerEfficiencyMultiplier * workerSpeedMultiplier * automationMultiplier
     );
 
+    // Production is driven by workers × machines × efficiency — no arbitrary cap.
+    // Players scale production by hiring workers and buying machines.
+
     // Calculate defects
     const defectRate = factory.defectRate;
     const defects = Math.floor(unitsProduced * defectRate);
@@ -816,13 +885,13 @@ export class FactoryModule {
       }
 
       // Waste rate inversely proportional to efficiency (higher efficiency = less waste)
-      const baseWasteRate = 0.15; // 15% baseline waste
-      const efficiencyReduction = factory.efficiency * 0.12; // Up to 12% reduction at max efficiency
+      const baseWasteRate = CONSTANTS.WASTE_RATE_BASE; // 15% baseline waste
+      const efficiencyReduction = factory.efficiency * CONSTANTS.WASTE_EFFICIENCY_REDUCTION; // Up to 12% reduction at max efficiency
       const upgradeReduction = (factory.wasteCostReduction ?? 0) * 0.05; // wasteToEnergy upgrade
       const wasteRate = Math.max(0.02, baseWasteRate - efficiencyReduction - upgradeReduction);
 
       const wasteUnits = Math.floor(produced * wasteRate);
-      const disposalCostPerUnit = 5; // $5 per wasted unit
+      const disposalCostPerUnit = CONSTANTS.WASTE_DISPOSAL_COST_PER_UNIT; // $5 per wasted unit
       const wasteDisposalCost = wasteUnits * disposalCostPerUnit;
       const factoryEfficiency = Math.round((1 - wasteRate) * 100);
 

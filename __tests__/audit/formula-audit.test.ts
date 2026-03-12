@@ -299,9 +299,9 @@ describe("HR Module Formulas", () => {
 
       const output = HRModule.calculateEngineerRDOutput(stats);
 
-      // Base (5) * efficiency (1.0) * speed (1.0) * (1 + innovation/200)
-      // = 5 * 1.0 * 1.0 * 1.5 = 7.5
-      expect(output).toBe(7.5);
+      // Base (15) * efficiency (1.0) * speed (1.0) * (1 + innovation/200)
+      // = 15 * 1.0 * 1.0 * 1.5 = 22.5
+      expect(output).toBe(22.5);
     });
   });
 
@@ -405,15 +405,15 @@ describe("Marketing Module Formulas", () => {
   });
 
   describe("Brand Decay", () => {
-    it("should decay brand by 1% of current value per round", () => {
+    it("should decay brand by 0.5% of current value per round", () => {
       const state = SimulationEngine.createInitialTeamState();
       state.brandValue = 0.5;
 
       const { newState } = MarketingModule.process(state, {});
 
-      // Brand decay is 1% of current value (proportional decay)
-      // 0.5 - (0.5 * 0.01) = 0.5 - 0.005 = 0.495
-      expect(newState.brandValue).toBeCloseTo(0.495, 2);
+      // Brand decay is 0.5% of current value (proportional decay)
+      // 0.5 - (0.5 * 0.005) = 0.5 - 0.0025 = 0.4975
+      expect(newState.brandValue).toBeCloseTo(0.4975, 3);
     });
   });
 
@@ -442,17 +442,17 @@ describe("Marketing Module Formulas", () => {
       // Invest heavily in marketing to trigger the cap
       const { newState, result } = MarketingModule.process(state, {
         advertisingBudget: {
-          Budget: 10_000_000,
-          General: 10_000_000,
-          Enthusiast: 10_000_000,
-          Professional: 10_000_000,
-          "Active Lifestyle": 10_000_000,
+          Budget: 500_000_000,
+          General: 500_000_000,
+          Enthusiast: 500_000_000,
+          Professional: 500_000_000,
+          "Active Lifestyle": 500_000_000,
         },
-        brandingInvestment: 20_000_000,
+        brandingInvestment: 1_000_000_000,
       });
 
-      // With $70M in marketing, raw growth would far exceed 6%
-      // But capped growth + 2.5% decay means net growth should be under cap
+      // With $3.5B in marketing, raw growth would far exceed 6%
+      // But capped growth + 0.5% decay means net growth should be under cap
       const netGrowth = newState.brandValue - state.brandValue;
       expect(netGrowth).toBeLessThan(0.06); // Never more than cap before decay
       expect(result.messages.some(m => m.includes("capped"))).toBe(true);
@@ -538,11 +538,9 @@ describe("R&D Module Formulas", () => {
     it("should cap bonuses at maximum values", () => {
       const value = RDModule.calculatePatentValue(100);
 
-      // Max quality bonus: 25 (v3.1.0: boosted from 10)
+      // EXPLOIT-01: Patent caps reduced to 25/0.25/0.15
       expect(value.qualityBonus).toBe(25);
-      // Max cost reduction: 25% (v3.1.0: boosted from 15%)
       expect(value.costReduction).toBe(0.25);
-      // Max market share bonus: 15% (v3.1.0: boosted from 5%)
       expect(value.marketShareBonus).toBe(0.15);
     });
 
@@ -577,7 +575,7 @@ describe("R&D Module Formulas", () => {
 
       // Should match engineer R&D output formula
       expect(output).toBeGreaterThan(0);
-      expect(output).toBe(7.5); // 5 * 1.0 * 1.0 * 1.5
+      expect(output).toBe(22.5); // 15 * 1.0 * 1.0 * 1.5
     });
 
     it("should reduce output with burnout", () => {
@@ -614,15 +612,20 @@ describe("R&D Module Formulas", () => {
 
 // PATCH 4: ESG redesigned as risk mitigation system
 describe("Market Simulator Formulas", () => {
-  describe("ESG Events - Risk Mitigation System (PATCH 4)", () => {
-    it("should return null for HIGH ESG (>= 600) - no revenue bonus", () => {
+  describe("ESG Events - Continuous Curve (BAL-01)", () => {
+    it("should return bonus for HIGH ESG (>= 700) - capped at 5%", () => {
       const result = MarketSimulator.applyESGEvents(700, 10_000_000);
-      expect(result).toBeNull(); // PATCH 4: No bonus, only risk mitigation
+      expect(result).not.toBeNull();
+      expect(result!.type).toBe("bonus");
+      expect(result!.amount).toBeCloseTo(10_000_000 * CONSTANTS.ESG_HIGH_BONUS, 0);
     });
 
-    it("should return null for MID ESG (300-599) - baseline risk", () => {
+    it("should return bonus for MID ESG (300-700) - proportional ramp", () => {
       const result = MarketSimulator.applyESGEvents(500, 10_000_000);
-      expect(result).toBeNull(); // PATCH 4: No bonus, baseline operations
+      expect(result).not.toBeNull();
+      expect(result!.type).toBe("bonus");
+      // At 500: (500-300)/400 * 0.05 = 0.025 = 2.5%
+      expect(result!.amount).toBeCloseTo(10_000_000 * 0.025, 0);
     });
 
     it("should apply gradient penalty for LOW ESG (< 300) - crisis risk", () => {
@@ -630,30 +633,34 @@ describe("Market Simulator Formulas", () => {
       const resultZero = MarketSimulator.applyESGEvents(0, 10_000_000);
       expect(resultZero).not.toBeNull();
       expect(resultZero!.type).toBe("penalty");
-      expect(resultZero!.amount).toBe(-10_000_000 * CONSTANTS.ESG_PENALTY_MAX); // 12% max penalty
+      expect(resultZero!.amount).toBe(-10_000_000 * CONSTANTS.ESG_PENALTY_MAX);
 
-      // At score 299, penalty should be close to min
-      const resultNearThreshold = MarketSimulator.applyESGEvents(299, 10_000_000);
-      expect(resultNearThreshold).not.toBeNull();
-      expect(resultNearThreshold!.type).toBe("penalty");
-      // Penalty decreases as score increases
-      expect(Math.abs(resultNearThreshold!.amount)).toBeLessThan(Math.abs(resultZero!.amount));
+      // At score 200, penalty should be moderate (less than max)
+      const resultMid = MarketSimulator.applyESGEvents(200, 10_000_000);
+      expect(resultMid).not.toBeNull();
+      expect(resultMid!.type).toBe("penalty");
+      expect(Math.abs(resultMid!.amount)).toBeLessThan(Math.abs(resultZero!.amount));
     });
 
-    it("should only penalize scores below 300 - no dead zone in penalty range", () => {
-      // PATCH 4: Only low ESG (< 300) gets penalties
-      const lowScores = [0, 100, 200, 299];
+    it("should have correct zones - penalty below 300, bonus above 300, null near 300", () => {
+      // Low ESG gets penalties
+      const lowScores = [0, 100, 200];
       for (const score of lowScores) {
         const result = MarketSimulator.applyESGEvents(score, 10_000_000);
         expect(result).not.toBeNull();
         expect(result!.type).toBe("penalty");
       }
 
-      // Mid and high ESG return null
-      const midHighScores = [300, 400, 500, 600, 700, 900, 1000];
-      for (const score of midHighScores) {
+      // Near 300 threshold — modifier near zero, returns null
+      const result300 = MarketSimulator.applyESGEvents(300, 10_000_000);
+      expect(result300).toBeNull(); // modifier = 0 at boundary
+
+      // Mid-high ESG gets bonuses
+      const highScores = [400, 500, 600, 700, 900, 1000];
+      for (const score of highScores) {
         const result = MarketSimulator.applyESGEvents(score, 10_000_000);
-        expect(result).toBeNull(); // No revenue bonus in PATCH 4
+        expect(result).not.toBeNull();
+        expect(result!.type).toBe("bonus");
       }
     });
   });
@@ -681,10 +688,11 @@ describe("Market Simulator Formulas", () => {
 
   describe("Market Share Calculation", () => {
     it("should distribute shares using softmax (sum to 1)", () => {
+      // With temperature=2, scores must be close together for differentiation
       const positions = [
-        { teamId: "team-1", totalScore: 50, segment: "General" as Segment, product: null, priceScore: 10, qualityScore: 10, brandScore: 10, esgScore: 10, featureScore: 10, marketShare: 0, unitsSold: 0, revenue: 0 },
-        { teamId: "team-2", totalScore: 30, segment: "General" as Segment, product: null, priceScore: 5, qualityScore: 5, brandScore: 10, esgScore: 5, featureScore: 5, marketShare: 0, unitsSold: 0, revenue: 0 },
-        { teamId: "team-3", totalScore: 20, segment: "General" as Segment, product: null, priceScore: 5, qualityScore: 5, brandScore: 5, esgScore: 2, featureScore: 3, marketShare: 0, unitsSold: 0, revenue: 0 },
+        { teamId: "team-1", totalScore: 12, segment: "General" as Segment, product: null, priceScore: 3, qualityScore: 3, brandScore: 2, esgScore: 2, featureScore: 2, marketShare: 0, unitsSold: 0, revenue: 0 },
+        { teamId: "team-2", totalScore: 10, segment: "General" as Segment, product: null, priceScore: 2, qualityScore: 2, brandScore: 2, esgScore: 2, featureScore: 2, marketShare: 0, unitsSold: 0, revenue: 0 },
+        { teamId: "team-3", totalScore: 8, segment: "General" as Segment, product: null, priceScore: 2, qualityScore: 2, brandScore: 2, esgScore: 1, featureScore: 1, marketShare: 0, unitsSold: 0, revenue: 0 },
       ];
 
       const shares = MarketSimulator.calculateMarketShares(positions);
@@ -712,17 +720,25 @@ describe("Market Simulator Formulas", () => {
     });
   });
 
-  describe("Rubber-Banding", () => {
-    it("should apply no boost to trailing teams (sweep: neutral)", () => {
-      expect(CONSTANTS.RUBBER_BAND_TRAILING_BOOST).toBe(1.0);
+  describe("Rubber-Banding (v6.0.0 revised continuous system)", () => {
+    it("should have correct activation round constant", () => {
+      expect(CONSTANTS.RUBBER_BAND_ACTIVATION_ROUND).toBe(3);
     });
 
-    it("should apply 20% penalty to leading teams", () => {
-      expect(CONSTANTS.RUBBER_BAND_LEADING_PENALTY).toBe(0.80);
+    it("should have correct cost relief constants", () => {
+      expect(CONSTANTS.RB_MAX_COST_RELIEF).toBe(0.12);
+      expect(CONSTANTS.RB_COST_RELIEF_SENSITIVITY).toBe(1.5);
     });
 
-    it("should trigger when share < avg * 0.3", () => {
-      expect(CONSTANTS.RUBBER_BAND_THRESHOLD).toBe(0.3);
+    it("should have correct perception bonus constants", () => {
+      expect(CONSTANTS.RB_MAX_PERCEPTION_BONUS).toBe(0.08);
+      expect(CONSTANTS.RB_PERCEPTION_SENSITIVITY).toBe(1.2);
+    });
+
+    it("should have correct incumbent drag constants", () => {
+      expect(CONSTANTS.RB_MAX_DRAG).toBe(0.50);
+      expect(CONSTANTS.RB_DRAG_SENSITIVITY).toBe(0.8);
+      expect(CONSTANTS.RB_MAX_QUALITY_EXPECTATION_BOOST).toBe(5.0);
     });
 
     it("should not activate before round 3", () => {
@@ -734,13 +750,13 @@ describe("Market Simulator Formulas", () => {
       teams[0].state.brandValue = 0.9;
       teams[1].state.brandValue = 0.1;
 
-      const marketState = SimulationEngine.createInitialMarketState();
-      marketState.roundNumber = 2;
-
-      const result = MarketSimulator.simulate(teams, marketState, { applyRubberBanding: true });
-
-      // Should not apply rubber-banding in round 2
-      expect(result.rubberBandingApplied).toBe(false);
+      const factors = MarketSimulator.calculateRubberBandingFactors(teams, 2);
+      // All factors should be neutral before round 3
+      for (const f of Object.values(factors)) {
+        expect(f.costReliefFactor).toBe(0);
+        expect(f.perceptionBonus).toBe(0);
+        expect(f.brandDecayMultiplier).toBe(1.0);
+      }
     });
   });
 });
@@ -802,14 +818,16 @@ describe("Edge Cases", () => {
 
   describe("Division Safety", () => {
     it("should handle $0 revenue in ESG calculations", () => {
-      // PATCH 4: High ESG returns null (no bonus), but low ESG should handle 0 revenue
+      // High ESG with $0 revenue: bonus amount is 0, so modifier > 0.001 but amount = 0
       const highESGResult = MarketSimulator.applyESGEvents(800, 0);
-      expect(highESGResult).toBeNull(); // PATCH 4: No bonus for high ESG
+      // Modifier is 5% (> 0.001), so returns a bonus object with amount 0
+      expect(highESGResult).not.toBeNull();
+      expect(highESGResult!.amount).toBe(0);
 
       // Low ESG should still calculate penalty even with 0 revenue
       const lowESGResult = MarketSimulator.applyESGEvents(200, 0);
       expect(lowESGResult).not.toBeNull();
-      expect(Math.abs(lowESGResult!.amount)).toBe(0); // 0 revenue = 0 penalty (use abs to handle -0)
+      expect(Math.abs(lowESGResult!.amount)).toBe(0); // 0 revenue = 0 penalty
     });
 
     it("should handle empty employee list in workforce summary", () => {
@@ -852,7 +870,7 @@ describe("Constants Verification", () => {
   });
 
   it("should have documented brand decay rate", () => {
-    expect(CONSTANTS.BRAND_DECAY_RATE).toBe(0.01);
+    expect(CONSTANTS.BRAND_DECAY_RATE).toBe(0.005);
   });
 
   it("should have documented training fatigue parameters", () => {

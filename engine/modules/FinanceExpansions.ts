@@ -516,7 +516,7 @@ export class FinanceExpansions {
     else if (factors.profitability < 0.05) score -= 10;
     else if (factors.profitability < 0.10) score -= 5;
 
-    factors.score = score;
+    factors.score = Math.max(0, Math.min(100, score)); // FORMULA-04: Clamp credit rating score 0-100
 
     // Determine rating
     let rating: CreditRating;

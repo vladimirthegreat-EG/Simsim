@@ -92,19 +92,43 @@ export class IncomeStatementEngine {
 
   /**
    * Calculate Cost of Goods Sold
+   * v5.1.0 Audit F-08: Derive COGS from actual production (unitCost × unitsSold)
+   * v5.1.0 Audit F-11: Apply upgrade cost reductions (automation, robotics)
    */
   private static calculateCOGS(state: TeamState): IncomeStatement["cogs"] {
-    // Raw materials from materials system
-    const rawMaterials = state.materials?.holdingCosts || 0;
+    // v5.1.0 Audit F-11: Aggregate COGS-relevant upgrade effects
+    let totalUnitCostReduction = 0;
+    let totalLaborReduction = 0;
+    for (const factory of state.factories) {
+      totalUnitCostReduction = Math.max(totalUnitCostReduction, factory.unitCostReduction ?? 0);
+      totalLaborReduction += factory.laborReduction ?? 0;
+    }
+    const unitCostMult = 1 - Math.min(0.50, totalUnitCostReduction);
+    const laborMult = 1 - Math.min(0.50, totalLaborReduction);
 
-    // Direct labor (production workers only)
-    const directLabor = state.employees.workers * (45000 / 12); // Monthly salary
+    // Raw materials: actual unit cost × units sold per product (with automation reduction)
+    let rawMaterials = 0;
+    if (state.products) {
+      for (const product of state.products) {
+        const sold = product.unitsSold || 0;
+        if (sold > 0) {
+          rawMaterials += sold * (product.unitCost || 0) * unitCostMult;
+        }
+      }
+    }
+    // Fall back to materials system holding costs if no product data
+    if (rawMaterials === 0) {
+      rawMaterials = state.materials?.holdingCosts || 0;
+    }
+
+    // Direct labor (production workers only, reduced by robotics)
+    const directLabor = state.employees.workers * (45000 / 12) * laborMult;
 
     // Manufacturing overhead (fixed factory costs)
     const manufacturing = state.factories.length * 100000; // $100k per factory per month
 
-    // Shipping costs (simplified - should be tracked from logistics)
-    const shipping = 0; // TODO: Integrate with logistics system
+    // Shipping costs from factory data
+    const shipping = state.factories.reduce((sum, f) => sum + (f.shippingCost || 0), 0);
 
     // Other COGS
     const other = 0;
@@ -123,15 +147,33 @@ export class IncomeStatementEngine {
 
   /**
    * Calculate Operating Expenses
+   * v5.1.0 Audit F-11: Apply factory upgrade cost reductions
    */
   private static calculateOperatingExpenses(
     state: TeamState
   ): IncomeStatement["operatingExpenses"] {
+    // v5.1.0 Audit F-11: Aggregate upgrade effects across all factories
+    let totalOpCostReduction = 0;
+    let totalMaintenanceReduction = 0;
+    let totalEnergyCostReduction = 0;
+    let totalLaborReduction = 0;
+    for (const factory of state.factories) {
+      totalOpCostReduction += factory.operatingCostReduction ?? 0;
+      totalMaintenanceReduction += factory.maintenanceCostReduction ?? 0;
+      totalEnergyCostReduction += factory.energyCostReduction ?? 0;
+      totalLaborReduction += factory.laborReduction ?? 0;
+    }
+    // Cap reductions at reasonable maximums
+    const opCostMult = 1 - Math.min(0.50, totalOpCostReduction);
+    const maintenanceMult = 1 - Math.min(0.50, totalMaintenanceReduction);
+    const energyMult = 1 - Math.min(0.65, totalEnergyCostReduction);
+    const laborMult = 1 - Math.min(0.50, totalLaborReduction);
+
     // Salaries (non-production staff)
     const engineerSalaries = state.employees.engineers * (85000 / 12);
     const supervisorSalaries = state.employees.supervisors * (75000 / 12);
     const overheadStaff = Math.floor(state.employees.workers * 0.1); // 10% overhead
-    const overheadSalaries = overheadStaff * (60000 / 12);
+    const overheadSalaries = overheadStaff * (60000 / 12) * laborMult;
     const salaries = engineerSalaries + supervisorSalaries + overheadSalaries;
 
     // Benefits (30% of salaries)
@@ -143,11 +185,13 @@ export class IncomeStatementEngine {
     // R&D spend
     const rd = state.rdSpend || 0;
 
-    // Maintenance
-    const maintenance = state.maintenanceSpend || 0;
+    // Maintenance (reduced by digitalTwin, etc.)
+    const baseMaintenance = state.maintenanceSpend || 0;
+    const maintenance = baseMaintenance * maintenanceMult;
 
-    // Facilities (rent, utilities, etc)
-    const facilities = state.factories.length * 50000; // $50k per factory per month
+    // Facilities (rent, utilities/energy, etc) — reduced by operating & energy upgrades
+    const baseFacilities = state.factories.length * 50000; // $50k per factory per month
+    const facilities = baseFacilities * opCostMult * energyMult;
 
     // Depreciation (10-year straight line on factories)
     const depreciation = state.factories.length * (50000000 / 120); // $50M cost, 120 months

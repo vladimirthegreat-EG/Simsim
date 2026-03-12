@@ -145,8 +145,10 @@ export class MarketingModule {
 
     // Natural brand decay (brands need constant investment)
     // Decay is proportional to current brand value (higher brands decay faster)
-    // This prevents runaway brand dominance
-    const decayAmount = newState.brandValue * CONSTANTS.BRAND_DECAY_RATE;
+    // v6.0.0: Rubber-banding Mechanism C — leading teams get accelerated brand decay
+    const brandDecayMultiplier = newState.rubberBanding?.brandDecayMultiplier ?? 1.0;
+    const decayRate = CONSTANTS.BRAND_DECAY_RATE * brandDecayMultiplier;
+    const decayAmount = newState.brandValue * decayRate;
     newState.brandValue = Math.max(0, newState.brandValue - decayAmount);
 
     // Deduct costs from cash
@@ -280,19 +282,10 @@ export class MarketingModule {
     segment: Segment,
     brandValue: number
   ): { salesBoost: number; marginReduction: number } {
-    // Price elasticity by segment
-    const elasticities: Record<Segment, number> = {
-      "Budget": 2.5,      // Very price sensitive
-      "General": 1.8,
-      "Enthusiast": 1.2,
-      "Professional": 0.8, // Less price sensitive
-      "Active Lifestyle": 1.5,
-    };
+    const elasticity = CONSTANTS.PRICE_ELASTICITY_BY_SEGMENT[segment];
 
-    const elasticity = elasticities[segment];
-
-    // Sales boost = discount × elasticity × (1 + brand)
-    const salesBoost = (discountPercent / 100) * elasticity * (1 + brandValue);
+    // BAL-03: Cap sales boost to prevent Budget deep-discount exploit
+    const salesBoost = Math.min(CONSTANTS.MAX_PROMOTION_SALES_BOOST, (discountPercent / 100) * elasticity * (1 + brandValue));
 
     // Margin reduction is direct
     const marginReduction = discountPercent / 100;

@@ -12,6 +12,7 @@ import { TeamRankingsCard } from "@/components/game/TeamRankingsCard";
 import { RoundNarrativeCard } from "@/components/game/RoundNarrativeCard";
 import { ModuleResultCard } from "@/components/game/ModuleResultCard";
 import { AchievementUnlockedCard } from "@/components/game/AchievementUnlockedCard";
+import { TechUnlockCard } from "@/components/game/TechUnlockCard";
 import { TeamState } from "@/engine/types";
 import {
   Trophy,
@@ -327,6 +328,14 @@ export default function ResultsPage({ params }: PageProps) {
               achievements={state.achievements}
               currentRound={roundResults.round}
               totalScore={state.achievementScore}
+            />
+          )}
+
+          {/* Tech Unlocks */}
+          {roundResults?.moduleResults?.rd?.messages?.some((m: string) => m.includes("Technology unlocked")) && (
+            <TechUnlockCard
+              messages={roundResults.moduleResults.rd.messages.filter((m: string) => m.includes("Technology unlocked"))}
+              totalTechsUnlocked={state?.unlockedTechnologies?.length ?? 0}
             />
           )}
 

@@ -10,9 +10,9 @@
  * NON-NEGOTIABLE: All balance changes must be validated through this harness.
  */
 
-import { SimulationEngine, type SimulationInput, type SimulationOutput } from "../core/SimulationEngine";
-import type { TeamState, MarketState, AllDecisions } from "../types";
-import { deriveSeedBundle } from "../core/EngineContext";
+import { SimulationEngine, type SimulationInput, type SimulationOutput } from "../../engine/core/SimulationEngine";
+import type { TeamState, MarketState, AllDecisions } from "../../engine/types";
+import { deriveSeedBundle } from "../../engine/core/EngineContext";
 import type { StrategyArchetype, StrategyDecisionMaker, StrategyResult } from "./strategies";
 import type { BalanceMetrics, DiversityIndex } from "./metrics";
 

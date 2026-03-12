@@ -47,6 +47,7 @@ export type {
   ESGState,
   TeamState,
   StateVersion,
+  RubberBandingFactors,
 } from "./state";
 
 // Decision types
@@ -114,12 +115,13 @@ export const CONSTANTS = {
   WORKERS_PER_MACHINE: 2.75,
   WORKERS_PER_SUPERVISOR: 15,
   ENGINEERS_PER_FACTORY: 8,
-  BASE_RD_POINTS_PER_ENGINEER: 5,
+  BASE_RD_POINTS_PER_ENGINEER: 15,     // v5.1.0 Audit F-04 (was 5 — patents unreachable in 8 rounds)
   RD_BUDGET_TO_POINTS_RATIO: 100_000,  // Sweep v5: $100K per rdProgress point (so $15M → 150 pts)
+  MAX_RD_BUDGET_POINTS_PER_ROUND: 200, // CRIT-01: Cap budget-derived R&D points per round (effective cap: $20M)
   MAX_SALARY: 500_000,
   SALARY_MULTIPLIER_MIN: 0.8,
   SALARY_MULTIPLIER_MAX: 2.2,
-  HIRING_COST_MULTIPLIER: 0.25,
+  HIRING_COST_MULTIPLIER: 0.15,         // v5.1.0 Audit F-09 (was 0.25 — inconsistent with config)
 
   // Recruitment
   RECRUITMENT_COSTS: {
@@ -374,15 +376,24 @@ export const CONSTANTS = {
   PRICE_FLOOR_PENALTY_THRESHOLD: 0.08,  // 8% below segment minimum = penalty zone
   PRICE_FLOOR_PENALTY_MAX: 0.10,        // Max 10% score reduction at extreme low prices
 
-  // Rubber-banding (catch-up mechanics)
-  RUBBER_BAND_TRAILING_BOOST: 1.0,      // No boost for trailing teams (sweep: neutral)
-  RUBBER_BAND_LEADING_PENALTY: 0.80,    // 20% penalty for leading teams
-  RUBBER_BAND_THRESHOLD: 0.3,           // Trigger when share < avg * threshold
+  // Rubber-banding (catch-up mechanics) — v6.0.0 Revised continuous system
+  // Replaces threshold-based system with three indirect mechanisms
+  RUBBER_BAND_ACTIVATION_ROUND: 3,      // No rubber-banding in rounds 1-2
+  // Mechanism A — Cost Relief (trailing teams)
+  RB_MAX_COST_RELIEF: 0.12,             // Maximum 12% COGS/hiring cost reduction
+  RB_COST_RELIEF_SENSITIVITY: 1.5,      // tanh ramp speed for cost relief
+  // Mechanism B — Perception Boost (trailing teams)
+  RB_MAX_PERCEPTION_BONUS: 0.08,        // Maximum 8% quality score boost (additive within weight)
+  RB_PERCEPTION_SENSITIVITY: 1.2,       // tanh ramp speed for perception boost
+  // Mechanism C — Incumbent Drag (leading teams)
+  RB_MAX_DRAG: 0.50,                    // Maximum 50% acceleration to brand decay + quality expectations
+  RB_DRAG_SENSITIVITY: 0.8,             // tanh ramp speed for drag (gentler than relief)
+  RB_MAX_QUALITY_EXPECTATION_BOOST: 5.0, // Up to +5 points on quality expectations
 
-  // Brand - Rebalanced (v3.1.0, Fix 2.1)
-  // Reduced decay so brand strategy can actually build value over time
-  BRAND_DECAY_RATE: 0.01,               // 1% brand decay per round (sweep v5 cross-validation)
-  BRAND_MAX_GROWTH_PER_ROUND: 0.04,     // Max 4% brand growth per round (sweep v5)
+  // Brand - Rebalanced (v5.1.0, Audit F-02)
+  // Halved decay so brand strategy can differentiate from cost-cutters
+  BRAND_DECAY_RATE: 0.005,              // 0.5% brand decay per round (was 1%)
+  BRAND_MAX_GROWTH_PER_ROUND: 0.06,     // Max 6% brand growth per round (was 4%)
 
   // v4.0.0: Brand critical mass thresholds (values match MarketSimulator.ts v4.0.2)
   BRAND_CRITICAL_MASS_LOW: 0.15,        // Below this, brand score gets penalty (sweep v5)
@@ -390,21 +401,17 @@ export const CONSTANTS = {
   BRAND_LOW_MULTIPLIER: 0.7,            // -30% brand score for weak brands (sweep v5 cross-val)
   BRAND_HIGH_MULTIPLIER: 1.1,           // +10% brand score for strong brands
 
-  // v4.0.0: Balanced flexibility bonus (values match MarketSimulator.ts v4.0.2)
-  FLEXIBILITY_BONUS_FULL: 0.02,         // 2% score bonus for 4/4 diversification checks (sweep v5)
-  FLEXIBILITY_BONUS_PARTIAL: 0.005,     // 0.5% for 3/4 checks (sweep v5)
-  FLEXIBILITY_MIN_RD: 2_000_000,        // Minimum R&D budget to count (sweep v5)
-  FLEXIBILITY_MIN_BRAND: 0.45,          // Minimum brand value to count
-  FLEXIBILITY_MIN_EFFICIENCY: 0.70,     // Minimum factory efficiency to count (v4.0.1: lowered)
-  FLEXIBILITY_MIN_PRODUCTS: 4,          // Minimum products with quality >= 55
+  // v4.0.0: Balanced flexibility bonus — REMOVED in v5.1.0 (Audit F-01)
+  // Generalist performance should emerge from segment weights naturally,
+  // not from a hardcoded multiplier that guarantees balanced strategy wins.
 
-  // v3.1.0: Tuning parameters (exposed for parameter sweep)
-  SOFTMAX_TEMPERATURE: 4,               // Market share allocation sharpness (v7: raised for balance)
+  // v5.1.0: Tuning parameters (Audit F-03)
+  SOFTMAX_TEMPERATURE: 2,               // Market share allocation sharpness (was 4 — too flat)
 
   // Marketing parameters (wired for sweep)
   ADVERTISING_BASE_IMPACT: 0.0011,      // 0.11% brand per $1M advertising (sweep v5)
-  ADVERTISING_CHUNK_SIZE: 1_000_000,    // $1M chunks for diminishing returns (sweep v5)
-  ADVERTISING_DECAY: 0.2,               // 20% effectiveness drop per chunk (keeps 80%) (sweep v5)
+  ADVERTISING_CHUNK_SIZE: 2_000_000,    // BAL-05: $2M chunks (was $1M) — wider linear zone before decay
+  ADVERTISING_DECAY: 0.15,              // BAL-05: 15% effectiveness drop per chunk (was 20%) — gentler curve
   BRANDING_BASE_IMPACT: 0.003,          // 0.3% brand per $1M branding investment (sweep v5)
   BRANDING_LINEAR_THRESHOLD: 2_000_000, // Linear benefit up to $2M (sweep v5)
   BRANDING_LOG_MULTIPLIER: 1.5,         // Log multiplier for amounts >$2M (sweep v5)
@@ -423,7 +430,7 @@ export const CONSTANTS = {
     "Budget":           { price: 65, quality: 15, brand: 5,  esg: 5,  features: 10 },
     "General":          { price: 28, quality: 23, brand: 17, esg: 10, features: 22 },
     "Enthusiast":       { price: 12, quality: 30, brand: 8,  esg: 5,  features: 45 },
-    "Professional":     { price: 8,  quality: 48, brand: 7,  esg: 20, features: 17 },
+    "Professional":     { price: 15, quality: 40, brand: 8,  esg: 17, features: 20 }, // BAL-02: Rebalanced — price matters more, quality less dominant
     "Active Lifestyle": { price: 20, quality: 34, brand: 10, esg: 10, features: 26 },
   } as Record<Segment, { price: number; quality: number; brand: number; esg: number; features: number }>,
 
@@ -433,6 +440,161 @@ export const CONSTANTS = {
   DEFAULT_SHARES_ISSUED: 10_000_000,
   DEFAULT_RAW_MATERIALS: 5_000_000,
   DEFAULT_LABOR_COST: 5_000_000,
+
+  // Cash enforcement — only the floor trigger, everything else is derived from state
+  MINIMUM_CASH_FLOOR: 5_000_000,          // $5M — auto-funding triggers when cash falls below this
+
+  // ============================================
+  // HR / EMPLOYEE CONSTANTS
+  // ============================================
+
+  BASE_EMPLOYEE_MORALE: 75,                // Starting morale for new hires
+  BASE_EMPLOYEE_STAT: 65,                  // Default starting stat value
+  LOW_MORALE_THRESHOLD: 50,               // Below this, turnover increases
+  LOW_MORALE_TURNOVER_PENALTY: 0.15,      // Extra turnover when morale < threshold
+  HIGH_BURNOUT_THRESHOLD: 50,             // Burnout level triggering turnover
+  BURNOUT_TURNOVER_PENALTY: 0.10,         // Extra turnover at high burnout
+  BURNOUT_RECOVERY_MORALE_THRESHOLD: 50,  // Morale needed to start burnout recovery
+  BURNOUT_MORALE_STRESS_MULTIPLIER: 8,    // Burnout increase per morale point below threshold
+  BURNOUT_RECOVERY_RATE_DIVISOR: 5,       // Recovery rate: (morale - threshold) / divisor
+  EMPLOYEE_VALUE_WEIGHTS: {               // Weighted stat importance for employee value
+    efficiency: 0.25,
+    accuracy: 0.20,
+    speed: 0.15,
+    stamina: 0.10,
+    discipline: 0.10,
+    loyalty: 0.10,
+    teamCompatibility: 0.10,
+  },
+  TRAINING_BASE_IMPROVEMENT: { min: 5, max: 10 }, // Stat improvement range per training
+  MORALE_IMPACT_CAP: 0.50,               // Max morale impact from benefits
+  TURNOVER_REDUCTION_CAP: 0.40,          // Max turnover reduction from benefits
+
+  // ============================================
+  // FINANCE / BOARD CONSTANTS
+  // ============================================
+
+  CREDIT_FROZEN_DE_THRESHOLD: 2.0,        // D/E ratio where credit freezes
+  BOARD_SATISFACTION_BASELINE: 50,         // Starting board satisfaction score
+  BOARD_TOTAL_VOTES: 6,                   // Number of board members voting
+  BASE_PE_RATIO: 15,                       // Market average PE ratio
+  MIN_PE_RATIO: 5,                         // Floor for PE ratio
+  MAX_PE_RATIO: 30,                        // Cap for PE ratio
+  PE_GROWTH_PREMIUM_MAX: 10,              // Max PE bonus from EPS growth
+  MARKET_CAP_BLEND_ZONE: { low: -0.5, high: 0.5 }, // EPS zone for PE/PS blending
+  PRICE_TO_SALES_BASE: 2,                 // Base P/S ratio for market cap
+  MARKET_CAP_BOOK_VALUE_FLOOR: 0.5,       // Min market cap = 50% of book value
+  MARKET_CAP_ASSETS_FLOOR: 0.3,           // Min market cap = 30% of total assets
+  INVESTOR_SENTIMENT_ESG_HIGH: 600,       // ESG score threshold for positive sentiment
+  INVESTOR_SENTIMENT_ESG_LOW: 300,        // ESG score threshold for negative sentiment
+  INVESTOR_SENTIMENT_ESG_BONUS: 8,        // Sentiment boost for high ESG
+  INVESTOR_SENTIMENT_ESG_PENALTY: 10,     // Sentiment penalty for low ESG
+  DEBT_COVENANT_DE_THRESHOLD_1: 1.0,      // D/E triggers interest surcharge
+  DEBT_COVENANT_DE_THRESHOLD_2: 1.5,      // D/E triggers forced repayment
+  COVENANT_INTEREST_SURCHARGE: 0.02,      // 2% surcharge on existing debt
+  FORCED_REPAYMENT_CASH_LIMIT: 0.30,      // Max 30% of cash for forced repayment
+  FORCED_REPAYMENT_DEBT_PERCENT: 0.10,    // Repay 10% of debt
+
+  // ============================================
+  // CASH ENFORCEMENT CONSTANTS
+  // ============================================
+
+  CASH_FLOOR_ASSET_RATIO: 0.05,           // Cash floor = 5% of total assets
+  AUTO_LOAN_BUFFER: 1.2,                  // Borrow 120% of shortfall
+  LOAN_REVENUE_CAPACITY_MULTIPLIER: 2,    // Revenue × 2 = max debt capacity
+  LOAN_EQUITY_CAPACITY_MULTIPLIER: 3.0,   // Equity × 3 = max debt capacity
+  MAX_DILUTION_PER_ROUND: 0.20,           // Max 20% new shares per round
+  STOCK_ISSUE_PRICE_IMPACT_FLOOR: 0.50,   // Min 50% of share price when issuing
+  DE_RISK_PREMIUM_RATE: 0.04,             // 4% interest per D/E unit above 0.5
+  DE_RISK_PREMIUM_THRESHOLD: 0.5,         // D/E level where risk premium starts
+  DISTRESS_PREMIUM_RATE: 0.03,            // 3% extra interest when cash < 0
+  MAX_INTEREST_RATE: 0.25,                // Cap interest rate at 25%
+  CREDIT_FROZEN_DE_EMERGENCY: 3.0,        // D/E threshold for credit freeze (emergency)
+
+  // ============================================
+  // FACTORY / MANUFACTURING CONSTANTS
+  // ============================================
+
+  BASE_FACTORY_EFFICIENCY: 0.7,           // Starting efficiency for new factories
+  BASE_RECALL_PROBABILITY: 0.05,          // 5% baseline defect-to-recall rate
+  BASE_COST_VOLATILITY: 0.15,             // 15% material cost fluctuation range
+  BASE_CO2_EMISSIONS: 1000,               // Starting CO2 emissions per factory
+  WASTE_RATE_BASE: 0.15,                  // 15% baseline waste rate
+  WASTE_EFFICIENCY_REDUCTION: 0.12,       // Up to 12% waste reduction at max efficiency
+  WASTE_DISPOSAL_COST_PER_UNIT: 5,        // $5 per wasted unit
+  UTILIZATION_PENALTY_THRESHOLD: 0.95,    // >95% utilization triggers burnout
+  BURNOUT_RISK_PER_ROUND: 0.10,           // Burnout accumulation at high utilization
+  MAINTENANCE_BACKLOG_PER_ROUND: 50,      // Maintenance backlog increase
+  DEFECT_RATE_INCREASE_AT_HIGH_UTIL: 0.02, // Defect rate increase at high utilization
+  MATERIAL_TIER_COSTS: {                  // Cost per unit by material tier
+    1: 50, 2: 100, 3: 150, 4: 200, 5: 350,
+  } as Record<number, number>,
+  NATURAL_MATERIAL_TIERS: {               // Default material tier by segment
+    "Budget": 1, "General": 2, "Enthusiast": 3,
+    "Professional": 4, "Active Lifestyle": 3,
+  } as Record<string, number>,
+  EFFICIENCY_INVESTMENT_MULTIPLIERS: {    // Diminishing returns per investment type
+    workers: 0.01, supervisors: 0.015,
+    engineers: 0.02, machinery: 0.012, factory: 0.008,
+  },
+
+  // ============================================
+  // MARKETING CONSTANTS
+  // ============================================
+
+  PRICE_ELASTICITY_BY_SEGMENT: {          // Price sensitivity per segment
+    "Budget": 2.5, "General": 1.8, "Enthusiast": 1.2,
+    "Professional": 0.8, "Active Lifestyle": 1.5,
+  } as Record<Segment, number>,
+  MAX_PROMOTION_SALES_BOOST: 0.75,        // BAL-03: Cap sales boost at 75%
+  ADVERTISING_SEGMENT_MULTIPLIERS: {      // Ad effectiveness by segment
+    "Budget": 0.5, "General": 1.0, "Enthusiast": 0.75,
+    "Professional": 0.85, "Active Lifestyle": 1.1,
+  } as Record<Segment, number>,
+
+  // ============================================
+  // R&D CONSTANTS
+  // ============================================
+
+  PATENT_UNLOCK_THRESHOLD: 200,           // rdProgress needed for patent (100 base + 100 budget)
+  PATENT_QUALITY_BONUS_MAX: 25,           // Max quality bonus from patents
+  PATENT_COST_REDUCTION_MAX: 0.25,        // Max cost reduction from patents
+  PATENT_SHARE_BONUS_MAX: 0.15,           // Max market share bonus from patents
+  PATENT_PRODUCTION_GATE_UNITS: 10_000,   // Min units sold for full patent bonus
+  TECH_DECAY_THRESHOLD_ROUNDS: 6,         // Rounds before tech bonuses start decaying
+  TECH_MAX_DECAY_ROUNDS: 12,              // Rounds at which tech fully decays
+  PRODUCT_DEV_STARTING_RATIO: 0.5,        // Products start at 50% of target quality/features
+  QUALITY_MULTIPLIER_BASELINE: 50,        // Quality point baseline for multiplier calc
+
+  // ============================================
+  // FX CONSTANTS
+  // ============================================
+
+  FX_BASELINE_RATES: {                    // Standard FX rates for major pairs
+    "EUR/USD": 1.10,
+    "GBP/USD": 1.27,
+    "JPY/USD": 0.0067,
+    "CNY/USD": 0.14,
+  } as Record<string, number>,
+  FX_IMPACT_REPORTING_THRESHOLD: 100_000, // Min FX impact ($) before logging
+
+  // ============================================
+  // INITIAL STATE DEFAULTS
+  // ============================================
+
+  DEFAULT_SHARE_PRICE: 50,                // Starting share price
+  DEFAULT_PRODUCT_CAPACITY: 50_000,       // Starting production line capacity
+  DEFAULT_BENEFITS_PACKAGE: {             // Starting benefits configuration
+    healthInsurance: 50, retirementMatch: 30, paidTimeOff: 15,
+    parentalLeave: 6, professionalDevelopment: 1000,
+  },
+  INITIAL_PRODUCT_SPECS: {                // Starting product specs by segment
+    "Budget":           { price: 200, quality: 50, features: 30, reliability: 60 },
+    "General":          { price: 450, quality: 65, features: 50, reliability: 70 },
+    "Enthusiast":       { price: 800, quality: 80, features: 70, reliability: 75 },
+    "Professional":     { price: 1250, quality: 90, features: 85, reliability: 90 },
+    "Active Lifestyle": { price: 600, quality: 70, features: 60, reliability: 80 },
+  } as Record<Segment, { price: number; quality: number; features: number; reliability: number }>,
 } as const;
 
 // ============================================
