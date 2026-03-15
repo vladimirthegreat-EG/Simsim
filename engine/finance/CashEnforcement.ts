@@ -250,7 +250,7 @@ export class CashEnforcement {
     let bestShares = 0;
     let bestProceeds = 0;
 
-    // Binary search for the right share count
+    // Descending search for smallest share count that raises enough
     for (let candidateShares = Math.min(maxNewShares, Math.ceil(targetRaise / currentPrice));
          candidateShares >= 1000;
          candidateShares = Math.floor(candidateShares * 0.8)) {
@@ -259,14 +259,18 @@ export class CashEnforcement {
       const effectivePrice = currentPrice * priceImpact;
       const proceeds = candidateShares * effectivePrice;
 
-      if (proceeds >= targetRaise || candidateShares === maxNewShares) {
+      if (proceeds >= targetRaise) {
+        // Found a count that raises enough — keep searching for a smaller one
         bestShares = candidateShares;
         bestProceeds = proceeds;
-        break;
-      }
-      if (proceeds > bestProceeds) {
+        // Continue loop to find a smaller share count that still suffices
+      } else if (proceeds > bestProceeds) {
+        // Can't raise enough yet, but track the best we've seen so far
         bestShares = candidateShares;
         bestProceeds = proceeds;
+        break; // Smaller counts will raise even less, so stop
+      } else {
+        break; // Proceeds are shrinking, stop
       }
     }
 

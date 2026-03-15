@@ -27,8 +27,10 @@ import {
   BarChart3,
   CircleDot,
   StopCircle,
+  FileText,
+  MessageSquare,
 } from "lucide-react";
-import { EventInjectionPanel } from "@/components/facilitator";
+import { EventInjectionPanel, PostGameReport, DiscussionGuide } from "@/components/facilitator";
 import { TeamDetailPanel } from "@/components/facilitator";
 
 interface PageProps {
@@ -102,6 +104,11 @@ export default function GameControlPage({ params }: PageProps) {
       toast.error(error.message);
     },
   });
+
+  const { data: postGameData, isLoading: postGameLoading } = trpc.game.getPostGameReport.useQuery(
+    { gameId },
+    { enabled: game?.status === "COMPLETED" }
+  );
 
   const copyJoinCode = () => {
     if (game?.joinCode) {
@@ -414,9 +421,11 @@ export default function GameControlPage({ params }: PageProps) {
               )}
 
               {game.status === "COMPLETED" && (
-                <div className="flex items-center gap-2 text-blue-400 bg-blue-500/10 px-4 py-2 rounded-lg">
-                  <Trophy className="w-5 h-5" />
-                  <span className="font-medium">Game Complete</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 text-blue-400 bg-blue-500/10 px-4 py-2 rounded-lg">
+                    <Trophy className="w-5 h-5" />
+                    <span className="font-medium">Game Complete</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -461,7 +470,7 @@ export default function GameControlPage({ params }: PageProps) {
         </div>
 
         {/* Tabbed Content */}
-        <Tabs defaultValue="teams" className="w-full">
+        <Tabs defaultValue={game.status === "COMPLETED" ? "report" : "teams"} className="w-full">
           <TabsList className="bg-slate-900 border border-slate-800 rounded-xl p-1 h-auto">
             <TabsTrigger value="teams" className="data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-500 rounded-lg gap-2 px-4 py-2.5 transition-all">
               <Users className="w-4 h-4" />
@@ -475,6 +484,18 @@ export default function GameControlPage({ params }: PageProps) {
               <History className="w-4 h-4" />
               History
             </TabsTrigger>
+            {game.status === "COMPLETED" && (
+              <TabsTrigger value="report" className="data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-500 rounded-lg gap-2 px-4 py-2.5 transition-all">
+                <FileText className="w-4 h-4" />
+                Report
+              </TabsTrigger>
+            )}
+            {game.status === "COMPLETED" && (
+              <TabsTrigger value="discussion" className="data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-500 rounded-lg gap-2 px-4 py-2.5 transition-all">
+                <MessageSquare className="w-4 h-4" />
+                Discussion
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Teams Tab */}
@@ -607,6 +628,42 @@ export default function GameControlPage({ params }: PageProps) {
               disabled={game.status !== "IN_PROGRESS"}
             />
           </TabsContent>
+
+          {/* Report Tab (post-game only) */}
+          {game.status === "COMPLETED" && (
+            <TabsContent value="report" className="mt-4">
+              <div className="rounded-xl border border-slate-800 bg-slate-900/80 overflow-hidden p-6">
+                {postGameLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-slate-400 text-sm ml-3">Generating report...</span>
+                  </div>
+                ) : postGameData?.report ? (
+                  <PostGameReport report={postGameData.report} />
+                ) : (
+                  <p className="text-slate-400 text-center py-8">No report data available.</p>
+                )}
+              </div>
+            </TabsContent>
+          )}
+
+          {/* Discussion Tab (post-game only) */}
+          {game.status === "COMPLETED" && (
+            <TabsContent value="discussion" className="mt-4">
+              <div className="rounded-xl border border-slate-800 bg-slate-900/80 overflow-hidden p-6">
+                {postGameLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-slate-400 text-sm ml-3">Loading discussion guide...</span>
+                  </div>
+                ) : postGameData?.discussionGuide ? (
+                  <DiscussionGuide guide={postGameData.discussionGuide} />
+                ) : (
+                  <p className="text-slate-400 text-center py-8">No discussion guide available.</p>
+                )}
+              </div>
+            </TabsContent>
+          )}
 
           {/* History Tab */}
           <TabsContent value="history" className="mt-4">

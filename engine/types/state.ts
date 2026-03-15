@@ -11,6 +11,11 @@ import type { FinancialStatements } from "../finance/types";
 import type { FactoryMachineryState } from "../machinery/types";
 import type { Patent } from "./patents";
 import type { UnlockedAchievement } from "./achievements";
+import type { UtilizationState, MaintenanceState, BreakdownEvent } from "../modules/FactoryExpansions";
+import type { TeamDynamics, HiringPipeline } from "../modules/HRExpansions";
+import type { TechTreeState, PlatformState } from "../modules/RDExpansions";
+import type { PerformanceMarketing, BrandMarketing, CompetitorAction } from "../modules/MarketingExpansions";
+import type { DebtState, CreditRatingState, InvestorSentiment as FinanceInvestorSentiment } from "../modules/FinanceExpansions";
 
 // ============================================
 // STATE VERSIONING (Required for compatibility)
@@ -235,6 +240,41 @@ export interface TeamState {
 
   /** Collaborative research proposals (multiplayer only) */
   researchProposals?: ResearchProposal[];
+
+  // === Expansion Module State ===
+
+  /** Factory health expansion: utilization, maintenance, breakdowns per factory */
+  factoryExpansion?: {
+    utilization: Record<string, UtilizationState>;
+    maintenance: Record<string, MaintenanceState>;
+    activeBreakdowns: BreakdownEvent[];
+  };
+
+  /** HR expansion: team dynamics, hiring pipeline */
+  hrExpansion?: {
+    teamDynamics: TeamDynamics;
+    hiringPipeline: HiringPipeline;
+  };
+
+  /** R&D expansion: tech tree, platform strategy */
+  rdExpansion?: {
+    techTree: TechTreeState;
+    platforms: PlatformState;
+  };
+
+  /** Marketing expansion: performance/brand split, channels, competitor actions */
+  marketingExpansion?: {
+    performanceMarketing: PerformanceMarketing;
+    brandMarketing: BrandMarketing;
+    competitorActions: CompetitorAction[];
+  };
+
+  /** Finance expansion: debt instruments, credit rating, investor sentiment */
+  financeExpansion?: {
+    debtState: DebtState;
+    creditRating: CreditRatingState;
+    investorSentiment: FinanceInvestorSentiment;
+  };
 }
 
 /** Collaborative research proposal (multiplayer) */

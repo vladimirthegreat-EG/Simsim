@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useMemo } from "react";
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,7 +13,7 @@ import { RoundNarrativeCard } from "@/components/game/RoundNarrativeCard";
 import { ModuleResultCard } from "@/components/game/ModuleResultCard";
 import { AchievementUnlockedCard } from "@/components/game/AchievementUnlockedCard";
 import { TechUnlockCard } from "@/components/game/TechUnlockCard";
-import { TeamState } from "@/engine/types";
+import type { TeamState } from "@/engine/types";
 import {
   Trophy,
   TrendingUp,
@@ -29,13 +29,7 @@ import {
   Radar,
 } from "lucide-react";
 
-interface PageProps {
-  params: Promise<{ gameId: string }>;
-}
-
-export default function ResultsPage({ params }: PageProps) {
-  const { gameId } = use(params);
-
+export default function ResultsPage() {
   const { data: teamState, isLoading: isLoadingTeam } = trpc.team.getMyState.useQuery();
   const { data: performanceData, isLoading: isLoadingPerformance } = trpc.team.getPerformanceHistory.useQuery();
   const { data: roundResults } = trpc.team.getRoundResults.useQuery();
@@ -224,6 +218,8 @@ export default function ResultsPage({ params }: PageProps) {
     }));
   }, [explainability?.segmentBreakdowns]);
 
+  const totalTeamsFromHistory = historyData.length > 0 ? rankings.length : 0;
+
   const scorecardData = useMemo(() => {
     const breakdowns = explainability?.segmentBreakdowns;
     if (!breakdowns?.length) return null;
@@ -241,9 +237,7 @@ export default function ResultsPage({ params }: PageProps) {
       overallRank: historyData.length > 0 ? historyData[historyData.length - 1].rank : 0,
       totalTeams: totalTeamsCount,
     };
-  }, [explainability?.segmentBreakdowns, rankings.length, historyData]);
-
-  const totalTeamsFromHistory = historyData.length > 0 ? rankings.length : 0;
+  }, [explainability?.segmentBreakdowns, rankings.length, historyData, totalTeamsFromHistory]);
 
   // Loading state
   if (isLoading) {

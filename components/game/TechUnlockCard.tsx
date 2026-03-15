@@ -21,7 +21,7 @@ function parseTechId(message: string): string | null {
   // Messages are like "Technology unlocked: process optimization!"
   const match = message.match(/Technology unlocked:\s*(.+?)!/i);
   if (!match) return null;
-  return match[1].trim().replace(/\s+/g, "_");
+  return match[1].trim().toLowerCase().replace(/\s+/g, "_");
 }
 
 export function TechUnlockCard({ messages, totalTechsUnlocked }: TechUnlockCardProps) {

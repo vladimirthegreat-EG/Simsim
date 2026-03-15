@@ -18,7 +18,7 @@ import {
   BenefitsPackage,
   CompanyBenefits,
 } from "../types";
-import { createErrorResult, random, randomInt } from "../utils";
+import { createErrorResult } from "../utils";
 import { cloneTeamState } from "../utils/stateUtils";
 import type { EngineContext, SeededRNG } from "../core/EngineContext";
 
@@ -40,26 +40,19 @@ const LAST_NAMES = [
 ];
 
 /**
- * Get RNG instance - uses context if available, otherwise global (throws if not seeded)
- */
-function getRNG(ctx?: EngineContext): SeededRNG | null {
-  return ctx?.rng.hr ?? null;
-}
-
-/**
- * Get random number using context or global RNG
+ * Get random number using context RNG
  */
 function getRandomValue(ctx?: EngineContext): number {
-  const rng = getRNG(ctx);
-  return rng ? rng.next() : random();
+  if (!ctx) throw new Error("DETERMINISM VIOLATION: HRModule requires EngineContext");
+  return ctx.rng.hr.next();
 }
 
 /**
- * Get random int using context or global RNG
+ * Get random int using context RNG
  */
 function getRandomInt(min: number, max: number, ctx?: EngineContext): number {
-  const rng = getRNG(ctx);
-  return rng ? rng.int(min, max) : randomInt(min, max);
+  if (!ctx) throw new Error("DETERMINISM VIOLATION: HRModule requires EngineContext");
+  return ctx.rng.hr.int(min, max);
 }
 
 export class HRModule {
@@ -102,7 +95,7 @@ export class HRModule {
           // Use pre-generated candidate data from recruitment search
           const id = ctx
             ? ctx.idGenerator.next("employee")
-            : `emp-r0-${Date.now().toString(36)}-${Math.floor(Math.random() * 10000)}`;
+            : `emp-fallback-${Math.floor(performance.now())}`;
           const factoryId = hire.factoryId || state.factories[0]?.id || "factory-1";
           newEmployee = {
             id,
@@ -369,7 +362,7 @@ export class HRModule {
     // Deterministic ID generation using context, or fallback pattern
     const id = ctx
       ? ctx.idGenerator.next("employee")
-      : `emp-r0-${Date.now().toString(36)}-${Math.floor(Math.random() * 10000)}`;
+      : `emp-fallback-${Math.floor(performance.now())}`;
 
     return {
       id,

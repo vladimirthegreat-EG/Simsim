@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Trophy, TrendingUp, TrendingDown, Minus, Star } from "lucide-react";
 
 interface TeamRanking {
   id: string;
@@ -12,6 +12,8 @@ interface TeamRanking {
   previousRank?: number;
   marketShare: number;
   revenue: number;
+  achievementScore?: number;
+  achievementRank?: number;
   isCurrentTeam?: boolean;
 }
 
@@ -119,6 +121,17 @@ export function TeamRankingsCard({ teams, currentTeamId }: TeamRankingsCardProps
                       {formatCurrency(team.revenue)}
                     </div>
                   </div>
+                  {team.achievementScore !== undefined && (
+                    <div className="text-right">
+                      <div className="text-slate-400 text-xs flex items-center gap-0.5 justify-end">
+                        <Star className="w-3 h-3" />
+                        Score
+                      </div>
+                      <div className="text-yellow-400 font-medium">
+                        {team.achievementScore}pts
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             );

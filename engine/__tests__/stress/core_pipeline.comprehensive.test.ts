@@ -996,15 +996,17 @@ describe("Core Pipeline — Comprehensive Stress Tests", () => {
     describe("HRModule", () => {
       describe("generateCandidates", () => {
         it("should generate correct number of candidates", () => {
-          const candidates = HRModule.generateCandidates("worker", "basic");
+          const testCtx = createEngineContext("unit-test-candidates", 1);
+          const candidates = HRModule.generateCandidates("worker", "basic", undefined, testCtx);
           expect(candidates).toHaveLength(CONSTANTS.RECRUITMENT_CANDIDATES.basic);
 
-          const premiumCandidates = HRModule.generateCandidates("engineer", "premium");
+          const premiumCandidates = HRModule.generateCandidates("engineer", "premium", undefined, testCtx);
           expect(premiumCandidates).toHaveLength(CONSTANTS.RECRUITMENT_CANDIDATES.premium);
         });
 
         it("should generate stats within tier range", () => {
-          const candidates = HRModule.generateCandidates("worker", "basic");
+          const testCtx = createEngineContext("unit-test-hr", 1);
+          const candidates = HRModule.generateCandidates("worker", "basic", undefined, testCtx);
           const range = CONSTANTS.RECRUITMENT_STAT_RANGE.basic;
 
           for (const candidate of candidates) {
@@ -1016,8 +1018,9 @@ describe("Core Pipeline — Comprehensive Stress Tests", () => {
 
       describe("calculateSalary", () => {
         it("should calculate salary based on stats", () => {
-          const lowStats = HRModule.generateStats("worker", 50, 60);
-          const highStats = HRModule.generateStats("worker", 90, 100);
+          const testCtx = createEngineContext("unit-test-salary", 1);
+          const lowStats = HRModule.generateStats("worker", 50, 60, testCtx);
+          const highStats = HRModule.generateStats("worker", 90, 100, testCtx);
 
           const lowSalary = HRModule.calculateSalary("worker", lowStats);
           const highSalary = HRModule.calculateSalary("worker", highStats);
@@ -1026,7 +1029,8 @@ describe("Core Pipeline — Comprehensive Stress Tests", () => {
         });
 
         it("should cap salary at maximum", () => {
-          const maxStats = HRModule.generateStats("engineer", 100, 100);
+          const testCtx = createEngineContext("unit-test-salary-cap", 1);
+          const maxStats = HRModule.generateStats("engineer", 100, 100, testCtx);
           const salary = HRModule.calculateSalary("engineer", maxStats);
 
           expect(salary).toBeLessThanOrEqual(CONSTANTS.MAX_SALARY);
@@ -1094,8 +1098,9 @@ describe("Core Pipeline — Comprehensive Stress Tests", () => {
     describe("MarketSimulator", () => {
       describe("calculateDemand", () => {
         it("should adjust demand based on economic conditions", () => {
+          const testCtx = createEngineContext("unit-test-demand", 1);
           const marketState = createMarketState();
-          const demand = MarketSimulator.calculateDemand(marketState);
+          const demand = MarketSimulator.calculateDemand(marketState, testCtx);
 
           expect(demand.Budget).toBeGreaterThan(0);
           expect(demand.Professional).toBeGreaterThan(0);
@@ -1118,15 +1123,17 @@ describe("Core Pipeline — Comprehensive Stress Tests", () => {
 
       describe("generateNextMarketState", () => {
         it("should advance round number", () => {
+          const testCtx = createEngineContext("unit-test-market-next", 1);
           const marketState = createMarketState();
-          const nextState = MarketSimulator.generateNextMarketState(marketState);
+          const nextState = MarketSimulator.generateNextMarketState(marketState, undefined, testCtx);
 
           expect(nextState.roundNumber).toBe(2);
         });
 
         it("should fluctuate economic conditions", () => {
+          const testCtx = createEngineContext("unit-test-market-fluct", 1);
           const marketState = createMarketState();
-          const nextState = MarketSimulator.generateNextMarketState(marketState);
+          const nextState = MarketSimulator.generateNextMarketState(marketState, undefined, testCtx);
 
           // Values should have changed (with some randomness)
           expect(nextState.economicConditions).not.toEqual(marketState.economicConditions);

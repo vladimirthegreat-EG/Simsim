@@ -297,6 +297,8 @@ export class FactoryModule {
   ): { cost: number; messages: string[] } {
     let cost = 0;
     const messages: string[] = [];
+    let premiumApplied = false;
+    let economyApplied = false;
 
     for (const [segment, chosenTier] of Object.entries(tierChoices)) {
       const naturalTier = this.NATURAL_MATERIAL_TIERS[segment] ?? 2;
@@ -312,15 +314,21 @@ export class FactoryModule {
 
       const tierDiff = clampedTier - naturalTier;
       if (tierDiff > 0) {
-        // Premium materials: +10% quality, -20% defects
-        for (const factory of state.factories) {
-          factory.defectRate = Math.max(0, (factory.defectRate ?? 0.06) * 0.8);
+        // Premium materials: +10% quality, -20% defects (apply once, not per segment)
+        if (!premiumApplied) {
+          for (const factory of state.factories) {
+            factory.defectRate = Math.max(0, (factory.defectRate ?? 0.06) * 0.8);
+          }
+          premiumApplied = true;
         }
         messages.push(`${segment}: Premium materials (Tier ${clampedTier}) — improved quality, fewer defects`);
       } else if (tierDiff < 0) {
-        // Economy materials: -15% quality, +30% defects
-        for (const factory of state.factories) {
-          factory.defectRate = Math.min(0.15, (factory.defectRate ?? 0.06) * 1.3);
+        // Economy materials: -15% quality, +30% defects (apply once, not per segment)
+        if (!economyApplied) {
+          for (const factory of state.factories) {
+            factory.defectRate = Math.min(0.15, (factory.defectRate ?? 0.06) * 1.3);
+          }
+          economyApplied = true;
         }
         messages.push(`${segment}: Economy materials (Tier ${clampedTier}) — lower quality, more defects`);
       } else {

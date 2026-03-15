@@ -382,6 +382,9 @@ export interface DifficultyConfig {
     techTrees: boolean;
     customerSatisfaction: boolean;
     competitiveIntelligence: boolean;
+    factoryHealth: boolean;
+    hrExpansions: boolean;
+    marketingExpansions: boolean;
   };
 
   // Scoring adjustments

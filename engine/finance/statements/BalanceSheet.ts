@@ -38,7 +38,7 @@ export class BalanceSheetEngine {
     }
 
     return {
-      round: state.currentRound,
+      round: state.round,
       assets: {
         currentAssets,
         nonCurrentAssets,
@@ -404,14 +404,14 @@ export class BalanceSheetEngine {
     }
 
     // Check current ratio (should be > 1.0 for healthy company)
-    const currentRatio =
-      statement.assets.currentAssets.total /
-      statement.liabilities.currentLiabilities.total;
-
-    if (currentRatio < 1.0) {
-      errors.push(
-        `Current ratio below 1.0 (${currentRatio.toFixed(2)}). Company may struggle to meet short-term obligations.`
-      );
+    const currentLiabTotal = statement.liabilities.currentLiabilities.total;
+    if (currentLiabTotal > 0) {
+      const currentRatio = statement.assets.currentAssets.total / currentLiabTotal;
+      if (currentRatio < 1.0) {
+        errors.push(
+          `Current ratio below 1.0 (${currentRatio.toFixed(2)}). Company may struggle to meet short-term obligations.`
+        );
+      }
     }
 
     return {

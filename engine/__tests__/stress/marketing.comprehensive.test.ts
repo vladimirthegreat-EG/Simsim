@@ -145,8 +145,8 @@ describe("Marketing Module — Comprehensive Stress Tests", () => {
       });
 
       it("brand decay and growth caps match documentation", () => {
-        expect(CONSTANTS.BRAND_DECAY_RATE).toBe(0.005);
-        expect(CONSTANTS.BRAND_MAX_GROWTH_PER_ROUND).toBe(0.06);
+        expect(CONSTANTS.BRAND_DECAY_RATE).toBe(0.012);
+        expect(CONSTANTS.BRAND_MAX_GROWTH_PER_ROUND).toBe(0.04);
       });
 
       it("brand growth is bounded by MAX_GROWTH_PER_ROUND", () => {
@@ -312,7 +312,7 @@ describe("Marketing Module — Comprehensive Stress Tests", () => {
         // With diminishing returns (80% retention per $1M chunk),
         // $100M of advertising in one segment should yield well under 2% brand increase
         // Also capped by BRAND_MAX_GROWTH_PER_ROUND = 6%
-        expect(actualGrowth).toBeLessThan(0.06 + 0.001); // Below growth cap (with tolerance)
+        expect(actualGrowth).toBeLessThan(CONSTANTS.BRAND_MAX_GROWTH_PER_ROUND + 0.001); // Below growth cap (with tolerance)
       });
 
       it("first $3M advertising is more effective than next $3M", () => {

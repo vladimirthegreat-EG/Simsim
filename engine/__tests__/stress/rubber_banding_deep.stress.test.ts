@@ -167,13 +167,13 @@ describe("§4.1 — Factor Calculation", () => {
     expect(Math.abs(totalAdjustmentBelow - totalAdjustmentAbove)).toBeLessThan(0.05);
   });
 
-  it("TEST 5 — Round 1 and 2 (pre-activation) → all neutral", () => {
+  it("TEST 5 — Round 1 (pre-activation) → all neutral", () => {
     const teams = createTeamsWithShares({
       t1: { Budget: 0.90, General: 0.90, Enthusiast: 0.90, Professional: 0.90, "Active Lifestyle": 0.90 },
       t2: { Budget: 0.10, General: 0.10, Enthusiast: 0.10, Professional: 0.10, "Active Lifestyle": 0.10 },
     });
 
-    for (const round of [1, 2]) {
+    for (const round of [1]) {
       const factors = MarketSimulator.calculateRubberBandingFactors(teams, round);
       for (const [, f] of Object.entries(factors)) {
         expect(f.costReliefFactor).toBe(0);
@@ -431,13 +431,13 @@ describe("§4.3 — Mechanism B: Perception Boost", () => {
     const budgetWeight = CONSTANTS.SEGMENT_WEIGHTS["Budget"].quality;
     const proWeight = CONSTANTS.SEGMENT_WEIGHTS["Professional"].quality;
 
-    const perceptionBonus = 0.08; // MAX
+    const perceptionBonus = 0.12; // MAX
     const budgetBoost = perceptionBonus * budgetWeight;
     const proBoost = perceptionBonus * proWeight;
 
     expect(proBoost).toBeGreaterThan(budgetBoost);
-    expect(budgetBoost).toBeCloseTo(1.2, 1); // 0.08 × 15
-    expect(proBoost).toBeCloseTo(3.2, 1);    // 0.08 × 40
+    expect(budgetBoost).toBeCloseTo(1.8, 1); // 0.12 × 15
+    expect(proBoost).toBeCloseTo(4.2, 1);    // 0.12 × 35
   });
 
   it("TEST 3 — Perception boost factor never exceeds MAX_PERCEPTION_BONUS", () => {
@@ -884,12 +884,12 @@ describe("§4.7 — Balance Verification", () => {
 describe("Legacy Compatibility", () => {
   it("v6.0.0 constants exist and old constants are removed", () => {
     // New constants
-    expect(CONSTANTS.RUBBER_BAND_ACTIVATION_ROUND).toBe(3);
-    expect(CONSTANTS.RB_MAX_COST_RELIEF).toBe(0.12);
+    expect(CONSTANTS.RUBBER_BAND_ACTIVATION_ROUND).toBe(2);
+    expect(CONSTANTS.RB_MAX_COST_RELIEF).toBe(0.18);
     expect(CONSTANTS.RB_COST_RELIEF_SENSITIVITY).toBe(1.5);
-    expect(CONSTANTS.RB_MAX_PERCEPTION_BONUS).toBe(0.08);
+    expect(CONSTANTS.RB_MAX_PERCEPTION_BONUS).toBe(0.12);
     expect(CONSTANTS.RB_PERCEPTION_SENSITIVITY).toBe(1.2);
-    expect(CONSTANTS.RB_MAX_DRAG).toBe(0.50);
+    expect(CONSTANTS.RB_MAX_DRAG).toBe(0.60);
     expect(CONSTANTS.RB_DRAG_SENSITIVITY).toBe(0.8);
     expect(CONSTANTS.RB_MAX_QUALITY_EXPECTATION_BOOST).toBe(5.0);
 

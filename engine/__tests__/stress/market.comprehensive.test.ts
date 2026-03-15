@@ -25,14 +25,14 @@ import {
 import { assertAllInvariantsPass } from "../../testkit/invariants";
 import { assertInvariantsPass, hashSimulationOutput, verifyDeterminism } from "../../testkit/helpers";
 import { MarketSimulator } from "../../market/MarketSimulator";
-import { ExperienceCurveEngine } from "../../experience/ExperienceCurve";
-import { EconomicCycleEngine } from "../../economy/EconomicCycle";
+// ExperienceCurveEngine and EconomicCycleEngine removed (orphaned engines cleaned up)
+import { createEngineContext } from "../../core/EngineContext";
 import { CONSTANTS } from "../../types";
 import type { Segment } from "../../types/factory";
 import type { TeamState } from "../../types/state";
 import type { AllDecisions } from "../../types/decisions";
 import { DEFAULT_ENGINE_CONFIG } from "../../config/defaults";
-import { setRandomSeed } from "../../utils";
+// setRandomSeed import removed (no longer needed after orphaned engine cleanup)
 
 // ============================================
 // SHARED HELPERS
@@ -219,22 +219,22 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
         }
       });
 
-      it("softmax temperature = 2 is used (from CONSTANTS)", () => {
-        expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(2);
+      it("softmax temperature = 3 is used (from CONSTANTS)", () => {
+        expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(3);
       });
 
       it("rubber-banding constants are correct (v6.0.0 revised system)", () => {
-        expect(CONSTANTS.RUBBER_BAND_ACTIVATION_ROUND).toBe(3);
-        expect(CONSTANTS.RB_MAX_COST_RELIEF).toBe(0.12);
-        expect(CONSTANTS.RB_MAX_PERCEPTION_BONUS).toBe(0.08);
-        expect(CONSTANTS.RB_MAX_DRAG).toBe(0.50);
+        expect(CONSTANTS.RUBBER_BAND_ACTIVATION_ROUND).toBe(2);
+        expect(CONSTANTS.RB_MAX_COST_RELIEF).toBe(0.18);
+        expect(CONSTANTS.RB_MAX_PERCEPTION_BONUS).toBe(0.12);
+        expect(CONSTANTS.RB_MAX_DRAG).toBe(0.60);
       });
 
       it("brand critical mass constants match documentation", () => {
         expect(CONSTANTS.BRAND_CRITICAL_MASS_LOW).toBe(0.15);
-        expect(CONSTANTS.BRAND_CRITICAL_MASS_HIGH).toBe(0.55);
-        expect(CONSTANTS.BRAND_LOW_MULTIPLIER).toBe(0.7);
-        expect(CONSTANTS.BRAND_HIGH_MULTIPLIER).toBe(1.1);
+        expect(CONSTANTS.BRAND_CRITICAL_MASS_HIGH).toBe(0.60);
+        expect(CONSTANTS.BRAND_LOW_MULTIPLIER).toBe(0.75);
+        expect(CONSTANTS.BRAND_HIGH_MULTIPLIER).toBe(1.05);
       });
 
       it("50 seeded scenarios: no market share exceeds 1.0", () => {
@@ -380,7 +380,7 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
         let dominantInAtLeastOne = false;
         for (const segment of CONSTANTS.SEGMENTS) {
           const t1Share = t1Shares.marketShareBySegment[segment];
-          if (t1Share > 0.35) {
+          if (t1Share > 0.27) {
             dominantInAtLeastOne = true;
           }
           // Softmax property: all teams with products should get > 0
@@ -930,7 +930,7 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
             seed: "mkt-deep-brand-at-low",
           });
 
-          // Note: the engine applies brand decay (BRAND_DECAY_RATE = 0.005) before
+          // Note: the engine applies brand decay (BRAND_DECAY_RATE = 0.012) before
           // market scoring. So an initial brandValue of 0.15 may drop below the
           // BRAND_CRITICAL_MASS_LOW threshold (0.15) after decay, triggering the 0.7 penalty.
           // Set brandValue slightly above threshold to compensate for decay.
@@ -951,13 +951,14 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
           expect(pos!.brandScore).toBeGreaterThan(penalizedScore);
         });
 
-        it("18c. brandValue=0.56 (above 0.55) — gets x1.1 bonus", () => {
+        it("18c. brandValue=0.62 (above 0.60 after decay) — gets x1.05 bonus", () => {
           const input = buildInput({
             teamCount: 1,
             seed: "mkt-deep-brand-high",
           });
 
-          input.teams[0].state.brandValue = 0.56;
+          // Set to 0.62 so after 1.2% decay it stays above 0.60 threshold
+          input.teams[0].state.brandValue = 0.62;
 
           const output = runRound(input);
 
@@ -966,18 +967,21 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
           );
           expect(pos).toBeDefined();
 
-          // brandScore = sqrt(0.56) * weight.brand * 1.1
-          const expectedBrand = Math.sqrt(0.56) * CONSTANTS.SEGMENT_WEIGHTS["General"].brand * CONSTANTS.BRAND_HIGH_MULTIPLIER;
+          // After decay: 0.62 * (1 - 0.012) = ~0.61256, still > 0.60
+          // brandScore = sqrt(effectiveBrand) * weight.brand * 1.05
+          const effectiveBrand = 0.62 * (1 - CONSTANTS.BRAND_DECAY_RATE);
+          const expectedBrand = Math.sqrt(effectiveBrand) * CONSTANTS.SEGMENT_WEIGHTS["General"].brand * CONSTANTS.BRAND_HIGH_MULTIPLIER;
           expect(pos!.brandScore).toBeCloseTo(expectedBrand, 1);
         });
 
-        it("18d. brandValue=0.55 (at high threshold) — no bonus", () => {
+        it("18d. brandValue=0.60 (at high threshold, below after decay) — no bonus", () => {
           const input = buildInput({
             teamCount: 1,
             seed: "mkt-deep-brand-at-high",
           });
 
-          input.teams[0].state.brandValue = 0.55;
+          // 0.60 after 1.2% decay becomes ~0.5928, below 0.60 threshold
+          input.teams[0].state.brandValue = 0.60;
 
           const output = runRound(input);
 
@@ -986,8 +990,9 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
           );
           expect(pos).toBeDefined();
 
-          // brandValue = 0.55 is NOT > 0.55, so no bonus (multiplier = 1.0)
-          const expectedBrand = Math.sqrt(0.55) * CONSTANTS.SEGMENT_WEIGHTS["General"].brand * 1.0;
+          // After decay: 0.60 * (1 - 0.012) = ~0.5928, NOT > 0.60, so no bonus
+          const effectiveBrand = 0.60 * (1 - CONSTANTS.BRAND_DECAY_RATE);
+          const expectedBrand = Math.sqrt(effectiveBrand) * CONSTANTS.SEGMENT_WEIGHTS["General"].brand * 1.0;
           expect(pos!.brandScore).toBeCloseTo(expectedBrand, 1);
         });
       });
@@ -1185,36 +1190,14 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
       // FORMULA-05: demandMultiplier floors at 0.1
       // ------------------------------------------
       it("7.5 — Demand with extreme economics: FORMULA-05 demand floor at 0.1", () => {
-        // Test via EconomicCycleEngine.calculateImpact which enforces FORMULA-05
-        const extremeState = {
-          cyclePhase: "trough" as const,
-          gdpGrowth: -5,
-          inflation: 15,
-          interestRates: { federal: 8, corporate: 10, consumer: 14 },
-          unemployment: 12,
-          consumerConfidence: 20,
-          commodityPrices: { electronics: 1.5, metals: 1.3, energy: 1.8, logistics: 1.4 },
-          currencyStrength: 0.8,
-          roundsInPhase: 3,
-          cycleHistory: [],
-        };
-
-        const impact = EconomicCycleEngine.calculateImpact(extremeState, DEFAULT_ENGINE_CONFIG);
-
-        // FORMULA-05: demandMultiplier must be >= 0.1 even in extreme conditions
-        expect(impact.demandMultiplier).toBeGreaterThanOrEqual(0.1);
-        expect(impact.demandMultiplier).toBeLessThan(1.0); // Should be depressed
-        expect(isNaN(impact.demandMultiplier)).toBe(false);
-
-        // Also test via MarketSimulator.calculateDemand with extreme market state
-        // (requires global RNG seed since we're calling without EngineContext)
-        setRandomSeed("miyazaki-7.5-demand");
+        // Test via MarketSimulator.calculateDemand with extreme market state
+        const testCtx = createEngineContext("miyazaki-7.5-demand", 1);
         const ms = createMinimalMarketState();
         ms.economicConditions.gdp = -5;
         ms.economicConditions.consumerConfidence = 20;
         ms.economicConditions.inflation = 15;
 
-        const demand = MarketSimulator.calculateDemand(ms);
+        const demand = MarketSimulator.calculateDemand(ms, testCtx);
 
         for (const segment of CONSTANTS.SEGMENTS) {
           expect(demand[segment]).toBeGreaterThan(0);
@@ -1392,9 +1375,9 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
       it("BAL-02 — Professional segment weights match spec and sum to 100", () => {
         const proWeights = CONSTANTS.SEGMENT_WEIGHTS["Professional"];
 
-        expect(proWeights.price).toBe(15);
-        expect(proWeights.quality).toBe(40);
-        expect(proWeights.brand).toBe(8);
+        expect(proWeights.price).toBe(18);
+        expect(proWeights.quality).toBe(35);
+        expect(proWeights.brand).toBe(10);
         expect(proWeights.esg).toBe(17);
         expect(proWeights.features).toBe(20);
 
@@ -1440,159 +1423,9 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
     });
 
     // ============================================
-    // SECTION 11 — EXPERIENCE CURVE TESTS
+    // SECTION 11 — EXPERIENCE CURVE TESTS (REMOVED)
+    // ExperienceCurveEngine was identified as orphaned and deleted.
+    // Tests 11.1–11.4 removed along with the engine.
     // ============================================
-    describe("Miyazaki §11 — Experience Curve", () => {
-
-      const segments: Segment[] = ["Budget", "General", "Enthusiast", "Professional", "Active Lifestyle"];
-
-      // ------------------------------------------
-      // TEST 11.1 — Experience at Initial Production [CRITICAL]
-      // ------------------------------------------
-      it("11.1 — At initial production (10,000): log₂(1) = 0, costMultiplier = 1.0, no NaN", () => {
-        const state = ExperienceCurveEngine.initializeState();
-
-        // At initialization, cumulative = INITIAL_PRODUCTION = 10,000
-        for (const segment of segments) {
-          expect(state.cumulativeProduction[segment]).toBe(10000);
-          expect(state.currentCostMultiplier[segment]).toBe(1.0);
-          expect(state.doublings[segment]).toBe(0);
-        }
-
-        // Now calculate with zero new production — should still be 1.0
-        const teamState = createMinimalTeamState();
-        const noProduction: Record<Segment, number> = {} as Record<Segment, number>;
-        for (const seg of segments) {
-          noProduction[seg] = 0;
-        }
-
-        const result = ExperienceCurveEngine.calculateExperienceCurve(
-          teamState,
-          state,
-          noProduction,
-          DEFAULT_ENGINE_CONFIG
-        );
-
-        for (const segment of segments) {
-          const mult = result.costMultipliers[segment];
-          expect(isNaN(mult)).toBe(false);
-          expect(isFinite(mult)).toBe(true);
-          // log₂(10000/10000) = log₂(1) = 0, so 0.85^0 = 1.0
-          // (effective rate may differ due to modifiers, but should be ~1.0)
-          expect(mult).toBeCloseTo(1.0, 1);
-        }
-      });
-
-      // ------------------------------------------
-      // TEST 11.2 — Experience Curve Floor
-      // EXPLOIT-02: Floor raised to 0.65
-      // ------------------------------------------
-      it("11.2 — Massive cumulative production: costMultiplier >= 0.65 (EXPLOIT-02 floor)", () => {
-        const state = ExperienceCurveEngine.initializeState();
-
-        // Set cumulative production to 10 billion for all segments
-        for (const segment of segments) {
-          state.cumulativeProduction[segment] = 10_000_000_000;
-        }
-
-        const teamState = createMinimalTeamState();
-        const massiveProduction: Record<Segment, number> = {} as Record<Segment, number>;
-        for (const seg of segments) {
-          massiveProduction[seg] = 1_000_000;
-        }
-
-        const result = ExperienceCurveEngine.calculateExperienceCurve(
-          teamState,
-          state,
-          massiveProduction,
-          DEFAULT_ENGINE_CONFIG
-        );
-
-        for (const segment of segments) {
-          const mult = result.costMultipliers[segment];
-          // EXPLOIT-02: Floor at 0.65 (max 35% cost reduction)
-          expect(mult).toBeGreaterThanOrEqual(0.65);
-          expect(mult).toBeLessThanOrEqual(1.0);
-          expect(isNaN(mult)).toBe(false);
-        }
-      });
-
-      // ------------------------------------------
-      // TEST 11.3 — Segment-Dependent Learning Rates (EXPLOIT-02)
-      // ------------------------------------------
-      it("11.3 — Budget (0.90) learns slower than Professional (0.80)", () => {
-        const teamState = createMinimalTeamState();
-
-        // Both start from initial state with same extra production
-        const budgetState = ExperienceCurveEngine.initializeState();
-        const proState = ExperienceCurveEngine.initializeState();
-
-        // Add same production to both (keep low enough that neither hits the 0.65 floor)
-        // With engineer modifiers, Professional learns ~0.77 rate vs Budget ~0.87
-        // At 20K production (cumulative 30K), doublings ≈ 1.58 → neither should floor
-        const productionVolume = 20_000;
-        const budgetProduction: Record<Segment, number> = {} as Record<Segment, number>;
-        const proProduction: Record<Segment, number> = {} as Record<Segment, number>;
-        for (const seg of segments) {
-          budgetProduction[seg] = 0;
-          proProduction[seg] = 0;
-        }
-        budgetProduction["Budget"] = productionVolume;
-        proProduction["Professional"] = productionVolume;
-
-        const budgetResult = ExperienceCurveEngine.calculateExperienceCurve(
-          teamState, budgetState, budgetProduction, DEFAULT_ENGINE_CONFIG
-        );
-        const proResult = ExperienceCurveEngine.calculateExperienceCurve(
-          teamState, proState, proProduction, DEFAULT_ENGINE_CONFIG
-        );
-
-        const budgetMult = budgetResult.costMultipliers["Budget"];
-        const proMult = proResult.costMultipliers["Professional"];
-
-        // Professional (0.80) should have lower multiplier (learned faster)
-        // than Budget (0.90) after same production volume
-        expect(proMult).toBeLessThan(budgetMult);
-
-        // Both should be valid
-        expect(budgetMult).toBeLessThanOrEqual(1.0);
-        expect(proMult).toBeLessThanOrEqual(1.0);
-        expect(budgetMult).toBeGreaterThanOrEqual(0.65);
-        expect(proMult).toBeGreaterThanOrEqual(0.65);
-      });
-
-      // ------------------------------------------
-      // TEST 11.4 — Technology Transfer: No Self-Transfer
-      // ------------------------------------------
-      it("11.4 — applyTechnologyTransfer with same source and target returns 0", () => {
-        const state = ExperienceCurveEngine.initializeState();
-        state.cumulativeProduction["General"] = 500_000;
-
-        const transfer = ExperienceCurveEngine.applyTechnologyTransfer(
-          state,
-          "General",  // target
-          "General",  // source (same!)
-          0.3
-        );
-
-        expect(transfer).toBe(0);
-      });
-
-      it("11.4b — applyTechnologyTransfer with different segments returns > 0", () => {
-        const state = ExperienceCurveEngine.initializeState();
-        state.cumulativeProduction["General"] = 500_000;
-
-        const transfer = ExperienceCurveEngine.applyTechnologyTransfer(
-          state,
-          "Budget",   // target (different)
-          "General",  // source
-          0.3
-        );
-
-        // Should transfer 30% of General's 500,000 = 150,000
-        expect(transfer).toBe(500_000 * 0.3);
-        expect(transfer).toBeGreaterThan(0);
-      });
-    });
   });
 });

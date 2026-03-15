@@ -14,14 +14,7 @@
  * - Legacy CONSTANTS object maintained for backward compatibility
  *
  * EXPANDED SYSTEMS (v4.0.0):
- * - Economy integrity (unit economics, capacity, inventory)
  * - Explainability layer (score breakdowns, delta explanations)
- * - Customer satisfaction loop
- * - Experience/learning curves
- * - Supply chain with disruptions
- * - Economic cycles (GDP, inflation, consumer confidence)
- * - Crisis & events system
- * - Competitive intelligence
  * - Achievement system
  * - Module expansions (Factory, HR, R&D, Marketing, Finance)
  */
@@ -178,27 +171,6 @@ export type {
 export { MarketSimulator } from "./market/MarketSimulator";
 export type { TeamMarketPosition, MarketSimulationResult } from "./market/MarketSimulator";
 
-// Economy system
-export { EconomyEngine, EconomicCycleEngine } from "./economy";
-export type {
-  UnitEconomics,
-  CapacityState,
-  InventoryState,
-  WorkingCapitalState,
-  EconomyResult,
-  EconomicState,
-  EconomicImpact,
-  EconomicForecast,
-} from "./economy";
-
-// Experience curves
-export { ExperienceCurveEngine } from "./experience";
-export type {
-  ExperienceCurveState,
-  LearningModifiers,
-  ExperienceResult,
-} from "./experience";
-
 // Explainability
 export { ExplainabilityEngine } from "./explainability";
 export type {
@@ -211,50 +183,6 @@ export type {
   ExplainabilityResult,
 } from "./explainability";
 
-// Customer Satisfaction
-export { SatisfactionEngine } from "./satisfaction";
-export type {
-  CustomerSatisfaction,
-  SegmentSatisfaction,
-  SatisfactionImpact,
-  SatisfactionResult,
-} from "./satisfaction";
-
-// Supply Chain
-export { SupplyChainEngine } from "./supplychain";
-export type {
-  Region,
-  Supplier,
-  SupplyChainState,
-  Disruption,
-  Vulnerability,
-  SupplyChainResult,
-  SupplyChainDecisions,
-} from "./supplychain";
-
-// Events
-export { EventEngine } from "./events";
-export type {
-  EventType,
-  GameEvent,
-  EventEffect,
-  EventChoice,
-  ActiveEvent,
-  EventState,
-  EventResult,
-} from "./events";
-
-// Competitive Intelligence
-export { CompetitiveIntelligenceEngine } from "./intelligence";
-export type {
-  CompetitorStrategy,
-  MarketSignal,
-  CompetitorProfile,
-  IntelligenceState,
-  MarketInsight,
-  IntelligenceResult,
-} from "./intelligence";
-
 // Achievements
 export { AchievementEngine } from "./achievements";
 export type {
@@ -265,5 +193,3 @@ export type {
   Milestone,
   AchievementResult,
 } from "./achievements";
-
-// Balance testing tools moved to tools/balance/ (not part of game engine)

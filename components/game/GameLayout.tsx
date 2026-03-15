@@ -28,6 +28,8 @@ import {
   Trophy,
   GraduationCap,
   TrendingUp,
+  Truck,
+  Package,
 } from "lucide-react";
 import { useDecisionStore, GameModule } from "@/lib/stores/decisionStore";
 import { useComplexity } from "@/lib/contexts/ComplexityContext";
@@ -73,6 +75,8 @@ const moduleToComplexityKey: Record<string, keyof ReturnType<typeof useComplexit
   hr: "hr",
   marketing: "marketing",
   rnd: "rd",
+  logistics: null, // Always visible (operations)
+  "supply-chain": null, // Always visible (operations)
   news: null, // Always visible
   results: null, // Always visible
   achievements: null, // Always visible
@@ -127,6 +131,20 @@ const modules = [
     icon: Lightbulb,
     path: "/rnd",
     color: "text-purple-400",
+  },
+  {
+    id: "logistics",
+    name: "Logistics",
+    icon: Truck,
+    path: "/logistics",
+    color: "text-amber-400",
+  },
+  {
+    id: "supply-chain",
+    name: "Supply Chain",
+    icon: Package,
+    path: "/supply-chain",
+    color: "text-teal-400",
   },
   {
     id: "news",

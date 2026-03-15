@@ -44,7 +44,7 @@ export class CashFlowEngine {
       operating.netCashFromOperations + investing.capitalExpenditures;
 
     return {
-      round: state.currentRound,
+      round: state.round,
       operatingActivities: operating,
       investingActivities: investing,
       financingActivities: financing,

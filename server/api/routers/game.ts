@@ -3,6 +3,7 @@ import { createTRPCRouter, publicProcedure, facilitatorProcedure } from "../trpc
 import { TRPCError } from "@trpc/server";
 import { SimulationEngine, type SimulationInput } from "@/engine/core/SimulationEngine";
 import { ExplainabilityEngine } from "@/engine/explainability/ExplainabilityEngine";
+import { FacilitatorReportEngine } from "@/engine/modules/FacilitatorReportEngine";
 import type { TeamState, MarketState, AllDecisions, ComplexityPreset } from "@/engine/types";
 import { COMPLEXITY_PRESETS } from "@/engine/types";
 import { GAME_PRESETS, type GamePreset } from "@/engine/config/gamePresets";
@@ -729,6 +730,108 @@ export const gameRouter = createTRPCRouter({
       return {
         news: mockNews,
         totalCount: mockNews.length,
+      };
+    }),
+
+  /**
+   * Get post-game report (computed on-demand from round results)
+   */
+  getPostGameReport: publicProcedure
+    .input(z.object({ gameId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const game = await ctx.prisma.game.findUnique({
+        where: { id: input.gameId },
+        include: {
+          teams: true,
+          rounds: {
+            where: { status: "COMPLETED" },
+            orderBy: { roundNumber: "asc" },
+            include: {
+              results: {
+                include: {
+                  team: { select: { id: true, name: true, color: true } },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!game) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Game not found" });
+      }
+
+      // Auth: caller must be a facilitator who owns this game or a team in this game
+      const isFacilitator = ctx.facilitatorId && game.facilitatorId === ctx.facilitatorId;
+      const isTeamMember = ctx.sessionToken &&
+        game.teams.some((t) => t.sessionToken === ctx.sessionToken);
+      if (!isFacilitator && !isTeamMember) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Not authorized to view this report" });
+      }
+
+      if (game.status !== "COMPLETED") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Game is not completed" });
+      }
+
+      // Build round history from completed rounds
+      const roundHistory = game.rounds.map((round) => ({
+        round: round.roundNumber,
+        teams: round.results.map((r) => {
+          try {
+            return {
+              id: r.team.id,
+              name: r.team.name,
+              state: JSON.parse(r.stateAfter) as TeamState,
+            };
+          } catch {
+            return null;
+          }
+        }).filter((t): t is { id: string; name: string; state: TeamState } => t !== null),
+      }));
+
+      // Build team inputs with previous states from round history
+      const teamInputs = game.teams.map((team) => {
+        const states = roundHistory
+          .map((rh) => rh.teams.find((t) => t.id === team.id)?.state)
+          .filter((s): s is TeamState => !!s);
+        let currentState: TeamState;
+        try {
+          currentState = states.length > 0 ? states[states.length - 1] : JSON.parse(team.currentState) as TeamState;
+        } catch {
+          currentState = states[states.length - 1] ?? ({} as TeamState);
+        }
+        const previousStates = states.slice(0, -1);
+        return {
+          id: team.id,
+          name: team.name,
+          state: currentState,
+          previousStates,
+        };
+      });
+
+      // Generate all report sections
+      const postGameReport = FacilitatorReportEngine.generatePostGameReport(teamInputs, roundHistory);
+      const discussionGuide = FacilitatorReportEngine.generateDiscussionGuide(teamInputs, roundHistory);
+      const scorecards = teamInputs.map((t) =>
+        FacilitatorReportEngine.generateParticipantScorecard(t.id, teamInputs, roundHistory)
+      );
+
+      return {
+        report: postGameReport,
+        discussionGuide,
+        scorecards,
+        teams: game.teams.map((t) => {
+          try {
+            return {
+              id: t.id,
+              name: t.name,
+              color: t.color,
+              state: JSON.parse(t.currentState) as TeamState,
+            };
+          } catch {
+            return { id: t.id, name: t.name, color: t.color, state: {} as TeamState };
+          }
+        }),
       };
     }),
 });

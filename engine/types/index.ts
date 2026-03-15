@@ -376,37 +376,37 @@ export const CONSTANTS = {
   PRICE_FLOOR_PENALTY_THRESHOLD: 0.08,  // 8% below segment minimum = penalty zone
   PRICE_FLOOR_PENALTY_MAX: 0.10,        // Max 10% score reduction at extreme low prices
 
-  // Rubber-banding (catch-up mechanics) — v6.0.0 Revised continuous system
+  // Rubber-banding (catch-up mechanics) — v7.0.0 Strengthened (was too weak: snowball rate 50%)
   // Replaces threshold-based system with three indirect mechanisms
-  RUBBER_BAND_ACTIVATION_ROUND: 3,      // No rubber-banding in rounds 1-2
+  RUBBER_BAND_ACTIVATION_ROUND: 2,      // Activate from round 2 (was 3 — too late, leaders snowballed)
   // Mechanism A — Cost Relief (trailing teams)
-  RB_MAX_COST_RELIEF: 0.12,             // Maximum 12% COGS/hiring cost reduction
+  RB_MAX_COST_RELIEF: 0.18,             // Maximum 18% COGS/hiring cost reduction (was 12%)
   RB_COST_RELIEF_SENSITIVITY: 1.5,      // tanh ramp speed for cost relief
   // Mechanism B — Perception Boost (trailing teams)
-  RB_MAX_PERCEPTION_BONUS: 0.08,        // Maximum 8% quality score boost (additive within weight)
+  RB_MAX_PERCEPTION_BONUS: 0.12,        // Maximum 12% quality score boost (was 8%)
   RB_PERCEPTION_SENSITIVITY: 1.2,       // tanh ramp speed for perception boost
   // Mechanism C — Incumbent Drag (leading teams)
-  RB_MAX_DRAG: 0.50,                    // Maximum 50% acceleration to brand decay + quality expectations
+  RB_MAX_DRAG: 0.60,                    // Maximum 60% acceleration to brand decay + quality expectations (was 50%)
   RB_DRAG_SENSITIVITY: 0.8,             // tanh ramp speed for drag (gentler than relief)
   RB_MAX_QUALITY_EXPECTATION_BOOST: 5.0, // Up to +5 points on quality expectations
 
-  // Brand - Rebalanced (v5.1.0, Audit F-02)
-  // Halved decay so brand strategy can differentiate from cost-cutters
-  BRAND_DECAY_RATE: 0.005,              // 0.5% brand decay per round (was 1%)
-  BRAND_MAX_GROWTH_PER_ROUND: 0.06,     // Max 6% brand growth per round (was 4%)
+  // Brand - Rebalanced (v7.0.0, Monte Carlo balance sweep)
+  // Moderate decay — strategies now all invest in brand, so mechanic is less exploitable
+  BRAND_DECAY_RATE: 0.012,              // 1.2% brand decay per round (was 0.5%)
+  BRAND_MAX_GROWTH_PER_ROUND: 0.04,     // Max 4% brand growth per round (was 6%)
 
-  // v4.0.0: Brand critical mass thresholds (values match MarketSimulator.ts v4.0.2)
-  BRAND_CRITICAL_MASS_LOW: 0.15,        // Below this, brand score gets penalty (sweep v5)
-  BRAND_CRITICAL_MASS_HIGH: 0.55,       // Above this, brand score gets bonus
-  BRAND_LOW_MULTIPLIER: 0.7,            // -30% brand score for weak brands (sweep v5 cross-val)
-  BRAND_HIGH_MULTIPLIER: 1.1,           // +10% brand score for strong brands
+  // v7.0.0: Brand critical mass thresholds (Monte Carlo balance sweep)
+  BRAND_CRITICAL_MASS_LOW: 0.15,        // Below this, brand score gets penalty
+  BRAND_CRITICAL_MASS_HIGH: 0.60,       // Above this, brand score gets bonus (was 0.55)
+  BRAND_LOW_MULTIPLIER: 0.75,           // -25% brand score for weak brands (was 0.7 — less punishing)
+  BRAND_HIGH_MULTIPLIER: 1.05,          // +5% brand score for strong brands (was 1.1 — halved)
 
   // v4.0.0: Balanced flexibility bonus — REMOVED in v5.1.0 (Audit F-01)
   // Generalist performance should emerge from segment weights naturally,
   // not from a hardcoded multiplier that guarantees balanced strategy wins.
 
   // v5.1.0: Tuning parameters (Audit F-03)
-  SOFTMAX_TEMPERATURE: 2,               // Market share allocation sharpness (was 4 — too flat)
+  SOFTMAX_TEMPERATURE: 3,               // Market share allocation sharpness (was 2 — too sharp, amplified small score gaps into dominance)
 
   // Marketing parameters (wired for sweep)
   ADVERTISING_BASE_IMPACT: 0.0011,      // 0.11% brand per $1M advertising (sweep v5)
@@ -417,7 +417,7 @@ export const CONSTANTS = {
   BRANDING_LOG_MULTIPLIER: 1.5,         // Log multiplier for amounts >$2M (sweep v5)
 
   // Quality/Feature scoring caps
-  QUALITY_FEATURE_BONUS_CAP: 1.1,       // Max multiplier for quality/features above expectation (sweep v5)
+  QUALITY_FEATURE_BONUS_CAP: 1.07,      // Max multiplier for quality/features above expectation (was 1.1 — R&D-focused dominated)
   QUALITY_MARKET_SHARE_BONUS: 0.0011,   // +0.11% market share per quality point (sweep v5)
 
   // ESG penalty system (PATCH 4: penalty-only, no bonuses)
@@ -430,7 +430,7 @@ export const CONSTANTS = {
     "Budget":           { price: 65, quality: 15, brand: 5,  esg: 5,  features: 10 },
     "General":          { price: 28, quality: 23, brand: 17, esg: 10, features: 22 },
     "Enthusiast":       { price: 12, quality: 30, brand: 8,  esg: 5,  features: 45 },
-    "Professional":     { price: 15, quality: 40, brand: 8,  esg: 17, features: 20 }, // BAL-02: Rebalanced — price matters more, quality less dominant
+    "Professional":     { price: 18, quality: 35, brand: 10, esg: 17, features: 20 }, // v7.0.0: Price matters more (18 from 15), quality less dominant (35 from 40), brand slightly up (10 from 8)
     "Active Lifestyle": { price: 20, quality: 34, brand: 10, esg: 10, features: 26 },
   } as Record<Segment, { price: number; quality: number; brand: number; esg: number; features: number }>,
 

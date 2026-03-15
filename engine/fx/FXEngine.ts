@@ -145,9 +145,8 @@ export class FXEngine {
       if (region === HOME_REGION || revenue === 0) continue;
 
       const multiplier = this.getCostMultiplier(region, marketState);
-      // Revenue FX is inverse: if foreign currency strengthened, we get MORE USD back
-      // But since our prices are in USD already, the impact is on purchasing power
-      // Simplification: foreign revenue is discounted/boosted by rate deviation
+      // FX impact on foreign revenue: when foreign currency strengthens (multiplier > 1),
+      // converting foreign revenue to USD yields more. When it weakens, yields less.
       const impact = revenue * (multiplier - 1.0);
       totalFXImpact += impact;
 

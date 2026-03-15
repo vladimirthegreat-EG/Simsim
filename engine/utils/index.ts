@@ -3,16 +3,13 @@
  *
  * Shared utilities for the simulation engine including:
  * - Error handling wrappers
- * - Module result builders
- * - DEPRECATED: Global RNG functions (use EngineContext.rng instead)
+ * - Numeric safety guards
+ * - General utility functions
  *
- * IMPORTANT: For new code, use EngineContext for all randomness.
- * The global RNG functions here are kept for backward compatibility
- * during migration but will throw if seed is not set.
+ * IMPORTANT: All randomness must come from EngineContext.rng.
  */
 
 import { ModuleResult, TeamState } from "../types";
-import { SeededRNG } from "../core/EngineContext";
 
 /**
  * Standard error result for module failures
@@ -38,94 +35,6 @@ export function createErrorResult(
   };
 }
 
-/**
- * Build a successful module result
- */
-export function buildModuleResult(
-  changes: Record<string, unknown>,
-  costs: number,
-  revenue: number,
-  messages: string[]
-): ModuleResult {
-  return {
-    success: true,
-    changes,
-    costs,
-    revenue,
-    messages,
-  };
-}
-
-// ============================================
-// DEPRECATED GLOBAL RNG
-// These functions are kept for backward compatibility
-// during migration. New code should use EngineContext.
-// ============================================
-
-/**
- * Global random instance - MUST be seeded before use
- * @deprecated Use EngineContext.rng instead
- */
-let globalRandom: SeededRNG | null = null;
-
-/**
- * Set the global random seed for deterministic simulations
- * @deprecated Use EngineContext instead
- */
-export function setRandomSeed(seed: number | string): void {
-  // Convert string seeds to numeric hash
-  const numericSeed = typeof seed === 'string'
-    ? seed.split('').reduce((hash, char) => ((hash << 5) - hash) + char.charCodeAt(0), 0) >>> 0
-    : seed;
-  globalRandom = new SeededRNG(numericSeed);
-}
-
-/**
- * Clear the global random seed
- * @deprecated Use EngineContext instead
- */
-export function clearRandomSeed(): void {
-  globalRandom = null;
-}
-
-/**
- * Check if global RNG is seeded
- */
-export function isSeeded(): boolean {
-  return globalRandom !== null;
-}
-
-/**
- * Get a random number between 0 and 1
- * THROWS if seed is not set - no fallback to Math.random()
- * @deprecated Use EngineContext.rng instead
- */
-export function random(): number {
-  if (!globalRandom) {
-    throw new Error(
-      "DETERMINISM VIOLATION: random() called without seed. " +
-      "Use setRandomSeed() or migrate to EngineContext.rng"
-    );
-  }
-  return globalRandom.next();
-}
-
-/**
- * Get a random number in range [min, max)
- * @deprecated Use EngineContext.rng instead
- */
-export function randomRange(min: number, max: number): number {
-  return min + random() * (max - min);
-}
-
-/**
- * Get a random integer in range [min, max]
- * @deprecated Use EngineContext.rng instead
- */
-export function randomInt(min: number, max: number): number {
-  return Math.floor(randomRange(min, max + 1));
-}
-
 // ============================================
 // GENERAL UTILITIES
 // ============================================
@@ -149,6 +58,17 @@ export function safeNumber(value: number, fallback: number = 0): number {
 }
 
 /**
+ * Safe division — returns fallback when denominator is zero or either operand is non-finite.
+ * Use for financial ratios and any division where the denominator may be zero.
+ */
+export function safeDivide(numerator: number, denominator: number, fallback: number = 0): number {
+  if (denominator === 0 || !Number.isFinite(numerator) || !Number.isFinite(denominator)) {
+    return fallback;
+  }
+  return numerator / denominator;
+}
+
+/**
  * Clamp a value between min and max
  */
 export function clamp(value: number, min: number, max: number): number {
@@ -164,20 +84,6 @@ export function roundTo(value: number, decimals: number): number {
 }
 
 /**
- * Format currency for display
- */
-export function formatCurrency(value: number): string {
-  if (value >= 1_000_000_000) {
-    return `$${(value / 1_000_000_000).toFixed(1)}B`;
-  } else if (value >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(1)}M`;
-  } else if (value >= 1_000) {
-    return `$${(value / 1_000).toFixed(1)}K`;
-  }
-  return `$${value.toFixed(0)}`;
-}
-
-/**
  * Deep clone an object (JSON-safe)
  */
 export function deepClone<T>(obj: T): T {
@@ -186,3 +92,50 @@ export function deepClone<T>(obj: T): T {
 
 // Re-export SeededRNG for convenience
 export { SeededRNG } from "../core/EngineContext";
+
+// ============================================
+// TEST-ONLY: Legacy global RNG
+// These exist solely for backward compatibility with test files.
+// Production code MUST use EngineContext.rng — modules now throw
+// if called without EngineContext.
+// ============================================
+
+import { SeededRNG as _SeededRNG } from "../core/EngineContext";
+
+let globalRandom: _SeededRNG | null = null;
+
+/** @test-only Set global RNG seed for legacy test compatibility */
+export function setRandomSeed(seed: number | string): void {
+  const numericSeed = typeof seed === 'string'
+    ? seed.split('').reduce((hash, char) => ((hash << 5) - hash) + char.charCodeAt(0), 0) >>> 0
+    : seed;
+  globalRandom = new _SeededRNG(numericSeed);
+}
+
+/** @test-only Clear the global random seed */
+export function clearRandomSeed(): void {
+  globalRandom = null;
+}
+
+/** @test-only Check if global RNG is seeded */
+export function isSeeded(): boolean {
+  return globalRandom !== null;
+}
+
+/** @test-only Get random number (throws if not seeded) */
+export function random(): number {
+  if (!globalRandom) {
+    throw new Error("DETERMINISM VIOLATION: random() called without seed. Use EngineContext.rng in production.");
+  }
+  return globalRandom.next();
+}
+
+/** @test-only Get random number in range [min, max) */
+export function randomRange(min: number, max: number): number {
+  return min + random() * (max - min);
+}
+
+/** @test-only Get random integer in range [min, max] */
+export function randomInt(min: number, max: number): number {
+  return Math.floor(randomRange(min, max + 1));
+}

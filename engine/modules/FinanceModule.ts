@@ -233,7 +233,9 @@ export class FinanceModule {
         totalCosts += totalDividends;
 
         // PATCH 2: Calculate dividend yield for investor signaling
-        const dividendYield = (decisions.dividendPerShare / newState.sharePrice) * 100;
+        const dividendYield = newState.sharePrice > 0
+          ? (decisions.dividendPerShare / newState.sharePrice) * 100
+          : 0;
 
         // PATCH 2: Dividends signal financial health, small price boost
         // But excessive dividends (>5% yield) may signal lack of growth opportunities

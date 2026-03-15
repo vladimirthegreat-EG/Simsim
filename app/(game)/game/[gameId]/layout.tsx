@@ -12,6 +12,7 @@ import { trpc } from "@/lib/api/trpc";
 import { toast } from "sonner";
 import { ComplexityProvider } from "@/lib/contexts/ComplexityContext";
 import { getComplexitySettings, GameComplexitySettings } from "@/engine/types";
+import { calculateAchievementScore } from "@/engine/types/achievements";
 import { useDecisionStore, type GameModule } from "@/lib/stores/decisionStore";
 import { useTutorialStore } from "@/lib/stores/tutorialStore";
 import {
@@ -26,6 +27,8 @@ import {
   DollarSign,
   Megaphone,
   Lightbulb,
+  Star,
+  TrendingUp,
 } from "lucide-react";
 
 interface LayoutProps {
@@ -86,6 +89,12 @@ export default function GamePageLayout({ children, params }: LayoutProps) {
       toast.error(error.message);
     },
   });
+
+  // Fetch post-game report when game is completed
+  const { data: postGameData } = trpc.game.getPostGameReport.useQuery(
+    { gameId },
+    { enabled: session?.hasSession && teamState?.game?.status === "COMPLETED" }
+  );
 
   // Extract complexity settings from game config - must be called before any early returns
   const complexitySettings = useMemo(() => {
@@ -376,51 +385,177 @@ export default function GamePageLayout({ children, params }: LayoutProps) {
     );
   }
 
-  // Show completed view
+  // Show completed view with final standings
   if (game.status === "COMPLETED") {
+    // Build ranked teams from post-game data or fallback to basic info
+    const rankedTeams = postGameData?.teams
+      ? [...postGameData.teams]
+          .map((t) => ({
+            id: t.id,
+            name: t.name,
+            color: t.color,
+            revenue: t.state.revenue ?? 0,
+            achievementScore: calculateAchievementScore(t.state.achievements ?? []),
+            achievementCount: (t.state.achievements ?? []).length,
+            marketShare: Object.values(t.state.marketShare ?? {}).reduce((a: number, b: number) => a + b, 0) /
+              Math.max(1, Object.keys(t.state.marketShare ?? {}).length),
+            cash: t.state.cash ?? 0,
+          }))
+          .sort((a, b) => b.achievementScore - a.achievementScore)
+      : null;
+
+    const myScorecard = postGameData?.scorecards?.find((s) => s.teamId === team.id);
+
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <Card className="bg-slate-800 border-slate-700 max-w-lg w-full">
-          <CardHeader className="text-center">
+      <div className="min-h-screen bg-slate-900 p-4">
+        <div className="max-w-2xl mx-auto pt-8 space-y-6">
+          {/* Header */}
+          <div className="text-center">
             <Badge className="bg-blue-500/20 text-blue-400 mb-4 mx-auto">
               <Trophy className="w-3 h-3 mr-1" />
               Complete
             </Badge>
-            <CardTitle className="text-white text-2xl">Game Completed!</CardTitle>
+            <h1 className="text-3xl font-bold text-white mb-2">Game Completed!</h1>
             <CardDescription className="text-slate-400">
               {game.name} - {game.maxRounds} Rounds
             </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-blue-500/20 mb-4">
-                <Trophy className="w-10 h-10 text-blue-400" />
-              </div>
-              <p className="text-slate-300">The simulation has ended.</p>
-              <p className="text-slate-400 text-sm mt-2">Thank you for participating!</p>
-            </div>
+          </div>
 
-            <div className="border-t border-slate-700 pt-4">
-              <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: team.color }}
-                  />
-                  <span className="text-white">{team.name}</span>
+          {/* Final Standings */}
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-yellow-400" />
+                Final Standings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {rankedTeams ? (
+                rankedTeams.map((t, idx) => {
+                  const isYou = t.id === team.id;
+                  return (
+                    <div
+                      key={t.id}
+                      className={`flex items-center justify-between p-3 rounded-lg ${
+                        isYou
+                          ? "bg-blue-500/20 border border-blue-500/30"
+                          : "bg-slate-700/50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
+                          idx === 0
+                            ? "bg-yellow-500/20 text-yellow-400"
+                            : idx === 1
+                            ? "bg-slate-400/20 text-slate-300"
+                            : idx === 2
+                            ? "bg-orange-500/20 text-orange-400"
+                            : "bg-slate-800 text-slate-500"
+                        }`}>
+                          #{idx + 1}
+                        </div>
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: t.color }}
+                        />
+                        <span className={`font-medium ${isYou ? "text-white" : "text-slate-300"}`}>
+                          {t.name}
+                        </span>
+                        {isYou && (
+                          <Badge className="bg-blue-500/20 text-blue-400 text-xs">You</Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4 text-sm">
+                        <div className="text-right">
+                          <div className="text-slate-400 text-xs flex items-center gap-0.5 justify-end">
+                            <Star className="w-3 h-3" />
+                            Score
+                          </div>
+                          <div className="text-yellow-400 font-medium">{t.achievementScore}pts</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-slate-400 text-xs">Revenue</div>
+                          <div className="text-green-400 font-medium">
+                            ${(t.revenue / 1_000_000).toFixed(1)}M
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-6">
+                  <Loader2 className="w-6 h-6 animate-spin text-slate-400 mx-auto mb-2" />
+                  <p className="text-slate-400 text-sm">Loading final standings...</p>
                 </div>
-              </div>
-            </div>
+              )}
+            </CardContent>
+          </Card>
 
-            <div className="flex gap-3 justify-center">
-              <Link href="/">
-                <Button variant="outline" className="border-slate-600">
-                  Back to Home
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Your Scorecard Summary */}
+          {myScorecard && (
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-purple-400" />
+                  Your Performance
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-slate-300 text-sm">{myScorecard.strategySummary}</p>
+
+                {myScorecard.strengths.length > 0 && (
+                  <div>
+                    <p className="text-xs text-slate-400 uppercase tracking-wider mb-2">Strengths</p>
+                    <div className="flex flex-wrap gap-2">
+                      {myScorecard.strengths.map((s, i) => (
+                        <Badge key={i} className="bg-green-500/20 text-green-400 border-green-500/30">
+                          {s}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {myScorecard.growthAreas.length > 0 && (
+                  <div>
+                    <p className="text-xs text-slate-400 uppercase tracking-wider mb-2">Growth Areas</p>
+                    <div className="flex flex-wrap gap-2">
+                      {myScorecard.growthAreas.map((g, i) => (
+                        <Badge key={i} variant="outline" className="border-slate-600 text-slate-400">
+                          {g}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {myScorecard.achievements.length > 0 && (
+                  <div>
+                    <p className="text-xs text-slate-400 uppercase tracking-wider mb-2">
+                      Achievements ({myScorecard.achievements.length})
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {myScorecard.achievements.map((a) => (
+                        <Badge key={a.id} className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                          {a.id} (+{a.points})
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="flex gap-3 justify-center">
+            <Link href="/">
+              <Button variant="outline" className="border-slate-600">
+                Back to Home
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }

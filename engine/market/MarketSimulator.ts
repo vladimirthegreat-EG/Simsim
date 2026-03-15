@@ -13,7 +13,6 @@ import {
 } from "../types";
 import type { RubberBandingFactors } from "../types/state";
 import type { DynamicPriceExpectation } from "../types/market";
-import { random, randomRange } from "../utils";
 import { cloneMarketState, cloneTeamState } from "../utils/stateUtils";
 import type { EngineContext, SeededRNG } from "../core/EngineContext";
 import type { CompetitionState, CrowdingState, FirstMoverBonus, BrandErosion, ArmsRaceBonus, MarketEvent } from "../types/competition";
@@ -29,22 +28,15 @@ const DYNAMIC_PRICE_EMA_ALPHA = 0.3;
 const UNDERSERVED_PRICE_BONUS = 0.25;
 
 /**
- * Get RNG instance - uses context if available, otherwise global (throws if not seeded)
- */
-function getRNG(ctx?: EngineContext): SeededRNG | null {
-  return ctx?.rng.market ?? null;
-}
-
-/**
- * Get random number using context or global RNG
+ * Get random number using context RNG
  */
 function getRandomValue(ctx?: EngineContext): number {
-  const rng = getRNG(ctx);
-  return rng ? rng.next() : random();
+  if (!ctx) throw new Error("DETERMINISM VIOLATION: MarketSimulator requires EngineContext");
+  return ctx.rng.market.next();
 }
 
 /**
- * Get random range using context or global RNG
+ * Get random range using context RNG
  */
 function getRandomRange(min: number, max: number, ctx?: EngineContext): number {
   return min + getRandomValue(ctx) * (max - min);
@@ -776,18 +768,15 @@ export class MarketSimulator {
     const qualityMarketShareBonus = product.quality * CONSTANTS.QUALITY_MARKET_SHARE_BONUS;
     totalScore += qualityMarketShareBonus;
 
-    // v4.0.2: Balanced flexibility bonus - reward diversified investment
-    const flexCriteria = [
-      state.rdBudget >= CONSTANTS.FLEXIBILITY_MIN_RD,
-      state.brandValue >= CONSTANTS.FLEXIBILITY_MIN_BRAND,
-      (state.factories?.[0]?.efficiency ?? 0) >= CONSTANTS.FLEXIBILITY_MIN_EFFICIENCY,
-      (state.products?.filter(p => p.quality >= 55)?.length ?? 0) >= CONSTANTS.FLEXIBILITY_MIN_PRODUCTS,
-    ];
-    const metCount = flexCriteria.filter(Boolean).length;
-    if (metCount >= 4) {
-      totalScore += totalScore * CONSTANTS.FLEXIBILITY_BONUS_FULL;
-    } else if (metCount >= 3) {
-      totalScore += totalScore * CONSTANTS.FLEXIBILITY_BONUS_PARTIAL;
+    // G5: Performance marketing boost — segment-targeted spend improves market scoring
+    const perfMarketing = state.marketingExpansion?.performanceMarketing;
+    if (perfMarketing) {
+      const segmentBoostVal = perfMarketing.currentBoost?.[segment as keyof typeof perfMarketing.currentBoost] ?? 0;
+      if (segmentBoostVal > 0) {
+        // Performance marketing adds up to 5% score boost per segment, scaled by effectiveness
+        const perfBoost = Math.min(0.05, segmentBoostVal * (perfMarketing.effectiveness ?? 0.5));
+        totalScore += totalScore * perfBoost;
+      }
     }
 
     return {
@@ -873,8 +862,12 @@ export class MarketSimulator {
     const hasAutomation = state.factories.some(f => f.upgrades.includes("automation"));
     const automationMultiplier = hasAutomation ? 5 : 1;
 
-    // Final capacity = raw × efficiency × (1 - defects) × automation
-    return Math.floor(rawCapacity * avgEfficiency * (1 - avgDefectRate) * automationMultiplier);
+    // G5: Factory breakdowns reduce production capacity — each active breakdown reduces by 10%
+    const activeBreakdowns = state.factoryExpansion?.activeBreakdowns?.length ?? 0;
+    const breakdownPenalty = Math.min(0.5, activeBreakdowns * 0.10); // Cap at 50% reduction
+
+    // Final capacity = raw × efficiency × (1 - defects) × automation × (1 - breakdown penalty)
+    return Math.floor(rawCapacity * avgEfficiency * (1 - avgDefectRate) * automationMultiplier * (1 - breakdownPenalty));
   }
 
   /**
@@ -1180,7 +1173,7 @@ export class MarketSimulator {
   static calculateRankings(
     teams: Array<{ id: string; state: TeamState }>,
     marketResult: MarketSimulationResult
-  ): Array<{ teamId: string; rank: number; epsRank: number; shareRank: number }> {
+  ): Array<{ teamId: string; rank: number; epsRank: number; shareRank: number; achievementRank: number }> {
     // Rank by total revenue
     const byRevenue = [...teams].sort(
       (a, b) => marketResult.revenueByTeam[b.id] - marketResult.revenueByTeam[a.id]
@@ -1196,11 +1189,17 @@ export class MarketSimulator {
     }));
     const byShare = [...totalShares].sort((a, b) => b.totalShare - a.totalShare);
 
+    // Rank by achievement score (victory condition)
+    const byAchievement = [...teams].sort(
+      (a, b) => (b.state.achievementScore ?? 0) - (a.state.achievementScore ?? 0)
+    );
+
     return teams.map(team => ({
       teamId: team.id,
       rank: byRevenue.findIndex(t => t.id === team.id) + 1,
       epsRank: byEPS.findIndex(t => t.id === team.id) + 1,
       shareRank: byShare.findIndex(t => t.id === team.id) + 1,
+      achievementRank: byAchievement.findIndex(t => t.id === team.id) + 1,
     }));
   }
 

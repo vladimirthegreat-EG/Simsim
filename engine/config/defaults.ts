@@ -428,6 +428,9 @@ export const DEFAULT_DIFFICULTY_CONFIG: DifficultyConfig = {
     techTrees: true,
     customerSatisfaction: true,
     competitiveIntelligence: true,
+    factoryHealth: true,
+    hrExpansions: true,
+    marketingExpansions: true,
   },
   scoring: {
     winConditionMultiplier: 1.0,

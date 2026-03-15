@@ -15,6 +15,7 @@ import type {
 import { IncomeStatementEngine } from "./IncomeStatement";
 import { CashFlowEngine } from "./CashFlowStatement";
 import { BalanceSheetEngine } from "./BalanceSheet";
+import { safeDivide } from "../../utils";
 
 export class FinancialStatementsEngine {
   /**
@@ -25,7 +26,7 @@ export class FinancialStatementsEngine {
     state: TeamState,
     previousStatements: FinancialStatements | null
   ): FinancialStatements {
-    const round = state.currentRound;
+    const round = state.round;
 
     // Step 1: Generate Income Statement
     // This drives net income which flows to both cash flow and balance sheet
@@ -124,9 +125,18 @@ export class FinancialStatementsEngine {
     }
 
     // 5. Operating cash flow starts with net income
-    if (cashFlow.operatingActivities.netIncome !== income.netIncome) {
+    const cfNetIncome = cashFlow.operatingActivities.netIncome;
+    const isNetIncome = income.netIncome;
+    if (Number.isFinite(cfNetIncome) && Number.isFinite(isNetIncome)) {
+      if (Math.abs(cfNetIncome - isNetIncome) > 0.01) {
+        errors.push(
+          `Operating cash flow net income (${cfNetIncome}) does not match income statement (${isNetIncome})`
+        );
+      }
+    } else if (Number.isFinite(cfNetIncome) !== Number.isFinite(isNetIncome)) {
+      // One is finite, the other isn't — genuine mismatch
       errors.push(
-        `Operating cash flow net income (${cashFlow.operatingActivities.netIncome}) does not match income statement (${income.netIncome})`
+        `Operating cash flow net income (${cfNetIncome}) does not match income statement (${isNetIncome})`
       );
     }
 
@@ -148,60 +158,48 @@ export class FinancialStatementsEngine {
     // Profitability Ratios
     const profitability = {
       grossMargin: income.grossMargin,
-      operatingMargin: (income.operatingIncome / income.revenue.total) * 100,
+      operatingMargin: safeDivide(income.operatingIncome, income.revenue.total) * 100,
       netMargin: income.netMargin,
-      returnOnAssets: (income.netIncome / balance.assets.total) * 100,
-      returnOnEquity: (income.netIncome / balance.equity.total) * 100,
+      returnOnAssets: safeDivide(income.netIncome, balance.assets.total) * 100,
+      returnOnEquity: safeDivide(income.netIncome, balance.equity.total) * 100,
       earningsPerShare: income.eps || 0,
     };
 
     // Liquidity Ratios
+    const clTotal = balance.liabilities.currentLiabilities.total;
     const liquidity = {
-      currentRatio:
-        balance.assets.currentAssets.total /
-        balance.liabilities.currentLiabilities.total,
-      quickRatio:
-        (balance.assets.currentAssets.total -
-          balance.assets.currentAssets.inventory) /
-        balance.liabilities.currentLiabilities.total,
-      cashRatio:
-        balance.assets.currentAssets.cash /
-        balance.liabilities.currentLiabilities.total,
+      currentRatio: safeDivide(balance.assets.currentAssets.total, clTotal),
+      quickRatio: safeDivide(
+        balance.assets.currentAssets.total - balance.assets.currentAssets.inventory,
+        clTotal
+      ),
+      cashRatio: safeDivide(balance.assets.currentAssets.cash, clTotal),
       workingCapital: BalanceSheetEngine.calculateWorkingCapital(balance),
     };
 
     // Leverage Ratios
     const leverage = {
-      debtToEquity: balance.liabilities.total / balance.equity.total,
-      debtToAssets: balance.liabilities.total / balance.assets.total,
-      equityMultiplier: balance.assets.total / balance.equity.total,
-      interestCoverage: income.operatingIncome / (income.interestExpense || 1),
+      debtToEquity: safeDivide(balance.liabilities.total, balance.equity.total),
+      debtToAssets: safeDivide(balance.liabilities.total, balance.assets.total),
+      equityMultiplier: safeDivide(balance.assets.total, balance.equity.total),
+      interestCoverage: safeDivide(income.operatingIncome, income.interestExpense || 1),
     };
 
     // Efficiency Ratios
     const efficiency = {
-      assetTurnover: income.revenue.total / balance.assets.total,
-      inventoryTurnover:
-        income.cogs.total / balance.assets.currentAssets.inventory || 0,
-      receivablesTurnover:
-        income.revenue.total / balance.assets.currentAssets.accountsReceivable ||
-        0,
-      payablesTurnover:
-        income.cogs.total /
-          balance.liabilities.currentLiabilities.accountsPayable || 0,
+      assetTurnover: safeDivide(income.revenue.total, balance.assets.total),
+      inventoryTurnover: safeDivide(income.cogs.total, balance.assets.currentAssets.inventory),
+      receivablesTurnover: safeDivide(income.revenue.total, balance.assets.currentAssets.accountsReceivable),
+      payablesTurnover: safeDivide(income.cogs.total, balance.liabilities.currentLiabilities.accountsPayable),
     };
 
     // Cash Flow Ratios
+    const netCashOps = cashFlow.operatingActivities.netCashFromOperations;
     const cashFlowRatios = {
-      operatingCashFlowRatio:
-        cashFlow.operatingActivities.netCashFromOperations /
-        balance.liabilities.currentLiabilities.total,
-      cashFlowToDebtRatio:
-        cashFlow.operatingActivities.netCashFromOperations /
-        balance.liabilities.total,
-      freeCashFlowToEquity: cashFlow.freeCashFlow / balance.equity.total,
-      cashConversionRate:
-        cashFlow.operatingActivities.netCashFromOperations / income.netIncome,
+      operatingCashFlowRatio: safeDivide(netCashOps, clTotal),
+      cashFlowToDebtRatio: safeDivide(netCashOps, balance.liabilities.total),
+      freeCashFlowToEquity: safeDivide(cashFlow.freeCashFlow, balance.equity.total),
+      cashConversionRate: safeDivide(netCashOps, income.netIncome),
     };
 
     // Market Ratios (if shares exist)
@@ -213,9 +211,9 @@ export class FinancialStatementsEngine {
 
     const market = {
       bookValuePerShare,
-      priceToBook: (state.stockPrice || 0) / bookValuePerShare,
-      priceToEarnings: (state.stockPrice || 0) / (income.eps || 1),
-      dividendYield: ((state.dividendsPerShare || 0) / (state.stockPrice || 1)) * 100,
+      priceToBook: safeDivide(state.stockPrice || 0, bookValuePerShare),
+      priceToEarnings: safeDivide(state.stockPrice || 0, income.eps || 0),
+      dividendYield: safeDivide(state.dividendsPerShare || 0, state.stockPrice || 1) * 100,
     };
 
     return {
@@ -446,11 +444,11 @@ export class FinancialStatementsEngine {
 
     // Growth trends (if we have previous period)
     if (previousStatements) {
-      const revenueGrowth =
-        ((incomeStatement.revenue.total -
-          previousStatements.incomeStatement.revenue.total) /
-          previousStatements.incomeStatement.revenue.total) *
-        100;
+      const prevRevenue = previousStatements.incomeStatement.revenue.total;
+      const revenueGrowth = safeDivide(
+        incomeStatement.revenue.total - prevRevenue,
+        prevRevenue
+      ) * 100;
 
       if (revenueGrowth > 20) {
         strengths.push(`Strong revenue growth of ${revenueGrowth.toFixed(1)}%`);
@@ -463,8 +461,9 @@ export class FinancialStatementsEngine {
     }
 
     // Working capital efficiency
-    const workingCapitalRatio =
-      ratios.liquidity.workingCapital / incomeStatement.revenue.total;
+    const workingCapitalRatio = safeDivide(
+      ratios.liquidity.workingCapital, incomeStatement.revenue.total
+    );
     if (workingCapitalRatio > 0.3) {
       concerns.push(
         "High working capital relative to revenue - may have cash tied up in operations"

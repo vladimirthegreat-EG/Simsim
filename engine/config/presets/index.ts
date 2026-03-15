@@ -59,6 +59,9 @@ const SANDBOX_PRESET: DifficultyConfig = {
     techTrees: false,
     customerSatisfaction: false,
     competitiveIntelligence: false,
+    factoryHealth: false,
+    hrExpansions: false,
+    marketingExpansions: false,
   },
   scoring: {
     winConditionMultiplier: 0.5,    // Easier win
@@ -119,6 +122,9 @@ const EASY_PRESET: DifficultyConfig = {
     techTrees: false,
     customerSatisfaction: true,
     competitiveIntelligence: false,
+    factoryHealth: true,
+    hrExpansions: false,
+    marketingExpansions: false,
   },
   scoring: {
     winConditionMultiplier: 0.75,
@@ -179,6 +185,9 @@ const NORMAL_PRESET: DifficultyConfig = {
     techTrees: true,
     customerSatisfaction: true,
     competitiveIntelligence: true,
+    factoryHealth: true,
+    hrExpansions: true,
+    marketingExpansions: true,
   },
   scoring: {
     winConditionMultiplier: 1.0,
@@ -239,6 +248,9 @@ const HARD_PRESET: DifficultyConfig = {
     techTrees: true,
     customerSatisfaction: true,
     competitiveIntelligence: true,
+    factoryHealth: true,
+    hrExpansions: true,
+    marketingExpansions: true,
   },
   scoring: {
     winConditionMultiplier: 1.25,
@@ -299,6 +311,9 @@ const EXPERT_PRESET: DifficultyConfig = {
     techTrees: true,
     customerSatisfaction: true,
     competitiveIntelligence: true,
+    factoryHealth: true,
+    hrExpansions: true,
+    marketingExpansions: true,
   },
   scoring: {
     winConditionMultiplier: 1.5,
@@ -359,6 +374,9 @@ const NIGHTMARE_PRESET: DifficultyConfig = {
     techTrees: true,
     customerSatisfaction: true,
     competitiveIntelligence: true,
+    factoryHealth: true,
+    hrExpansions: true,
+    marketingExpansions: true,
   },
   scoring: {
     winConditionMultiplier: 2.0,
