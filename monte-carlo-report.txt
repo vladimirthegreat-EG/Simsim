@@ -1,0 +1,137 @@
+╔════════════════════════════════════════════════════════════════════════╗
+║             MONTE CARLO BALANCE ANALYSIS REPORT                      ║
+║             Business Simulation Engine v3.0.0                        ║
+║             2026-03-16T02:43:53.970Z                        ║
+╠════════════════════════════════════════════════════════════════════════╣
+
+  Overall Status: BALANCED (Score: 90/100)
+
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ AGGREGATE WIN RATES (across all matchups)                           │
+  ├─────────────────────────────────────────────────────────────────────┤
+  │ premium        ███████████████████████░░░░░░░░░░░░░░░░░  57.4%             │
+  │ cost-cutter    ████████████████░░░░░░░░░░░░░░░░░░░░░░░░  39.0%             │
+  │ brand          ██████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  26.1%             │
+  │ balanced       ██████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  25.8%             │
+  │ volume         ██████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  15.3%             │
+  │ rd-focused     █████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  12.3%             │
+  │ automation     █████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  12.2%             │
+  └─────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ AVERAGE REVENUE BY STRATEGY                                        │
+  ├─────────────────────────────────────────────────────────────────────┤
+  │ cost-cutter    $    54.7M                                    │
+  │ premium        $    54.6M                                    │
+  │ brand          $    54.3M                                    │
+  │ automation     $    54.0M                                    │
+  │ rd-focused     $    53.6M                                    │
+  │ volume         $    53.1M                                    │
+  │ balanced       $    53.0M                                    │
+  └─────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ BANKRUPTCY RATES                                                   │
+  ├─────────────────────────────────────────────────────────────────────┤
+  │ volume           0.0%                                             │
+  │ premium          0.0%                                             │
+  │ brand            0.0%                                             │
+  │ automation       0.0%                                             │
+  │ balanced         0.0%                                             │
+  │ rd-focused       0.0%                                             │
+  │ cost-cutter      0.0%                                             │
+  └─────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ PER-MATCHUP RESULTS                                                │
+  ├─────────────────────────────────────────────────────────────────────┤
+  │                                                                     │
+  │ Matchup: volume vs premium vs brand vs balanced                    │
+  │ Games: 200  Close: 100%  Snowball: 19%                          │
+  │   volume           38 wins ( 19.0%)  avg rev: $  53.7M  │
+  │   premium          91 wins ( 45.5%)  avg rev: $  54.6M  │
+  │   brand            56 wins ( 28.0%)  avg rev: $  54.6M  │
+  │   balanced         15 wins (  7.5%)  avg rev: $  52.8M  │
+  │                                                                     │
+  │ Matchup: volume vs premium vs automation vs rd-focused             │
+  │ Games: 200  Close: 100%  Snowball: 32%                          │
+  │   volume           64 wins ( 32.0%)  avg rev: $  53.8M  │
+  │   premium         100 wins ( 50.0%)  avg rev: $  54.7M  │
+  │   automation       36 wins ( 18.0%)  avg rev: $  54.2M  │
+  │   rd-focused        0 wins (  0.0%)  avg rev: $  53.9M  │
+  │                                                                     │
+  │ Matchup: brand vs automation vs balanced vs cost-cutter            │
+  │ Games: 200  Close: 100%  Snowball: 40%                          │
+  │   brand            79 wins ( 39.5%)  avg rev: $  54.8M  │
+  │   automation       16 wins (  8.0%)  avg rev: $  54.3M  │
+  │   balanced          8 wins (  4.0%)  avg rev: $  53.3M  │
+  │   cost-cutter      97 wins ( 48.5%)  avg rev: $  55.3M  │
+  │                                                                     │
+  │ Matchup: volume vs brand vs rd-focused vs cost-cutter              │
+  │ Games: 200  Close: 100%  Snowball: 9%                          │
+  │   volume           17 wins (  8.5%)  avg rev: $  53.7M  │
+  │   brand            57 wins ( 28.5%)  avg rev: $  54.4M  │
+  │   rd-focused       52 wins ( 26.0%)  avg rev: $  53.7M  │
+  │   cost-cutter      74 wins ( 37.0%)  avg rev: $  54.9M  │
+  │                                                                     │
+  │ Matchup: premium vs automation vs balanced vs rd-focused           │
+  │ Games: 200  Close: 100%  Snowball: 66%                          │
+  │   premium         132 wins ( 66.0%)  avg rev: $  54.6M  │
+  │   automation       43 wins ( 21.5%)  avg rev: $  54.0M  │
+  │   balanced         25 wins ( 12.5%)  avg rev: $  52.7M  │
+  │   rd-focused        0 wins (  0.0%)  avg rev: $  53.9M  │
+  │                                                                     │
+  │ Matchup: volume vs premium vs brand vs automation                  │
+  │ Games: 200  Close: 100%  Snowball: 23%                          │
+  │   volume           46 wins ( 23.0%)  avg rev: $  53.8M  │
+  │   premium          81 wins ( 40.5%)  avg rev: $  54.7M  │
+  │   brand            55 wins ( 27.5%)  avg rev: $  54.7M  │
+  │   automation       18 wins (  9.0%)  avg rev: $  54.3M  │
+  │                                                                     │
+  │ Matchup: balanced vs rd-focused vs cost-cutter vs volume           │
+  │ Games: 200  Close: 100%  Snowball: 8%                          │
+  │   balanced         16 wins (  8.0%)  avg rev: $  52.9M  │
+  │   rd-focused       71 wins ( 35.5%)  avg rev: $  54.1M  │
+  │   cost-cutter      99 wins ( 49.5%)  avg rev: $  55.0M  │
+  │   volume           14 wins (  7.0%)  avg rev: $  53.7M  │
+  │                                                                     │
+  │ Matchup: volume vs premium vs brand vs automation vs balanced vs rd│
+  │ Games: 200  Close: 100%  Snowball: 2%                          │
+  │   volume            4 wins (  2.0%)  avg rev: $  49.8M  │
+  │   premium          85 wins ( 42.5%)  avg rev: $  54.4M  │
+  │   brand            14 wins (  7.0%)  avg rev: $  53.0M  │
+  │   automation        9 wins (  4.5%)  avg rev: $  53.0M  │
+  │   balanced         46 wins ( 23.0%)  avg rev: $  53.5M  │
+  │   rd-focused        0 wins (  0.0%)  avg rev: $  52.3M  │
+  │   cost-cutter      42 wins ( 21.0%)  avg rev: $  53.9M  │
+  │                                                                     │
+  │ Matchup: balanced vs balanced vs balanced vs balanced              │
+  │ Games: 200  Close: 100%  Snowball: 100%                          │
+  │   balanced        200 wins (100.0%)  avg rev: $  53.0M  │
+  │                                                                     │
+  │ Matchup: premium vs premium vs premium vs premium                  │
+  │ Games: 200  Close: 100%  Snowball: 100%                          │
+  │   premium         200 wins (100.0%)  avg rev: $  54.5M  │
+  └─────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ VARIABLE SENSITIVITY ANALYSIS                                      │
+  ├─────────────────────────────────────────────────────────────────────┤
+  │                                                                     │
+  │ Variable: startingCash                                             │
+  │ Values tested: 100,000,000, 150,000,000, 200,000,000, 300,000,000, │
+  │   volume         72% → 25% → 19% → 26% → 19%                         │
+  │   premium        23% → 46% → 55% → 35% → 39%                         │
+  │   brand          3% → 27% → 19% → 28% → 32%                          │
+  │   balanced       2% → 2% → 7% → 11% → 10%                            │
+  │   ⚠ volume DOMINANT at value=100000000 (72%)                         │
+  └─────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ BALANCE ISSUES DETECTED                                            │
+  ├─────────────────────────────────────────────────────────────────────┤
+  │ WARNING: premium wins 57.4% of games (approaching dominance)        │
+  │ SENSITIVITY: volume dominates at startingCash=100000000 (72%)       │
+  └─────────────────────────────────────────────────────────────────────┘
+
+╚════════════════════════════════════════════════════════════════════════╝
