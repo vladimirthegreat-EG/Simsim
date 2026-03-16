@@ -44,21 +44,29 @@ import { MaterialEngine } from "../materials/MaterialEngine";
 import { TariffEngine } from "../tariffs/TariffEngine";
 import { FinancialStatementsEngine } from "../finance";
 import { FXEngine } from "../fx/FXEngine";
+import { EconomyEngine } from "../economy/EconomyEngine";
 import { CashEnforcement } from "../finance/CashEnforcement";
 import { AchievementEngine } from "../modules/AchievementEngine";
 import type { AchievementCheckContext } from "../modules/AchievementEngine";
 import { FacilitatorReportEngine } from "../modules/FacilitatorReportEngine";
+
+// Phase 1: Feature modules
+import { ExperienceCurveEngine } from "../experience/ExperienceCurve";
+import { EventEngine } from "../events/EventEngine";
+import { CompetitiveIntelligenceEngine } from "../intelligence/CompetitiveIntelligence";
+
+// Phase 5: Expansion modules
 import { FactoryExpansions } from "../modules/FactoryExpansions";
-import type { UtilizationState, MaintenanceState, BreakdownEvent, MaintenanceDecisions } from "../modules/FactoryExpansions";
 import { HRExpansions } from "../modules/HRExpansions";
-import type { TeamDynamics, HiringPipeline, HRExpansionDecisions } from "../modules/HRExpansions";
 import { RDExpansions } from "../modules/RDExpansions";
-import type { TechTreeState, PlatformState, RDExpansionDecisions } from "../modules/RDExpansions";
 import { MarketingExpansions } from "../modules/MarketingExpansions";
-import type { PerformanceMarketing, BrandMarketing, CompetitorAction, MarketingExpansionDecisions } from "../modules/MarketingExpansions";
 import { FinanceExpansions } from "../modules/FinanceExpansions";
-import type { DebtState, CreditRatingState, InvestorSentiment as FinanceInvestorSentiment, FinanceExpansionDecisions } from "../modules/FinanceExpansions";
-import { DEFAULT_ENGINE_CONFIG } from "../config/defaults";
+
+// Phase 2: Economic Cycle
+import { EconomicCycleEngine } from "../economy/EconomicCycle";
+
+// Config
+import { loadConfig } from "../config/loader";
 import type { EngineConfig } from "../config/schema";
 
 export interface TeamInput {
@@ -71,10 +79,10 @@ export interface SimulationInput {
   roundNumber: number;
   teams: TeamInput[];
   marketState: MarketState;
+  /** Engine configuration — controls feature gates, difficulty, etc. */
+  config?: EngineConfig;
   /** Master seed for deterministic simulation (required for production) */
   matchSeed?: string;
-  /** Engine configuration (defaults to DEFAULT_ENGINE_CONFIG) */
-  config?: EngineConfig;
   events?: Array<{
     type: string;
     title: string;
@@ -88,7 +96,7 @@ export interface SimulationOutput {
   roundNumber: number;
   results: RoundResults[];
   newMarketState: MarketState;
-  rankings: Array<{ teamId: string; rank: number; epsRank: number; shareRank: number; achievementRank: number }>;
+  rankings: Array<{ teamId: string; rank: number; epsRank: number; shareRank: number }>;
   summaryMessages: string[];
   /** Market positions per team per segment from MarketSimulator */
   marketPositions: TeamMarketPosition[];
@@ -116,7 +124,7 @@ export class SimulationEngine {
    */
   static processRound(input: SimulationInput): SimulationOutput {
     const { roundNumber, teams, marketState, events, matchSeed } = input;
-    const config = input.config ?? DEFAULT_ENGINE_CONFIG;
+    const config = input.config ?? loadConfig();
     const results: RoundResults[] = [];
     const summaryMessages: string[] = [];
 
@@ -145,7 +153,6 @@ export class SimulationEngine {
     const processedTeams: Array<{
       id: string;
       state: TeamState;
-      previousEps: number;
       ctx: EngineContext;
       moduleResults: {
         factory: ModuleResult;
@@ -163,7 +170,6 @@ export class SimulationEngine {
       const ctx = createEngineContext(effectiveSeed, roundNumber, team.id);
 
       let currentState = cloneTeamState(team.state);
-      const previousEps = currentState.eps ?? 0; // Capture pre-mutation EPS for growth calc
 
       // Add version to state if not present
       if (!currentState.version) {
@@ -242,122 +248,136 @@ export class SimulationEngine {
         );
       }
 
-      // === Factory Expansion: maintenance, breakdowns, defects ===
-      if (config.difficulty.complexity.factoryHealth) {
-        const prevFE = currentState.factoryExpansion;
-        const utilizationMap: Record<string, UtilizationState> = {};
-        const maintenanceMap: Record<string, MaintenanceState> = {};
-        let allBreakdowns: BreakdownEvent[] = prevFE?.activeBreakdowns ?? [];
-        let totalExpansionCost = 0;
-
-        for (const factory of currentState.factories) {
-          const mDecisions: MaintenanceDecisions = {
-            preventiveMaintenance: (decisions.factory as Record<string, unknown>)?.preventiveMaintenance as number ?? 0,
-            emergencyReserve: (decisions.factory as Record<string, unknown>)?.emergencyReserve as number ?? 0,
-            upgradeInvestment: (decisions.factory as Record<string, unknown>)?.upgradeInvestment as number ?? 0,
-            majorServiceScheduled: (decisions.factory as Record<string, unknown>)?.majorServiceScheduled as boolean ?? false,
-          };
-          const unitsProduced = (currentState.products || []).reduce(
-            (sum, p) => sum + ((p as unknown as Record<string, unknown>).unitsSold as number || 0), 0
-          );
-          const healthResult = FactoryExpansions.processFactoryHealth(
-            factory, currentState, mDecisions,
-            prevFE?.utilization[factory.id] ?? null,
-            prevFE?.maintenance[factory.id] ?? null,
-            allBreakdowns, unitsProduced, config, ctx
-          );
-          utilizationMap[factory.id] = healthResult.utilization;
-          maintenanceMap[factory.id] = healthResult.maintenance;
-          allBreakdowns = healthResult.activeBreakdowns;
-          totalExpansionCost += healthResult.costImpact;
-          if (healthResult.defectImpact.brandDamage > 0) {
-            currentState.brandValue = Math.max(0, currentState.brandValue - healthResult.defectImpact.brandDamage);
-          }
-          summaryMessages.push(...healthResult.warnings.map(w => `  ${team.id}: ${w}`));
-          summaryMessages.push(...healthResult.messages.map(m => `  ${team.id}: ${m}`));
+      // FIX-016: Recalculate unit costs after FactoryModule so automation/TQM/efficiency
+      // reductions are reflected in product costs before market simulation
+      for (const product of currentState.products) {
+        if (product.developmentStatus === "launched") {
+          product.unitCost = EconomyEngine.calculateUnitCost(product, currentState, config);
         }
-        currentState.cash -= totalExpansionCost;
-        currentState.factoryExpansion = { utilization: utilizationMap, maintenance: maintenanceMap, activeBreakdowns: allBreakdowns };
+      }
+
+      // Phase 1A: Experience Curve — learning curves reduce production costs
+      {
+        const productionThisRound: Record<string, number> = {} as Record<string, number>;
+        for (const product of currentState.products) {
+          const seg = product.segment;
+          productionThisRound[seg] = (productionThisRound[seg] ?? 0) +
+            ((product as unknown as Record<string, unknown>).unitsSold as number ?? 0);
+        }
+        const expResult = ExperienceCurveEngine.calculateExperienceCurve(
+          currentState,
+          currentState.experienceCurve ?? null,
+          productionThisRound as Record<import("../types/factory").Segment, number>,
+          config
+        );
+        // Apply cost multipliers to products
+        for (const product of currentState.products) {
+          const mult = expResult.costMultipliers[product.segment as import("../types/factory").Segment];
+          if (mult !== undefined && mult < 1) {
+            product.unitCost = safeNumber(product.unitCost * mult);
+          }
+        }
+        currentState.experienceCurve = expResult.state;
+        if (expResult.messages.length > 0) {
+          summaryMessages.push(...expResult.messages.map(m => `  ${team.id}: ${m}`));
+        }
+      }
+
+      // Phase 5A: Factory Expansions — maintenance, burnout, breakdowns
+      for (const factory of currentState.factories) {
+        try {
+          const totalUnits = currentState.products.reduce((sum, p) => {
+            return sum + ((p as unknown as Record<string, unknown>).unitsSold as number ?? 0);
+          }, 0);
+          const healthResult = FactoryExpansions.processFactoryHealth(
+            factory,
+            currentState,
+            decisions.maintenance ?? { preventiveMaintenance: 0, emergencyReserve: 0, upgradeInvestment: 0, majorServiceScheduled: false },
+            currentState.factoryUtilization?.[factory.id] ?? null,
+            currentState.factoryMaintenance?.[factory.id] ?? null,
+            (currentState.factoryBreakdowns ?? []).filter(b => b.factoryId === factory.id),
+            totalUnits,
+            config,
+            ctx
+          );
+          // Store results
+          currentState.factoryUtilization = { ...currentState.factoryUtilization, [factory.id]: healthResult.utilization };
+          currentState.factoryMaintenance = { ...currentState.factoryMaintenance, [factory.id]: healthResult.maintenance };
+          currentState.factoryBreakdowns = [
+            ...(currentState.factoryBreakdowns ?? []).filter(b => b.factoryId !== factory.id),
+            ...healthResult.activeBreakdowns,
+          ];
+          // Apply cost impact
+          if (healthResult.costImpact > 0) {
+            currentState.cash = safeNumber(currentState.cash - healthResult.costImpact);
+          }
+          if (healthResult.messages.length > 0) {
+            summaryMessages.push(...healthResult.messages.map(m => `  ${team.id}: ${m}`));
+          }
+        } catch {
+          // FactoryExpansions graceful degradation — skip if module errors
+        }
       }
 
       // Process HR Module (with context for deterministic hiring/turnover)
       const hrResult = HRModule.process(currentState, decisions.hr || {}, ctx);
       currentState = hrResult.newState;
 
-      // === HR Expansion: team dynamics, hiring pipeline, career progression ===
-      if (config.difficulty.complexity.hrExpansions) {
-        const prevHR = currentState.hrExpansion;
-        const hrExpDecisions: HRExpansionDecisions = {
-          hiringBudget: (decisions.hr as Record<string, unknown>)?.hiringBudget as number ?? 0,
-          recruitmentFocus: (decisions.hr as Record<string, unknown>)?.recruitmentFocus as "worker" | "engineer" | "supervisor" | null ?? null,
-          trainingPrograms: (decisions.hr as Record<string, unknown>)?.trainingPrograms as string[] ?? [],
-          promotionDecisions: (decisions.hr as Record<string, unknown>)?.promotionDecisions as { employeeId: string; newLevel: "junior" | "mid" | "senior" | "lead" | "principal" }[] ?? [],
-          retentionBonuses: (decisions.hr as Record<string, unknown>)?.retentionBonuses as { employeeId: string; amount: number }[] ?? [],
-          teamBuildingInvestment: (decisions.hr as Record<string, unknown>)?.teamBuildingInvestment as number ?? 0,
-        };
+      // Phase 5B: HR Expansions — career paths, team dynamics, ramp-up
+      try {
         const hrExpResult = HRExpansions.processHRExpansions(
-          currentState, hrExpDecisions,
-          prevHR?.teamDynamics ?? null,
-          prevHR?.hiringPipeline ?? null,
-          roundNumber, config, ctx
+          currentState,
+          decisions.hrExpansion ?? { hiringBudget: 0, recruitmentFocus: null, trainingPrograms: [], promotionDecisions: [], retentionBonuses: [], teamBuildingInvestment: 0 },
+          currentState.teamDynamics ?? null,
+          currentState.hiringPipeline ?? null,
+          roundNumber,
+          config,
+          ctx
         );
-        // Apply productivity multiplier to workforce efficiency
-        currentState.workforce.averageEfficiency = safeNumber(
-          currentState.workforce.averageEfficiency * hrExpResult.productivityMultiplier
-        );
-        currentState.hrExpansion = {
-          teamDynamics: hrExpResult.teamDynamics,
-          hiringPipeline: hrExpResult.hiringPipeline,
-        };
-        summaryMessages.push(...hrExpResult.warnings.map(w => `  ${team.id}: ${w}`));
-        summaryMessages.push(...hrExpResult.messages.map(m => `  ${team.id}: ${m}`));
+        currentState.teamDynamics = hrExpResult.teamDynamics;
+        currentState.hiringPipeline = hrExpResult.hiringPipeline;
+        // Apply productivity and R&D multipliers
+        if (hrExpResult.productivityMultiplier !== 1.0) {
+          currentState.workforce.averageEfficiency = safeNumber(
+            currentState.workforce.averageEfficiency * hrExpResult.productivityMultiplier
+          );
+        }
+        if (hrExpResult.messages.length > 0) {
+          summaryMessages.push(...hrExpResult.messages.map(m => `  ${team.id}: ${m}`));
+        }
+      } catch {
+        // HRExpansions graceful degradation
       }
 
       // Process R&D Module (with context for deterministic product IDs)
       const rdResult = RDModule.process(currentState, decisions.rd || {}, ctx);
       currentState = rdResult.newState;
 
-      // === R&D Expansion: tech tree, platforms, risk events ===
-      if (config.difficulty.complexity.techTrees) {
-        const prevRD = currentState.rdExpansion;
-        const rdExpDecisions: RDExpansionDecisions = {
-          newResearchProjects: (decisions.rd as Record<string, unknown>)?.newResearchProjects as { techId: string; riskLevel: "conservative" | "moderate" | "aggressive" }[] ?? [],
-          platformInvestment: (decisions.rd as Record<string, unknown>)?.platformInvestment as number ?? 0,
-          newPlatformSegments: (decisions.rd as Record<string, unknown>)?.newPlatformSegments as ("Budget" | "General" | "Enthusiast" | "Professional" | "Active Lifestyle")[] ?? [],
-          riskTolerance: (decisions.rd as Record<string, unknown>)?.riskTolerance as "conservative" | "moderate" | "aggressive" ?? "moderate",
-        };
+      // Phase 5C: R&D Expansions — 54-node tech tree, platforms, spillovers
+      try {
         const rdExpResult = RDExpansions.processRDExpansions(
-          currentState, rdExpDecisions,
-          prevRD?.techTree ?? null,
-          prevRD?.platforms ?? null,
-          roundNumber, config, ctx
+          currentState,
+          decisions.rdExpansion ?? { newResearchProjects: [], platformInvestment: 0, newPlatformSegments: [], riskTolerance: "moderate" },
+          currentState.techTree ?? null,
+          currentState.rdPlatforms ?? null,
+          roundNumber,
+          config,
+          ctx
         );
-        // Apply quality bonuses to products
+        currentState.techTree = rdExpResult.techTree;
+        currentState.rdPlatforms = rdExpResult.platforms;
+        // Apply quality bonuses from tech tree to products
         for (const product of currentState.products) {
-          const segmentBonus = rdExpResult.qualityBonusBySegment[product.segment as keyof typeof rdExpResult.qualityBonusBySegment] ?? 0;
-          if (segmentBonus > 0 && product.developmentStatus === "launched") {
-            product.quality = Math.min(100, product.quality + segmentBonus * 0.1);
+          const segBonus = rdExpResult.qualityBonusBySegment[product.segment as import("../types/factory").Segment];
+          if (segBonus && segBonus > 0) {
+            product.quality = Math.min(100, product.quality + segBonus);
           }
         }
-        // Merge unlocked techs
-        currentState.unlockedTechnologies = [...new Set([...(currentState.unlockedTechnologies || []), ...rdExpResult.techTree.unlockedTechs])];
-        currentState.rdExpansion = {
-          techTree: rdExpResult.techTree,
-          platforms: rdExpResult.platforms,
-        };
-        // G5: Platform cost reduction — platforms reduce unit costs for products in covered segments
-        for (const platform of rdExpResult.platforms.platforms) {
-          if (platform.costReduction > 0 && platform.developedSegments.length > 0) {
-            const reduction = Math.min(0.25, platform.costReduction); // Cap at 25%
-            for (const product of currentState.products) {
-              if (platform.developedSegments.includes(product.segment) && product.developmentStatus === "launched") {
-                product.unitCost = safeNumber(product.unitCost * (1 - reduction));
-              }
-            }
-          }
+        if (rdExpResult.messages.length > 0) {
+          summaryMessages.push(...rdExpResult.messages.map(m => `  ${team.id}: ${m}`));
         }
-        summaryMessages.push(...rdExpResult.warnings.map(w => `  ${team.id}: ${w}`));
-        summaryMessages.push(...rdExpResult.messages.map(m => `  ${team.id}: ${m}`));
+      } catch {
+        // RDExpansions graceful degradation
       }
 
       // Process Marketing Module (no randomness currently)
@@ -367,92 +387,96 @@ export class SimulationEngine {
       );
       currentState = marketingResult.newState;
 
-      // === Marketing Expansion: perf/brand split, channels, competitor response ===
-      if (config.difficulty.complexity.marketingExpansions) {
-        const prevMkt = currentState.marketingExpansion;
-        const segments = ["Budget", "General", "Enthusiast", "Professional", "Active Lifestyle"] as const;
-        const emptySegmentRecord = Object.fromEntries(segments.map(s => [s, 0])) as Record<typeof segments[number], number>;
-        const mktExpDecisions: MarketingExpansionDecisions = {
-          performanceBudget: (decisions.marketing as Record<string, unknown>)?.performanceBudget as Record<typeof segments[number], number> ?? { ...emptySegmentRecord },
-          brandBudget: (decisions.marketing as Record<string, unknown>)?.brandBudget as Record<typeof segments[number], number> ?? { ...emptySegmentRecord },
-          channelAllocation: (decisions.marketing as Record<string, unknown>)?.channelAllocation as Record<"retail" | "digital" | "enterprise" | "carrier", number> ?? { retail: 0.25, digital: 0.25, enterprise: 0.25, carrier: 0.25 },
-          promotions: (decisions.marketing as Record<string, unknown>)?.promotions as import("../modules/MarketingExpansions").Promotion[] ?? [],
-          targetCompetitor: (decisions.marketing as Record<string, unknown>)?.targetCompetitor as string | undefined,
-        };
+      // Phase 5D: Marketing Expansions — performance/brand split, channels
+      try {
         const mktExpResult = MarketingExpansions.processMarketingExpansions(
-          currentState, mktExpDecisions,
-          prevMkt?.performanceMarketing ?? null,
-          prevMkt?.brandMarketing ?? null,
-          prevMkt?.competitorActions ?? [],
-          roundNumber, config, ctx
+          currentState,
+          decisions.marketingExpansion ?? { performanceBudget: {} as Record<string, number>, brandBudget: {} as Record<string, number>, channelAllocation: {} as Record<string, number>, promotions: [] },
+          currentState.performanceMarketing ?? null,
+          currentState.brandMarketing ?? null,
+          currentState.activeCompetitorActions ?? [],
+          roundNumber,
+          config,
+          ctx
         );
+        currentState.performanceMarketing = mktExpResult.performance;
+        currentState.brandMarketing = mktExpResult.brand;
+        currentState.channelMix = mktExpResult.channelMix;
+        currentState.activeCompetitorActions = mktExpResult.competitorActions;
         // Apply brand impact
-        currentState.brandValue = safeNumber(Math.min(1, currentState.brandValue + mktExpResult.totalBrandImpact));
-        currentState.marketingExpansion = {
-          performanceMarketing: mktExpResult.performance,
-          brandMarketing: mktExpResult.brand,
-          competitorActions: mktExpResult.competitorActions,
-        };
-        summaryMessages.push(...mktExpResult.warnings.map(w => `  ${team.id}: ${w}`));
-        summaryMessages.push(...mktExpResult.messages.map(m => `  ${team.id}: ${m}`));
-      }
-
-      // G5: Credit rating spread feedback — previous round's credit rating affects interest costs
-      // Clone marketState locally to apply per-team credit spread without affecting other teams
-      let teamMarketState = marketState;
-      if (currentState.financeExpansion?.creditRating?.interestSpread) {
-        const spread = currentState.financeExpansion.creditRating.interestSpread;
-        if (spread !== 0) {
-          teamMarketState = {
-            ...marketState,
-            interestRates: {
-              ...marketState.interestRates,
-              corporateBond: marketState.interestRates.corporateBond + spread * 100,
-            },
-          };
+        if (mktExpResult.totalBrandImpact !== 0) {
+          currentState.brandValue = Math.max(0, Math.min(1,
+            currentState.brandValue + mktExpResult.totalBrandImpact
+          ));
         }
+        if (mktExpResult.messages.length > 0) {
+          summaryMessages.push(...mktExpResult.messages.map(m => `  ${team.id}: ${m}`));
+        }
+      } catch {
+        // MarketingExpansions graceful degradation
       }
 
       // Process Finance Module (needs market state for interest rates, ctx for board votes)
       const financeResult = FinanceModule.process(
         currentState,
         decisions.finance || {},
-        teamMarketState,
+        marketState,
         ctx
       );
       currentState = financeResult.newState;
 
-      // === Finance Expansion: debt instruments, credit rating, investor sentiment ===
-      if (config.difficulty.complexity.creditRatings) {
-        const prevFin = currentState.financeExpansion;
-        const finExpDecisions: FinanceExpansionDecisions = {
-          newDebt: (decisions.finance as Record<string, unknown>)?.newDebt as { type: "treasury_bill" | "corporate_bond" | "bank_loan" | "credit_line"; amount: number; termRounds: number }[] ?? [],
-          debtRepayments: (decisions.finance as Record<string, unknown>)?.debtRepayments as { instrumentId: string; amount: number }[] ?? [],
-          creditLineDrawdown: (decisions.finance as Record<string, unknown>)?.creditLineDrawdown as number ?? 0,
-          dividendAmount: (decisions.finance as Record<string, unknown>)?.dividendAmount as number ?? 0,
-          stockBuybackAmount: (decisions.finance as Record<string, unknown>)?.stockBuybackAmount as number ?? 0,
-        };
+      // Phase 5E: Finance Expansions — debt covenants, credit ratings, investor sentiment
+      try {
         const finExpResult = FinanceExpansions.processFinanceExpansions(
-          currentState, finExpDecisions,
-          prevFin?.debtState ?? null,
-          prevFin?.creditRating ?? null,
-          prevFin?.investorSentiment ?? null,
-          roundNumber, config, ctx
+          currentState,
+          decisions.financeExpansion ?? { newDebt: [], debtRepayments: [], creditLineDrawdown: 0, dividendAmount: 0, stockBuybackAmount: 0 },
+          currentState.debtState ?? null,
+          currentState.creditRating ?? null,
+          currentState.investorSentimentState ?? null,
+          roundNumber,
+          config,
+          ctx
         );
-        // Deduct interest expense and debt repayments from cash
-        currentState.cash -= finExpResult.interestExpense;
-        currentState.cash -= finExpResult.debtRepayments;
-        currentState.cash += finExpResult.newDebtIssued;
-        currentState.financeExpansion = {
-          debtState: finExpResult.debt,
-          creditRating: finExpResult.creditRating,
-          investorSentiment: finExpResult.investorSentiment,
-        };
-        summaryMessages.push(...finExpResult.warnings.map(w => `  ${team.id}: ${w}`));
-        summaryMessages.push(...finExpResult.messages.map(m => `  ${team.id}: ${m}`));
+        currentState.debtState = finExpResult.debt;
+        currentState.creditRating = finExpResult.creditRating;
+        currentState.investorSentimentState = finExpResult.investorSentiment;
+        // Apply interest expense
+        if (finExpResult.interestExpense > 0) {
+          currentState.cash = safeNumber(currentState.cash - finExpResult.interestExpense);
+        }
+        if (finExpResult.messages.length > 0) {
+          summaryMessages.push(...finExpResult.messages.map(m => `  ${team.id}: ${m}`));
+        }
+      } catch {
+        // FinanceExpansions graceful degradation
       }
 
-      // Apply any events targeting this team
+      // Phase 1B: EventEngine — replaces legacy applyEvents stub
+      // Handles 30+ event templates with triggers, player choices, crisis levels
+      {
+        const eventResult = EventEngine.processEvents(
+          currentState,
+          currentState.eventState ?? null,
+          roundNumber,
+          config,
+          ctx
+        );
+        // Apply event effects to state
+        const fx = eventResult.totalEffects;
+        if (fx.cashChange !== 0) {
+          currentState.cash = safeNumber(currentState.cash + fx.cashChange);
+        }
+        if (fx.brandModifier !== 0) {
+          currentState.brandValue = Math.max(0, Math.min(1, currentState.brandValue + fx.brandModifier));
+        }
+        // Revenue and cost modifiers are applied during market sim (stored for use)
+        currentState.eventState = eventResult.state;
+        if (eventResult.messages.length > 0) {
+          summaryMessages.push(...eventResult.messages.map(m => `  ${team.id}: ${m}`));
+        }
+      }
+
+      // Legacy events passthrough (for backward-compatible SimulationInput.events)
       if (events) {
         currentState = this.applyEvents(currentState, team.id, events);
       }
@@ -473,7 +497,6 @@ export class SimulationEngine {
       processedTeams.push({
         id: team.id,
         state: currentState,
-        previousEps,
         ctx,
         moduleResults: {
           factory: factoryResult.result,
@@ -498,6 +521,26 @@ export class SimulationEngine {
 
     if (marketResult.rubberBandingApplied) {
       summaryMessages.push("Rubber-banding mechanisms active this round.");
+    }
+
+    // Phase 1C: Competitive Intelligence — gather signals, update competitor profiles
+    for (const team of processedTeams) {
+      try {
+        const decisions = teams.find(t => t.id === team.id)?.decisions ?? {};
+        const intelResult = CompetitiveIntelligenceEngine.gatherIntelligence(
+          team.state.intelligenceState ?? null,
+          decisions.intelligence ?? { budget: 0, focusAreas: [], competitorFocus: [] },
+          roundNumber,
+          config,
+          team.ctx
+        );
+        team.state.intelligenceState = intelResult.state;
+        if (intelResult.messages.length > 0) {
+          summaryMessages.push(...intelResult.messages.map(m => `  ${team.id}: ${m}`));
+        }
+      } catch {
+        // CompetitiveIntelligence graceful degradation
+      }
     }
 
     // Step 3: Update team states with market results and generate final results
@@ -525,6 +568,15 @@ export class SimulationEngine {
       team.state.cogs = safeNumber((team.state.products || []).reduce((sum, p) => {
         return sum + (((p as unknown as Record<string, unknown>).unitsSold as number || 0) * (p.unitCost || 0));
       }, 0) * (1 - cogsCostRelief));
+
+      // FIX-032: Deduct warranty costs (calculated by MarketSimulator from defect rates)
+      const teamWarrantyCost = marketResult.positions
+        .filter(p => p.teamId === team.id)
+        .reduce((sum, p) => sum + (p.warrantyCost || 0), 0);
+      if (teamWarrantyCost > 0) {
+        team.state.cash = safeNumber(team.state.cash - teamWarrantyCost);
+        team.state.cogs = safeNumber(team.state.cogs + teamWarrantyCost); // Include in COGS
+      }
 
       // FX impact on costs: materials from foreign regions and factory labor
       // Material costs are adjusted per-product based on segment material source regions
@@ -571,11 +623,20 @@ export class SimulationEngine {
       // so adding revenue ensures cash accumulates correctly across rounds
       team.state.cash = safeNumber(team.state.cash + teamRevenue);
 
+      // FIX-015: Deduct COGS from cash — variable production costs for goods sold
+      team.state.cash = safeNumber(team.state.cash - team.state.cogs);
+
       // Calculate costs (for net income reporting only — already deducted from cash by modules)
       const totalCosts = this.calculateTotalCosts(team.state, team.moduleResults);
 
-      // Calculate net income
-      team.state.netIncome = safeNumber(teamRevenue - totalCosts);
+      // Calculate net income (revenue minus COGS minus operating expenses)
+      const pretaxIncome = teamRevenue - team.state.cogs - totalCosts;
+
+      // FIX-031: Deduct corporate taxes from positive income (21% federal + 5% state)
+      const TAX_RATE = 0.26;
+      const taxExpense = pretaxIncome > 0 ? safeNumber(pretaxIncome * TAX_RATE) : 0;
+      team.state.cash = safeNumber(team.state.cash - taxExpense);
+      team.state.netIncome = safeNumber(pretaxIncome - taxExpense);
 
       // Update EPS
       team.state.eps = safeNumber(team.state.sharesIssued > 0
@@ -608,33 +669,20 @@ export class SimulationEngine {
       }
 
       // VAL-02: Guard all critical financial state writes against NaN/Infinity
-      // Update total assets (cash + factory value + machinery + inventory)
-      const machineryValue = Object.values(team.state.machineryStates ?? {}).reduce(
-        (sum, ms) => sum + (ms?.machines ?? []).reduce((mSum, m) => mSum + (m.currentValue ?? 0), 0), 0
-      );
-      const inventoryValue = team.state.materials?.totalInventoryValue ?? 0;
+      // Update total assets
       team.state.totalAssets = safeNumber(team.state.cash +
-        team.state.factories.length * CONSTANTS.NEW_FACTORY_COST +
-        machineryValue + inventoryValue);
+        team.state.factories.length * CONSTANTS.NEW_FACTORY_COST);
 
       // Update shareholders equity
       team.state.shareholdersEquity = safeNumber(team.state.totalAssets - team.state.totalLiabilities);
 
       // Wire: FinanceModule.calculateInvestorSentiment() — replaces hardcoded 50
-      // G5: Use expansion's richer investor sentiment when available
-      const coreInvestorSentiment = FinanceModule.calculateInvestorSentiment(team.state);
-      const expansionSentiment = team.state.financeExpansion?.investorSentiment?.overall;
-      const investorSentiment = expansionSentiment !== undefined
-        ? Math.round((coreInvestorSentiment + expansionSentiment) / 2) // Blend core + expansion
-        : coreInvestorSentiment;
+      const investorSentiment = FinanceModule.calculateInvestorSentiment(team.state);
 
-      // Update market cap — use actual EPS growth from previous round
-      const epsGrowth = team.previousEps !== 0
-        ? (team.state.eps - team.previousEps) / Math.abs(team.previousEps)
-        : (team.state.eps > 0 ? 1 : 0);
+      // Update market cap
       team.state.marketCap = safeNumber(FinanceModule.updateMarketCap(
         team.state,
-        epsGrowth,
+        0, // EPS growth (would need previous state)
         investorSentiment
       ));
 
@@ -654,16 +702,11 @@ export class SimulationEngine {
           team.moduleResults.finance.messages.push(...postFunding.messages);
         }
         // Re-sync balance sheet and market cap after auto-funding changed cash/debt
-        const postMachineryValue = Object.values(team.state.machineryStates ?? {}).reduce(
-          (sum, ms) => sum + (ms?.machines ?? []).reduce((mSum, m) => mSum + (m.currentValue ?? 0), 0), 0
-        );
-        const postInventoryValue = team.state.materials?.totalInventoryValue ?? 0;
         team.state.totalAssets = safeNumber(team.state.cash +
-          team.state.factories.length * CONSTANTS.NEW_FACTORY_COST +
-          postMachineryValue + postInventoryValue);
+          team.state.factories.length * CONSTANTS.NEW_FACTORY_COST);
         team.state.shareholdersEquity = safeNumber(team.state.totalAssets - team.state.totalLiabilities);
         team.state.marketCap = safeNumber(FinanceModule.updateMarketCap(
-          team.state, epsGrowth, investorSentiment
+          team.state, 0, investorSentiment
         ));
         team.state.sharePrice = safeNumber(team.state.sharesIssued > 0
           ? team.state.marketCap / team.state.sharesIssued : 0);
@@ -785,6 +828,32 @@ export class SimulationEngine {
       }
     }
 
+    // Phase 2: Economic Cycle — process phase-based macro conditions before market state update
+    // EconomicCycleEngine has built-in feature gate (config.difficulty.complexity.economicCycles)
+    let economicImpactMessages: string[] = [];
+    try {
+      const economicCtx = processedTeams.length > 0 ? processedTeams[0].ctx : undefined;
+      if (economicCtx) {
+        const econResult = EconomicCycleEngine.processEconomicCycle(
+          marketState.economicCycleState ?? null,
+          config,
+          economicCtx
+        );
+        // Sync EconomicCycleEngine outputs into MarketState's economic conditions
+        // This feeds better macro data to generateNextMarketState
+        marketState.economicCycleState = econResult.state;
+        marketState.economicConditions.gdp = econResult.state.gdpGrowth;
+        marketState.economicConditions.inflation = econResult.state.inflation;
+        marketState.economicConditions.consumerConfidence = econResult.state.consumerConfidence;
+        marketState.economicConditions.unemploymentRate = econResult.state.unemployment;
+        marketState.interestRates.federalRate = econResult.state.interestRates.federal;
+        marketState.interestRates.corporateBond = econResult.state.interestRates.corporate;
+        economicImpactMessages = econResult.impact.messages;
+      }
+    } catch {
+      // EconomicCycleEngine graceful degradation — MarketSimulator's inline logic handles fallback
+    }
+
     // Step 5: Generate next market state (with context for deterministic fluctuations)
     // Pass team data for dynamic pricing updates
     const newMarketState = MarketSimulator.generateNextMarketState(
@@ -793,7 +862,12 @@ export class SimulationEngine {
       marketCtx,
       processedTeams.map(t => ({ id: t.id, state: t.state }))
     );
+    // Carry forward economic cycle state to next round
+    newMarketState.economicCycleState = marketState.economicCycleState;
 
+    if (economicImpactMessages.length > 0) {
+      summaryMessages.push(...economicImpactMessages);
+    }
     summaryMessages.push(`Round ${roundNumber} complete. Leader: Team ${rankings[0]?.teamId}`);
 
     // Step 6: Wire FacilitatorReportEngine — generate round brief for facilitators
