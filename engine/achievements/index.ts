@@ -3,27 +3,13 @@
  *
  * Achievement tracking, milestones, and rewards.
  *
- * Includes the base AchievementEngine (30 achievements)
+ * Includes the base AchievementEngine (in engine/modules/)
  * and the LedgerEngine (221 achievements - "Ledger of Legends & Losers").
  */
 
-// Original Achievement Engine
-export { AchievementEngine } from "./AchievementEngine";
-export type {
-  AchievementCategory,
-  AchievementTier,
-  Achievement,
-  AchievementRequirement,
-  AchievementReward,
-  AchievementProgress,
-  EarnedAchievement,
-  AchievementState,
-  Milestone,
-  MilestoneBonus,
-  MilestonePenalty,
-  MilestoneResult,
-  AchievementResult,
-} from "./AchievementEngine";
+// Original Achievement Engine (lives in engine/modules/)
+export { AchievementEngine } from "../modules/AchievementEngine";
+export type { AchievementCheckContext } from "../modules/AchievementEngine";
 
 // Ledger Engine - "Ledger of Legends & Losers" (221 achievements)
 export { ExtendedAchievementEngine, ExtendedAchievementEngine as LedgerEngine } from "./LedgerEngine";
@@ -45,6 +31,9 @@ export type {
   TierConfig,
   CategoryConfig,
   ExtendedRequirementType,
+  MilestoneResult,
+  MilestoneBonus,
+  MilestonePenalty,
 } from "./types";
 
 export {
