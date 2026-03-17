@@ -394,6 +394,9 @@ export default function HRPage({ params }: PageProps) {
           <TabsTrigger value="workforce" className="data-[state=active]:bg-slate-700">
             Workforce
           </TabsTrigger>
+          <TabsTrigger value="line-assignment" className="data-[state=active]:bg-slate-700">
+            Line Assignment
+          </TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -1492,6 +1495,102 @@ export default function HRPage({ params }: PageProps) {
               <div className="mt-4 p-3 bg-red-900/20 border border-red-800 rounded-lg text-sm text-red-400">
                 <AlertTriangle className="w-4 h-4 inline mr-2" />
                 Layoffs significantly impact morale and may trigger voluntary departures
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Line Assignment Tab */}
+        <TabsContent value="line-assignment" className="space-y-6">
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-400" />
+                Production Line Staffing
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Assign workers, engineers, and supervisors to production lines. Each person can only work on one line.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {(() => {
+                const factories = state?.factories ?? [];
+                if (factories.length === 0) return <div className="text-slate-500 text-center py-6">No factories available</div>;
+
+                return factories.map((factory: { id: string; name: string; workers: number; engineers: number; supervisors: number; productionLines?: Array<{ id: string; productId: string | null; segment: string | null; targetOutput: number; assignedWorkers: number; assignedEngineers: number; assignedSupervisors: number; status: string }> }) => {
+                  const lines = factory.productionLines ?? [];
+                  const assignedWorkers = lines.reduce((sum, l) => sum + l.assignedWorkers, 0);
+                  const assignedEngineers = lines.reduce((sum, l) => sum + l.assignedEngineers, 0);
+                  const assignedSupervisors = lines.reduce((sum, l) => sum + l.assignedSupervisors, 0);
+
+                  return (
+                    <div key={factory.id} className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-white font-medium">{factory.name}</h4>
+                        <div className="flex gap-4 text-xs text-slate-400">
+                          <span>Workers: {assignedWorkers}/{factory.workers}</span>
+                          <span>Engineers: {assignedEngineers}/{factory.engineers}</span>
+                          <span>Supervisors: {assignedSupervisors}/{factory.supervisors}</span>
+                        </div>
+                      </div>
+
+                      {lines.length === 0 ? (
+                        <div className="text-slate-500 text-sm italic">No production lines in this factory</div>
+                      ) : (
+                        <div className="space-y-2">
+                          {lines.map((line, idx) => {
+                            const product = state?.products?.find((p: { id: string }) => p.id === line.productId);
+                            const isActive = line.status === "active" && line.productId;
+                            const staffColor = isActive ? "border-blue-500/30 bg-blue-500/5" : "border-slate-700 bg-slate-800/50";
+
+                            return (
+                              <div key={line.id} className={`p-3 rounded-lg border ${staffColor}`}>
+                                <div className="flex items-center justify-between mb-2">
+                                  <div>
+                                    <span className="text-white text-sm font-medium">Line {idx + 1}: </span>
+                                    <span className="text-slate-300 text-sm">
+                                      {product?.name ?? line.productId ?? "Unassigned"}
+                                    </span>
+                                    {line.segment && (
+                                      <Badge variant="outline" className="ml-2 text-xs">{line.segment}</Badge>
+                                    )}
+                                  </div>
+                                  <span className="text-xs text-slate-500">{line.targetOutput.toLocaleString()} units target</span>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-3">
+                                  <div className="space-y-1">
+                                    <label className="text-xs text-slate-500">Workers</label>
+                                    <div className={`text-sm font-medium ${isActive ? "text-blue-300" : "text-slate-500"}`}>
+                                      {line.assignedWorkers}
+                                    </div>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <label className="text-xs text-slate-500">Engineers</label>
+                                    <div className={`text-sm font-medium ${isActive ? "text-blue-300" : "text-slate-500"}`}>
+                                      {line.assignedEngineers}
+                                    </div>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <label className="text-xs text-slate-500">Supervisors</label>
+                                    <div className={`text-sm font-medium ${isActive ? "text-blue-300" : "text-slate-500"}`}>
+                                      {line.assignedSupervisors}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
+
+              <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg text-blue-300 text-sm">
+                <strong>Staffing Rules:</strong> Workers = ceil(target / (100 x efficiency)), Engineers = ceil(machines / 3), Supervisors = ceil(total staff / 15).
+                Below 50% staffing shuts the line down.
               </div>
             </CardContent>
           </Card>

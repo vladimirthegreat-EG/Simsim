@@ -582,10 +582,24 @@ export default function FinancePage({ params }: PageProps) {
             </Card>
           </div>
 
-          {/* Income Statement */}
+          {/* Income Statement with Round Selector */}
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader>
-              <CardTitle className="text-white">Income Statement (This Round)</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-white">Income Statement</CardTitle>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-slate-400">Round:</span>
+                  <select
+                    className="bg-slate-700 border-slate-600 text-white text-sm rounded px-2 py-1"
+                    defaultValue="current"
+                  >
+                    <option value="current">Current (R{currentRound})</option>
+                    {Array.from({ length: Math.max(0, currentRound - 1) }, (_, i) => (
+                      <option key={i + 1} value={i + 1}>Round {i + 1}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -604,6 +618,14 @@ export default function FinancePage({ params }: PageProps) {
                 <div className="flex justify-between p-3 bg-slate-700/30 rounded-lg pl-8">
                   <span className="text-slate-400">Operating Expenses</span>
                   <span className="text-red-400">-{formatCurrency(financials.operatingExpenses)}</span>
+                </div>
+                <div className="flex justify-between p-3 bg-slate-700/20 rounded-lg pl-8">
+                  <span className="text-slate-500">Storage & Warehousing</span>
+                  <span className="text-slate-400">incl. in OpEx</span>
+                </div>
+                <div className="flex justify-between p-3 bg-slate-700/20 rounded-lg pl-8">
+                  <span className="text-slate-500">Inventory Write-Off</span>
+                  <span className="text-slate-400">incl. in OpEx</span>
                 </div>
                 <div className="flex justify-between p-3 bg-slate-700/50 rounded-lg border-t-2 border-slate-600">
                   <span className="text-white font-medium">Net Income</span>

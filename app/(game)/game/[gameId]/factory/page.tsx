@@ -1459,6 +1459,84 @@ export default function FactoryPage({ params }: PageProps) {
             </CardContent>
           </Card>
 
+          {/* Production Lines Status */}
+          <Card className="bg-slate-800/80 border-slate-700/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Boxes className="w-5 h-5 text-emerald-400" />
+                Production Lines
+                <Badge className="bg-emerald-500/20 text-emerald-400 text-xs ml-auto">
+                  {selectedFactory.productionLines?.length ?? 0} line(s) · {selectedFactory.tier?.toUpperCase() ?? "MEDIUM"} factory
+                </Badge>
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Each production line manufactures one product. Assign products, set targets, and monitor bottlenecks.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {(selectedFactory.productionLines ?? []).length === 0 ? (
+                <div className="text-center text-slate-500 py-6">
+                  No production lines configured. Factory tier determines available lines.
+                </div>
+              ) : (
+                (selectedFactory.productionLines ?? []).map((line: { id: string; productId: string | null; segment: string | null; targetOutput: number; assignedWorkers: number; assignedEngineers: number; assignedSupervisors: number; assignedMachines: string[]; status: string; changeoverRoundsRemaining: number }, idx: number) => {
+                  const product = state?.products?.find((p: { id: string }) => p.id === line.productId);
+                  const isActive = line.status === "active" && line.productId;
+                  const isChangeover = line.status === "changeover";
+                  const statusColor = isActive ? "text-green-400" : isChangeover ? "text-yellow-400" : "text-slate-500";
+                  const statusBg = isActive ? "bg-green-500/10 border-green-500/30" : isChangeover ? "bg-yellow-500/10 border-yellow-500/30" : "bg-slate-700/30 border-slate-600/30";
+
+                  return (
+                    <div key={line.id} className={`p-4 rounded-lg border ${statusBg}`}>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-white font-medium">Line {idx + 1}</span>
+                            <span className={`text-xs uppercase font-semibold ${statusColor}`}>
+                              {isChangeover ? `Changeover (${line.changeoverRoundsRemaining}r)` : line.status}
+                            </span>
+                          </div>
+                          <div className="text-sm text-slate-400 mt-1">
+                            {product ? (
+                              <>{product.name ?? line.productId} — <span className="text-slate-300">{line.segment}</span></>
+                            ) : (
+                              <span className="italic">No product assigned</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-white font-medium">{formatNumber(line.targetOutput)} units</div>
+                          <div className="text-xs text-slate-400">target output</div>
+                        </div>
+                      </div>
+
+                      {isActive && (
+                        <div className="grid grid-cols-4 gap-3 mt-3 text-xs">
+                          <div>
+                            <span className="text-slate-500">Workers</span>
+                            <div className="text-slate-300 font-medium">{line.assignedWorkers}</div>
+                          </div>
+                          <div>
+                            <span className="text-slate-500">Engineers</span>
+                            <div className="text-slate-300 font-medium">{line.assignedEngineers}</div>
+                          </div>
+                          <div>
+                            <span className="text-slate-500">Supervisors</span>
+                            <div className="text-slate-300 font-medium">{line.assignedSupervisors}</div>
+                          </div>
+                          <div>
+                            <span className="text-slate-500">Machines</span>
+                            <div className="text-slate-300 font-medium">{line.assignedMachines?.length ?? 0}</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </CardContent>
+          </Card>
+
           {/* Factory Machinery (in production context) */}
           {(() => {
             const previewMachines = factoryPreview.previewState?.machineryStates?.[selectedFactory.id]?.machines ?? [];

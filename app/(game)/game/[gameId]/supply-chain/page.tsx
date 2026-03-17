@@ -29,6 +29,10 @@ import {
   Factory,
   Percent,
   Ship,
+  Plane,
+  Truck,
+  Leaf,
+  Anchor,
 } from "lucide-react";
 import type { Segment } from "@/engine/types";
 import {
@@ -42,7 +46,7 @@ import {
   type Region,
   type MaterialType,
 } from "@/engine/materials";
-import { LogisticsEngine, SHIPPING_METHODS } from "@/engine/logistics";
+import { LogisticsEngine, SHIPPING_METHODS, SHIPPING_ROUTES, MAJOR_PORTS, type ShippingMethod } from "@/engine/logistics";
 import { TariffEngine } from "@/engine/tariffs";
 import {
   Select,
@@ -79,6 +83,11 @@ export default function SupplyChainPage({ params }: PageProps) {
   const [selectedSupplier, setSelectedSupplier] = useState<string>("");
   const [orderQuantity, setOrderQuantity] = useState<number>(10000);
   const [shippingMethod, setShippingMethod] = useState<"sea" | "air" | "land" | "rail">("sea");
+  // Logistics state
+  const [routeFrom, setRouteFrom] = useState<Region>("North America");
+  const [routeTo, setRouteTo] = useState<Region>("Asia");
+  const [shipWeight, setShipWeight] = useState(10);
+  const [shipVolume, setShipVolume] = useState(20);
 
   // Fetch live game state
   const { data: teamState, isLoading: teamStateLoading } = trpc.team.getMyState.useQuery();
@@ -149,6 +158,28 @@ export default function SupplyChainPage({ params }: PageProps) {
     }
   }, [supplierDetails, requirements, selectedMaterialType, orderQuantity, shippingMethod, teamRegion]);
 
+  // Logistics: compare shipping methods for selected route
+  const shippingComparison = useMemo(() => {
+    try {
+      return LogisticsEngine.compareShippingOptions(routeFrom, routeTo, shipWeight, shipVolume);
+    } catch {
+      return [];
+    }
+  }, [routeFrom, routeTo, shipWeight, shipVolume]);
+
+  // Logistics: route recommendations
+  const routeRecommendations = useMemo(() => {
+    try {
+      return LogisticsEngine.getRecommendations(routeFrom, routeTo, shipWeight, shipVolume, 50000, 30);
+    } catch {
+      return null;
+    }
+  }, [routeFrom, routeTo, shipWeight, shipVolume]);
+
+  const METHOD_ICONS: Record<string, React.ElementType> = {
+    sea: Ship, air: Plane, land: Truck, rail: TruckIcon,
+  };
+
   // Calculate inventory value
   const inventoryValue = useMemo(() => {
     return inventory.reduce((sum, inv) => sum + inv.quantity * inv.averageCost, 0);
@@ -189,8 +220,8 @@ export default function SupplyChainPage({ params }: PageProps) {
     return (
       <div className="container mx-auto p-6 space-y-6">
         <PageHeader
-          title="Supply Chain Management"
-          subtitle="Source materials, manage suppliers, and optimize logistics"
+          title="Supply Chain & Logistics"
+          subtitle="Source materials, manage suppliers, compare shipping routes, and track FX exposure"
           icon={<Package className="h-6 w-6" />}
         />
         <div className="flex items-center justify-center py-12">
@@ -237,12 +268,14 @@ export default function SupplyChainPage({ params }: PageProps) {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="requirements">Material Requirements</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-7">
+          <TabsTrigger value="requirements">Materials</TabsTrigger>
           <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
+          <TabsTrigger value="shipping">Shipping</TabsTrigger>
           <TabsTrigger value="order">Place Order</TabsTrigger>
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
-          <TabsTrigger value="active-orders">Active Orders</TabsTrigger>
+          <TabsTrigger value="active-orders">Orders</TabsTrigger>
+          <TabsTrigger value="costs">Cost Summary</TabsTrigger>
         </TabsList>
 
         {/* Material Requirements Tab */}
@@ -714,6 +747,164 @@ export default function SupplyChainPage({ params }: PageProps) {
                   ))}
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        {/* Shipping & Routes Tab (merged from Logistics page) */}
+        <TabsContent value="shipping" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Shipping Route Comparison</CardTitle>
+              <CardDescription>Compare shipping methods between regions</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <Label>From Region</Label>
+                  <Select value={routeFrom} onValueChange={(v) => setRouteFrom(v as Region)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(["North America", "Europe", "Asia", "MENA"] as Region[]).map(r => (
+                        <SelectItem key={r} value={r}>{r}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>To Region</Label>
+                  <Select value={routeTo} onValueChange={(v) => setRouteTo(v as Region)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(["North America", "Europe", "Asia", "MENA"] as Region[]).map(r => (
+                        <SelectItem key={r} value={r}>{r}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Weight (tons)</Label>
+                  <Input type="number" value={shipWeight} onChange={(e) => setShipWeight(Number(e.target.value))} min={1} />
+                </div>
+                <div>
+                  <Label>Volume (m3)</Label>
+                  <Input type="number" value={shipVolume} onChange={(e) => setShipVolume(Number(e.target.value))} min={1} />
+                </div>
+              </div>
+
+              {shippingComparison.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                  {shippingComparison.map((option) => {
+                    const Icon = METHOD_ICONS[option.method] || Ship;
+                    const isRecommended = routeRecommendations?.bestOverall === option.method;
+                    return (
+                      <Card key={option.method} className={isRecommended ? "border-primary border-2" : ""}>
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Icon className="h-5 w-5" />
+                              <CardTitle className="text-base capitalize">{option.method}</CardTitle>
+                            </div>
+                            {isRecommended && <Badge variant="default">Recommended</Badge>}
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Cost</span>
+                            <span className="font-medium">{formatCurrency(option.logistics.totalLogisticsCost)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Lead Time</span>
+                            <span className="font-medium">{option.logistics.totalLeadTime} days</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Reliability</span>
+                            <span className="font-medium">{Math.round(option.logistics.onTimeProbability * 100)}%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">CO2</span>
+                            <span className="font-medium flex items-center gap-1">
+                              <Leaf className="h-3 w-3" />
+                              {option.logistics.carbonEmissions?.toFixed(1) ?? "N/A"} tons
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+
+              {shippingComparison.length === 0 && (
+                <div className="text-center text-muted-foreground py-8">
+                  Select regions to compare shipping methods
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Cost Summary Tab */}
+        <TabsContent value="costs" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Supply Chain Cost Summary</CardTitle>
+              <CardDescription>Overview of all material, shipping, and FX costs</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <StatCard
+                    label="Total Material Cost"
+                    value={formatCurrency(inventory.reduce((sum: number, inv: MaterialInventory) => sum + (inv.averageCost * inv.quantity), 0))}
+                    icon={<Package className="h-5 w-5" />}
+                    trend="neutral"
+                  />
+                  <StatCard
+                    label="Active Orders Value"
+                    value={formatCurrency(activeOrders.reduce((sum: number, o: MaterialOrder) => sum + o.totalCost, 0))}
+                    icon={<ShoppingCart className="h-5 w-5" />}
+                    trend="neutral"
+                  />
+                  <StatCard
+                    label="Factory Region"
+                    value={teamRegion}
+                    icon={<MapPin className="h-5 w-5" />}
+                    trend="neutral"
+                  />
+                  <StatCard
+                    label="FX Exposure"
+                    value={teamRegion === "North America" ? "Domestic" : "Foreign"}
+                    icon={<Globe className="h-5 w-5" />}
+                    trend={teamRegion === "North America" ? "neutral" : "down"}
+                  />
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Cost Breakdown by Order</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {activeOrders.length === 0 ? (
+                      <div className="text-center text-muted-foreground py-4">No active orders to summarize</div>
+                    ) : (
+                      <div className="space-y-2">
+                        {activeOrders.map((order: MaterialOrder, idx: number) => (
+                          <div key={idx} className="flex justify-between items-center py-2 border-b last:border-0">
+                            <div>
+                              <span className="font-medium capitalize">{order.materialType}</span>
+                              <span className="text-muted-foreground ml-2">x{formatNumber(order.quantity)}</span>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-medium">{formatCurrency(order.totalCost)}</div>
+                              <div className="text-xs text-muted-foreground">ETA Round {order.estimatedArrivalRound}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
