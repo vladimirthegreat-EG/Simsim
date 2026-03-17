@@ -131,9 +131,9 @@ describe("§4.1 — Factor Calculation", () => {
     expect(f.costReliefFactor).toBe(0);
     expect(f.perceptionBonus).toBe(0);
     // Drag applied
-    expect(f.brandDecayMultiplier).toBeGreaterThan(1.4);
+    expect(f.brandDecayMultiplier).toBeGreaterThan(1.2); // POST-FIX: updated from 1.4 to 1.2 (RB_MAX_DRAG now 0.25)
     expect(f.brandDecayMultiplier).toBeLessThanOrEqual(1.0 + CONSTANTS.RB_MAX_DRAG);
-    expect(f.qualityExpectationBoost).toBeGreaterThan(2.0);
+    expect(f.qualityExpectationBoost).toBeGreaterThan(0.4); // POST-FIX: updated from 2.0 to 0.4 (qualityBoost = dragFactor * RB_MAX_QUALITY_EXPECTATION_BOOST, max ~0.5)
     expect(f.qualityExpectationBoost).toBeLessThanOrEqual(CONSTANTS.RB_MAX_QUALITY_EXPECTATION_BOOST);
   });
 
@@ -258,7 +258,7 @@ describe("§4.1 — Factor Calculation", () => {
     // Dominant: globalAvg=0.20, teamAvg=0.50, position=(0.50-0.20)/0.20=1.5
     const fDom = factors["dominant"];
     expect(fDom.position).toBeCloseTo(1.5, 1);
-    expect(fDom.brandDecayMultiplier).toBeGreaterThan(1.3);
+    expect(fDom.brandDecayMultiplier).toBeGreaterThan(1.15); // POST-FIX: updated from 1.3 to 1.15 (RB_MAX_DRAG now 0.25)
     expect(fDom.brandDecayMultiplier).toBeLessThanOrEqual(1.0 + CONSTANTS.RB_MAX_DRAG);
 
     // Trailing teams: position = (0.125-0.20)/0.20 = -0.375
@@ -426,7 +426,7 @@ describe("§4.3 — Mechanism B: Perception Boost", () => {
   });
 
   it("TEST 2 — Perception boost scales with segment quality weight", () => {
-    // Budget quality weight = 15, Professional quality weight = 40 (BAL-02)
+    // Budget quality weight = 22, Professional quality weight = 30 // POST-FIX: updated from 15/40 to 22/30
     // Same perception bonus should have larger impact in Professional
     const budgetWeight = CONSTANTS.SEGMENT_WEIGHTS["Budget"].quality;
     const proWeight = CONSTANTS.SEGMENT_WEIGHTS["Professional"].quality;
@@ -436,8 +436,8 @@ describe("§4.3 — Mechanism B: Perception Boost", () => {
     const proBoost = perceptionBonus * proWeight;
 
     expect(proBoost).toBeGreaterThan(budgetBoost);
-    expect(budgetBoost).toBeCloseTo(1.8, 1); // 0.12 × 15
-    expect(proBoost).toBeCloseTo(4.2, 1);    // 0.12 × 35
+    expect(budgetBoost).toBeCloseTo(2.64, 1); // 0.12 × 22 // POST-FIX: updated from 1.8 (0.12×15) to 2.64 (0.12×22)
+    expect(proBoost).toBeCloseTo(3.6, 1);     // 0.12 × 30 // POST-FIX: updated from 4.2 (0.12×35) to 3.6 (0.12×30)
   });
 
   it("TEST 3 — Perception boost factor never exceeds MAX_PERCEPTION_BONUS", () => {
@@ -528,7 +528,7 @@ describe("§4.4 — Mechanism C: Incumbent Drag", () => {
 
     const factors = MarketSimulator.calculateRubberBandingFactors(teams, 10);
     expect(factors["mega"].brandDecayMultiplier).toBeLessThanOrEqual(1.0 + CONSTANTS.RB_MAX_DRAG);
-    expect(factors["mega"].brandDecayMultiplier).toBeGreaterThan(1.4);
+    expect(factors["mega"].brandDecayMultiplier).toBeGreaterThan(1.2); // POST-FIX: updated from 1.4 to 1.2 (RB_MAX_DRAG now 0.25)
   });
 
   it("TEST 3 — Quality expectation boost raises scoring bar for leaders", () => {
@@ -889,9 +889,9 @@ describe("Legacy Compatibility", () => {
     expect(CONSTANTS.RB_COST_RELIEF_SENSITIVITY).toBe(1.5);
     expect(CONSTANTS.RB_MAX_PERCEPTION_BONUS).toBe(0.12);
     expect(CONSTANTS.RB_PERCEPTION_SENSITIVITY).toBe(1.2);
-    expect(CONSTANTS.RB_MAX_DRAG).toBe(0.60);
+    expect(CONSTANTS.RB_MAX_DRAG).toBe(0.25); // POST-FIX: updated from 0.60 to 0.25
     expect(CONSTANTS.RB_DRAG_SENSITIVITY).toBe(0.8);
-    expect(CONSTANTS.RB_MAX_QUALITY_EXPECTATION_BOOST).toBe(5.0);
+    expect(CONSTANTS.RB_MAX_QUALITY_EXPECTATION_BOOST).toBe(2.0); // POST-FIX: updated from 5.0 to 2.0
 
     // Old constants should be removed
     expect((CONSTANTS as any).RUBBER_BAND_TRAILING_BOOST).toBeUndefined();

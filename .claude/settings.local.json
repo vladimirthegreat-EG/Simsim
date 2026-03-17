@@ -33,7 +33,21 @@
       "Bash(git pull:*)",
       "Bash(npm run db:studio:*)",
       "Bash(git remote set-url:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npx vitest run engine/__tests__/stress/ engine/testkit/__tests__/)",
+      "Bash(npx vitest run engine/__tests__/stress/performance.stress.test.ts)",
+      "Bash(python -m notebooklm --help)",
+      "Bash(notebooklm --help)",
+      "Bash(python -c \"import notebooklm; help\\(notebooklm\\)\")",
+      "Bash(pip show notebooklm-py)",
+      "Bash(\"C:/Users/V/AppData/Roaming/Python/Python313/Scripts/notebooklm\" --help)",
+      "Bash(npx vitest run --reporter=verbose)",
+      "Bash(npx vitest run engine/__tests__/stress/hr.stress.test.ts engine/__tests__/stress/market.stress.test.ts engine/__tests__/stress/marketing.stress.test.ts engine/__tests__/SimulationEngine.test.ts)",
+      "Bash(npx vitest run)",
+      "Bash(npx vitest run __tests__/audit/formula-audit.test.ts)",
+      "Bash(npx vitest run __tests__/logistics/LogisticsEngine.test.ts)",
+      "Bash(npx vitest run __tests__/logistics/LogisticsEngine.test.ts --reporter=verbose)",
+      "Bash(npx vitest:*)"
     ]
   }
 }

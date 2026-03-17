@@ -86,13 +86,13 @@ export const CONSTANTS = {
   // Upgrades (Expanded: 5 -> 20)
   UPGRADE_COSTS: {
     // Existing (5)
-    sixSigma: 75_000_000,
+    sixSigma: 40_000_000,          // M4 FIX: was $75M — cost-cutter unviable at 5.9%
     automation: 75_000_000,
     materialRefinement: 100_000_000,
     supplyChain: 200_000_000,
     warehousing: 100_000_000,
     // Quality & Efficiency (5 new)
-    leanManufacturing: 40_000_000,
+    leanManufacturing: 25_000_000,  // M4 FIX: was $40M — complementary cost reduction
     digitalTwin: 60_000_000,
     iotIntegration: 50_000_000,
     modularLines: 80_000_000,
@@ -389,13 +389,13 @@ export const CONSTANTS = {
   RB_MAX_PERCEPTION_BONUS: 0.12,        // Maximum 12% quality score boost (was 8%)
   RB_PERCEPTION_SENSITIVITY: 1.2,       // tanh ramp speed for perception boost
   // Mechanism C — Incumbent Drag (leading teams)
-  RB_MAX_DRAG: 0.60,                    // Maximum 60% acceleration to brand decay + quality expectations (was 50%)
+  RB_MAX_DRAG: 0.25,                    // F7 FIX: 25% drag (was 60% — too harsh on leaders)
   RB_DRAG_SENSITIVITY: 0.8,             // tanh ramp speed for drag (gentler than relief)
-  RB_MAX_QUALITY_EXPECTATION_BOOST: 5.0, // Up to +5 points on quality expectations
+  RB_MAX_QUALITY_EXPECTATION_BOOST: 2.0, // F7 FIX: Up to +2 points (was +5)
 
   // Brand - Rebalanced (v7.0.0, Monte Carlo balance sweep)
   // Moderate decay — strategies now all invest in brand, so mechanic is less exploitable
-  BRAND_DECAY_RATE: 0.012,              // 1.2% brand decay per round (was 0.5%)
+  BRAND_DECAY_RATE: 0.08,               // F9 FIX: 8% brand decay (was 1.2% — brand too sticky)
   BRAND_MAX_GROWTH_PER_ROUND: 0.04,     // Max 4% brand growth per round (was 6%)
 
   // v7.0.0: Brand critical mass thresholds (Monte Carlo balance sweep)
@@ -409,7 +409,7 @@ export const CONSTANTS = {
   // not from a hardcoded multiplier that guarantees balanced strategy wins.
 
   // v5.1.0: Tuning parameters (Audit F-03)
-  SOFTMAX_TEMPERATURE: 3,               // Market share allocation sharpness (was 2 — too sharp, amplified small score gaps into dominance)
+  SOFTMAX_TEMPERATURE: 1.8,             // F6 FIX: 1.8 (was 3 — sharper competition rewards differentiation)
 
   // Marketing parameters (wired for sweep)
   ADVERTISING_BASE_IMPACT: 0.0011,      // 0.11% brand per $1M advertising (sweep v5)
@@ -420,7 +420,7 @@ export const CONSTANTS = {
   BRANDING_LOG_MULTIPLIER: 1.5,         // Log multiplier for amounts >$2M (sweep v5)
 
   // Quality/Feature scoring caps
-  QUALITY_FEATURE_BONUS_CAP: 1.07,      // Max multiplier for quality/features above expectation (was 1.1 — R&D-focused dominated)
+  QUALITY_FEATURE_BONUS_CAP: 1.15,      // F4 FIX: 1.15 (was 1.07 — R&D ceiling too low)
   QUALITY_MARKET_SHARE_BONUS: 0.0011,   // +0.11% market share per quality point (sweep v5)
 
   // ESG penalty system (PATCH 4: penalty-only, no bonuses)
@@ -430,10 +430,11 @@ export const CONSTANTS = {
 
   // Segment weights (all 5 segments × 5 dimensions)
   SEGMENT_WEIGHTS: {
-    "Budget":           { price: 65, quality: 15, brand: 5,  esg: 5,  features: 10 },
+    // F5+M2+M3 FIX: Budget rebalanced (was price:65), Professional tuned (quality 35→30, price 18→23)
+    "Budget":           { price: 40, quality: 22, brand: 10, esg: 8,  features: 20 },
     "General":          { price: 28, quality: 23, brand: 17, esg: 10, features: 22 },
     "Enthusiast":       { price: 12, quality: 30, brand: 8,  esg: 5,  features: 45 },
-    "Professional":     { price: 18, quality: 35, brand: 10, esg: 17, features: 20 }, // v7.0.0: Price matters more (18 from 15), quality less dominant (35 from 40), brand slightly up (10 from 8)
+    "Professional":     { price: 23, quality: 30, brand: 10, esg: 17, features: 20 },
     "Active Lifestyle": { price: 20, quality: 34, brand: 10, esg: 10, features: 26 },
   } as Record<Segment, { price: number; quality: number; brand: number; esg: number; features: number }>,
 
@@ -492,8 +493,8 @@ export const CONSTANTS = {
   INVESTOR_SENTIMENT_ESG_LOW: 300,        // ESG score threshold for negative sentiment
   INVESTOR_SENTIMENT_ESG_BONUS: 8,        // Sentiment boost for high ESG
   INVESTOR_SENTIMENT_ESG_PENALTY: 10,     // Sentiment penalty for low ESG
-  DEBT_COVENANT_DE_THRESHOLD_1: 1.0,      // D/E triggers interest surcharge
-  DEBT_COVENANT_DE_THRESHOLD_2: 1.5,      // D/E triggers forced repayment
+  DEBT_COVENANT_DE_THRESHOLD_1: 1.5,      // T5 FIX: Surcharge at 1.5 (was 1.0)
+  DEBT_COVENANT_DE_THRESHOLD_2: 2.0,      // T6 FIX: Forced repay at 2.0 (was 1.5)
   COVENANT_INTEREST_SURCHARGE: 0.02,      // 2% surcharge on existing debt
   FORCED_REPAYMENT_CASH_LIMIT: 0.30,      // Max 30% of cash for forced repayment
   FORCED_REPAYMENT_DEBT_PERCENT: 0.10,    // Repay 10% of debt
@@ -549,7 +550,7 @@ export const CONSTANTS = {
     "Budget": 2.5, "General": 1.8, "Enthusiast": 1.2,
     "Professional": 0.8, "Active Lifestyle": 1.5,
   } as Record<Segment, number>,
-  MAX_PROMOTION_SALES_BOOST: 0.75,        // BAL-03: Cap sales boost at 75%
+  MAX_PROMOTION_SALES_BOOST: 0.30,        // F8 FIX: Cap at 30% (was 75% — promo exploit)
   ADVERTISING_SEGMENT_MULTIPLIERS: {      // Ad effectiveness by segment
     "Budget": 0.5, "General": 1.0, "Enthusiast": 0.75,
     "Professional": 0.85, "Active Lifestyle": 1.1,

@@ -174,15 +174,15 @@ describe("Market Simulator Stress Suite", () => {
       }
     });
 
-    it("softmax temperature = 3 is used (from CONSTANTS)", () => {
-      // Phase-G: Set to 3 for moderate sharpness between competitive and monopolistic.
-      expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(3);
+    it("softmax temperature = 1.8 is used (from CONSTANTS)", () => { // POST-FIX: updated from 3 to 1.8
+      // Phase-G: Set to 1.8 for sharper competition that rewards differentiation. // POST-FIX: updated from 3 to 1.8
+      expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(1.8); // POST-FIX: updated from 3 to 1.8
     });
 
     it("rubber-banding constants are correct", () => {
       expect(CONSTANTS.RB_MAX_COST_RELIEF).toBe(0.18);
       expect(CONSTANTS.RB_MAX_PERCEPTION_BONUS).toBe(0.12);
-      expect(CONSTANTS.RB_MAX_DRAG).toBe(0.60);
+      expect(CONSTANTS.RB_MAX_DRAG).toBe(0.25); // POST-FIX: updated from 0.60 to 0.25
     });
 
     it("brand critical mass constants match documentation", () => {

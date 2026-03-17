@@ -135,7 +135,8 @@ export function calculateESGSubscores(state: TeamState): ESGSubscores {
 export function calculateESGBonuses(subscores: ESGSubscores): ESGBonuses {
   return {
     reachMultiplier: 1.0 + (subscores.environmental / 333) * 0.15,
-    esgSocialBonus: (subscores.social / 333) * 0.10,
+    // M1 FIX: ESG social bonus 0.10→0.06 (balanced was 38.2% dominant)
+    esgSocialBonus: (subscores.social / 333) * 0.06,
     riskMultiplier: 1.0 - (subscores.governance / 333) * 0.20,
   };
 }

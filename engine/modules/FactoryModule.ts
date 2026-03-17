@@ -203,6 +203,13 @@ export class FactoryModule {
     if (decisions.esgInitiatives) {
       const esgResult = this.processESGInitiatives(newState, decisions.esgInitiatives);
       newState.esgScore += esgResult.esgGain;
+      // F11 FIX: ESG score cap + decay above threshold
+      if (newState.esgScore > 700) {
+        const excess = newState.esgScore - 700;
+        const decay = excess * 0.05;
+        newState.esgScore = Math.max(700, newState.esgScore - decay);
+      }
+      newState.esgScore = Math.min(1000, newState.esgScore);
       totalCosts += esgResult.cost;
       messages.push(...esgResult.messages);
     }
@@ -844,7 +851,13 @@ export class FactoryModule {
     const workerSpeedMultiplier = averageWorkerSpeed / 100;
 
     // Check for automation upgrade (80% fewer workers needed)
-    const automationMultiplier = factory.upgrades.includes("automation") ? 5 : 1; // Each worker is 5x as productive
+    // F1 FIX: Tiered automation instead of binary 5x multiplier
+    let automationMultiplier = 1.0;
+    if (factory.upgrades.includes("automation")) automationMultiplier += 0.15;
+    if (factory.upgrades.includes("advancedRobotics")) automationMultiplier += 0.15;
+    if (factory.upgrades.includes("continuousImprovement")) automationMultiplier += 0.10;
+    if (factory.upgrades.includes("leanManufacturing")) automationMultiplier += 0.10;
+    if (factory.upgrades.includes("flexibleManufacturing")) automationMultiplier += 0.10;
 
     const unitsProduced = Math.floor(
       baseOutput * factoryMultiplier * workerEfficiencyMultiplier * workerSpeedMultiplier * automationMultiplier

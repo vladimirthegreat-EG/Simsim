@@ -818,9 +818,9 @@ describe("Finance Module — Comprehensive Stress Tests", () => {
     // EXPLOIT-03 Debt Covenant Enforcement
     // ------------------------------------------
     describe("EXPLOIT-03 Debt Covenant Enforcement", () => {
-      it("D/E > 2.0: new debt issuance is blocked (credit frozen)", () => {
+      it("D/E > 2.0: new debt issuance is blocked (credit frozen)", () => { // POST-FIX: threshold updated from 1.5 to 2.0
         const state = createMinimalTeamState();
-        // Engineer D/E > 2.0
+        // Engineer D/E > 2.0 // POST-FIX: updated from 1.5 to 2.0
         state.shareholdersEquity = 50_000_000;
         state.shortTermDebt = 60_000_000;
         state.longTermDebt = 60_000_000;
@@ -848,13 +848,13 @@ describe("Finance Module — Comprehensive Stress Tests", () => {
         )).toBe(true);
       });
 
-      it("D/E > 1.5: forced partial repayment message", () => {
+      it("D/E > 2.0: forced partial repayment message", () => { // POST-FIX: threshold updated from 1.5 to 2.0
         const state = createMinimalTeamState();
         state.shareholdersEquity = 50_000_000;
-        state.shortTermDebt = 40_000_000;
-        state.longTermDebt = 40_000_000;
-        state.totalLiabilities = 80_000_000;
-        // D/E = 80M / 50M = 1.6 > 1.5
+        state.shortTermDebt = 60_000_000;
+        state.longTermDebt = 60_000_000;
+        state.totalLiabilities = 120_000_000;
+        // D/E = 120M / 50M = 2.4 > 2.0 // POST-FIX: updated from D/E=1.6>1.5 to D/E=2.4>2.0
 
         const output = runSingleTeam(state, {}, "miyazaki-exploit03-repay");
 
@@ -865,13 +865,13 @@ describe("Finance Module — Comprehensive Stress Tests", () => {
         )).toBe(true);
       });
 
-      it("D/E > 1.0 but < 1.5: interest surcharge only, no forced repayment", () => {
+      it("D/E > 1.5 but < 2.0: interest surcharge only, no forced repayment", () => { // POST-FIX: thresholds updated from 1.0/1.5 to 1.5/2.0
         const state = createMinimalTeamState();
-        state.shareholdersEquity = 80_000_000;
-        state.shortTermDebt = 50_000_000;
-        state.longTermDebt = 50_000_000;
-        state.totalLiabilities = 100_000_000;
-        // D/E = 100M / 80M = 1.25
+        state.shareholdersEquity = 50_000_000;
+        state.shortTermDebt = 40_000_000;
+        state.longTermDebt = 40_000_000;
+        state.totalLiabilities = 80_000_000;
+        // D/E = 80M / 50M = 1.6 > 1.5 // POST-FIX: updated from D/E=1.25>1.0 to D/E=1.6>1.5
 
         const output = runSingleTeam(state, {}, "miyazaki-exploit03-surcharge");
 

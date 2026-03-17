@@ -219,15 +219,15 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
         }
       });
 
-      it("softmax temperature = 3 is used (from CONSTANTS)", () => {
-        expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(3);
+      it("softmax temperature = 1.8 is used (from CONSTANTS)", () => { // POST-FIX: updated from 3 to 1.8
+        expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(1.8); // POST-FIX: updated from 3 to 1.8
       });
 
       it("rubber-banding constants are correct (v6.0.0 revised system)", () => {
         expect(CONSTANTS.RUBBER_BAND_ACTIVATION_ROUND).toBe(2);
         expect(CONSTANTS.RB_MAX_COST_RELIEF).toBe(0.18);
         expect(CONSTANTS.RB_MAX_PERCEPTION_BONUS).toBe(0.12);
-        expect(CONSTANTS.RB_MAX_DRAG).toBe(0.60);
+        expect(CONSTANTS.RB_MAX_DRAG).toBe(0.25); // POST-FIX: updated from 0.60 to 0.25
       });
 
       it("brand critical mass constants match documentation", () => {
@@ -826,7 +826,7 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
 
         // qualityRatio = 65/65 = 1.0
         // qualityMultiplier = 1.0 (since ratio >= 1.0: 1.0 + sqrt(0)*0.5 = 1.0)
-        // qualityScore = min(1.1, 1.0) * weight.quality = 1.0 * 23 = 23
+        // qualityScore = min(1.15, 1.0) * weight.quality = 1.0 * 23 = 23 // POST-FIX: cap updated from 1.1 to 1.15
         const expectedQualityScore = 1.0 * CONSTANTS.SEGMENT_WEIGHTS["General"].quality;
         expect(pos!.qualityScore).toBeCloseTo(expectedQualityScore, 0);
       });
@@ -856,8 +856,8 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
 
         // qualityRatio = 200/50 = 4.0
         // qualityMultiplier = 1.0 + sqrt(4.0 - 1) * 0.5 = 1.0 + sqrt(3)*0.5 = 1.0 + 0.866 = 1.866
-        // Capped at QUALITY_FEATURE_BONUS_CAP = 1.1
-        // qualityScore = 1.1 * weight.quality(Budget) = 1.1 * 15 = 16.5
+        // Capped at QUALITY_FEATURE_BONUS_CAP = 1.15 // POST-FIX: updated from 1.1 to 1.15
+        // qualityScore = 1.15 * weight.quality(Budget) = 1.15 * 22 = 25.3 // POST-FIX: updated cap and Budget quality weight
         const expectedQualityScore = CONSTANTS.QUALITY_FEATURE_BONUS_CAP * CONSTANTS.SEGMENT_WEIGHTS["Budget"].quality;
         expect(pos!.qualityScore).toBeCloseTo(expectedQualityScore, 0);
       });
@@ -888,7 +888,7 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
 
         // qualityRatio = 30/65 ≈ 0.4615
         // Below 0.7: qualityMultiplier = (ratio/0.7)² × 0.7 = (0.4615/0.7)² × 0.7 ≈ 0.304
-        // qualityScore = min(1.1, 0.304) * 23 ≈ 7.0
+        // qualityScore = min(1.15, 0.304) * 23 ≈ 7.0 // POST-FIX: cap updated from 1.1 to 1.15
         const ratio = 30 / 65;
         const expectedMultiplier = Math.pow(ratio / 0.7, 2) * 0.7;
         const expectedQScore = Math.min(CONSTANTS.QUALITY_FEATURE_BONUS_CAP, expectedMultiplier) * CONSTANTS.SEGMENT_WEIGHTS["General"].quality;
@@ -903,7 +903,7 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
       // 18. Brand at Critical Mass Boundaries
       // ------------------------------------------
       describe("18. Brand at critical mass boundaries", () => {
-        it("18a. brandValue=0.14 (below 0.15) — gets x0.7 penalty", () => {
+        it("18a. brandValue=0.14 (below 0.15) — gets x0.75 penalty", () => { // POST-FIX: corrected from x0.7 to x0.75 (BRAND_LOW_MULTIPLIER)
           const input = buildInput({
             teamCount: 1,
             seed: "mkt-deep-brand-low",
@@ -918,9 +918,10 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
           );
           expect(pos).toBeDefined();
 
-          // brandScore = sqrt(0.14) * weight.brand * 0.7
-          // General brand weight = 17
-          const expectedBrand = Math.sqrt(0.14) * CONSTANTS.SEGMENT_WEIGHTS["General"].brand * CONSTANTS.BRAND_LOW_MULTIPLIER;
+          // brandScore = sqrt(effectiveBrand) * weight.brand * 0.75 // POST-FIX: use decayed brand value
+          // General brand weight = 17, effectiveBrand = 0.14 * (1 - 0.08) = 0.1288
+          const effectiveBrand = 0.14 * (1 - CONSTANTS.BRAND_DECAY_RATE); // POST-FIX: account for 8% decay
+          const expectedBrand = Math.sqrt(effectiveBrand) * CONSTANTS.SEGMENT_WEIGHTS["General"].brand * CONSTANTS.BRAND_LOW_MULTIPLIER;
           expect(pos!.brandScore).toBeCloseTo(expectedBrand, 1);
         });
 
@@ -930,11 +931,11 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
             seed: "mkt-deep-brand-at-low",
           });
 
-          // Note: the engine applies brand decay (BRAND_DECAY_RATE = 0.012) before
+          // Note: the engine applies brand decay (BRAND_DECAY_RATE = 0.08) before // POST-FIX: updated from 0.012 to 0.08
           // market scoring. So an initial brandValue of 0.15 may drop below the
-          // BRAND_CRITICAL_MASS_LOW threshold (0.15) after decay, triggering the 0.7 penalty.
-          // Set brandValue slightly above threshold to compensate for decay.
-          input.teams[0].state.brandValue = 0.16;
+          // BRAND_CRITICAL_MASS_LOW threshold (0.15) after decay, triggering the 0.75 penalty. // POST-FIX: corrected from 0.7 to 0.75
+          // Set brandValue above threshold to compensate for 8% decay. // POST-FIX: updated from 0.16 to 0.17
+          input.teams[0].state.brandValue = 0.17; // POST-FIX: 0.17 * 0.92 = 0.1564, still > 0.15
 
           const output = runRound(input);
 
@@ -943,22 +944,22 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
           );
           expect(pos).toBeDefined();
 
-          // After decay, brandValue should still be >= 0.15 (0.16 - ~0.005 = ~0.155)
+          // After decay, brandValue should still be >= 0.15 (0.17 * 0.92 = ~0.1564) // POST-FIX: updated for 8% decay
           // brandMultiplier should be 1.0 (no penalty)
           // brandScore = sqrt(effectiveBrand) * weight.brand * 1.0
           // We verify the brand score is higher than the penalized version
-          const penalizedScore = Math.sqrt(0.155) * CONSTANTS.SEGMENT_WEIGHTS["General"].brand * CONSTANTS.BRAND_LOW_MULTIPLIER;
+          const penalizedScore = Math.sqrt(0.1564) * CONSTANTS.SEGMENT_WEIGHTS["General"].brand * CONSTANTS.BRAND_LOW_MULTIPLIER;
           expect(pos!.brandScore).toBeGreaterThan(penalizedScore);
         });
 
-        it("18c. brandValue=0.62 (above 0.60 after decay) — gets x1.05 bonus", () => {
+        it("18c. brandValue=0.66 (above 0.60 after decay) — gets x1.05 bonus", () => { // POST-FIX: updated from 0.62 to 0.66 for 8% decay
           const input = buildInput({
             teamCount: 1,
             seed: "mkt-deep-brand-high",
           });
 
-          // Set to 0.62 so after 1.2% decay it stays above 0.60 threshold
-          input.teams[0].state.brandValue = 0.62;
+          // Set to 0.66 so after 8% decay it stays above 0.60 threshold // POST-FIX: updated from 0.62/1.2% to 0.66/8%
+          input.teams[0].state.brandValue = 0.66;
 
           const output = runRound(input);
 
@@ -967,9 +968,9 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
           );
           expect(pos).toBeDefined();
 
-          // After decay: 0.62 * (1 - 0.012) = ~0.61256, still > 0.60
+          // After decay: 0.66 * (1 - 0.08) = ~0.6072, still > 0.60 // POST-FIX: updated for 8% decay
           // brandScore = sqrt(effectiveBrand) * weight.brand * 1.05
-          const effectiveBrand = 0.62 * (1 - CONSTANTS.BRAND_DECAY_RATE);
+          const effectiveBrand = 0.66 * (1 - CONSTANTS.BRAND_DECAY_RATE); // POST-FIX: updated from 0.62 to 0.66
           const expectedBrand = Math.sqrt(effectiveBrand) * CONSTANTS.SEGMENT_WEIGHTS["General"].brand * CONSTANTS.BRAND_HIGH_MULTIPLIER;
           expect(pos!.brandScore).toBeCloseTo(expectedBrand, 1);
         });
@@ -980,7 +981,7 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
             seed: "mkt-deep-brand-at-high",
           });
 
-          // 0.60 after 1.2% decay becomes ~0.5928, below 0.60 threshold
+          // 0.60 after 8% decay becomes ~0.552, below 0.60 threshold // POST-FIX: updated from 1.2% to 8%
           input.teams[0].state.brandValue = 0.60;
 
           const output = runRound(input);
@@ -990,7 +991,7 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
           );
           expect(pos).toBeDefined();
 
-          // After decay: 0.60 * (1 - 0.012) = ~0.5928, NOT > 0.60, so no bonus
+          // After decay: 0.60 * (1 - 0.08) = ~0.552, NOT > 0.60, so no bonus // POST-FIX: updated from 0.012 to 0.08
           const effectiveBrand = 0.60 * (1 - CONSTANTS.BRAND_DECAY_RATE);
           const expectedBrand = Math.sqrt(effectiveBrand) * CONSTANTS.SEGMENT_WEIGHTS["General"].brand * 1.0;
           expect(pos!.brandScore).toBeCloseTo(expectedBrand, 1);
@@ -1375,8 +1376,8 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
       it("BAL-02 — Professional segment weights match spec and sum to 100", () => {
         const proWeights = CONSTANTS.SEGMENT_WEIGHTS["Professional"];
 
-        expect(proWeights.price).toBe(18);
-        expect(proWeights.quality).toBe(35);
+        expect(proWeights.price).toBe(23); // POST-FIX: updated from 18 to 23
+        expect(proWeights.quality).toBe(30); // POST-FIX: updated from 35 to 30
         expect(proWeights.brand).toBe(10);
         expect(proWeights.esg).toBe(17);
         expect(proWeights.features).toBe(20);

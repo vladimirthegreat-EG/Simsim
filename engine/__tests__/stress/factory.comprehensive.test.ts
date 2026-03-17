@@ -460,7 +460,7 @@ describe("Factory Module — Comprehensive Stress Tests", () => {
         expect(Number.isFinite(result.unitsProduced)).toBe(true);
       });
 
-      it("500 workers with automation upgrade produces 5x output", () => {
+      it("automation upgrade produces tiered ~1.15x output (not old 5x)", () => { // POST-FIX: updated from 5x to tiered ~1.15x
         const state = createMinimalTeamState();
         const factory = state.factories[0];
         factory.efficiency = 1.0;
@@ -477,9 +477,9 @@ describe("Factory Module — Comprehensive Stress Tests", () => {
         factory.upgrades.push("automation");
         const resultWithAuto = FactoryModule.calculateProduction(factory, workers, avgEfficiency, avgSpeed);
 
-        // Automation gives 5x multiplier (each worker 5x as productive)
-        // Both defect rate is the same %, so net ratio should be ~5x
-        expect(resultWithAuto.unitsProduced).toBe(resultNoAuto.unitsProduced * 5);
+        // POST-FIX: updated from 5x to tiered. Automation alone gives +0.15 → 1.15x multiplier
+        const ratio = resultWithAuto.unitsProduced / resultNoAuto.unitsProduced;
+        expect(ratio).toBeCloseTo(1.15, 1);
       });
 
       it("understaffed factory has lower production than fully staffed", () => {

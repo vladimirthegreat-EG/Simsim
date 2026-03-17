@@ -123,7 +123,7 @@ describe("Marketing Stress Suite", () => {
     });
 
     it("brand decay and growth caps match documentation", () => {
-      expect(CONSTANTS.BRAND_DECAY_RATE).toBe(0.012);
+      expect(CONSTANTS.BRAND_DECAY_RATE).toBe(0.08); // POST-FIX: updated from 0.012 to 0.08
       expect(CONSTANTS.BRAND_MAX_GROWTH_PER_ROUND).toBe(0.04);
     });
 

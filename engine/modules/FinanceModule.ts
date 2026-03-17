@@ -574,7 +574,8 @@ export class FinanceModule {
 
     // Leverage penalty
     const debtToEquity = state.shareholdersEquity > 0 ? state.totalLiabilities / state.shareholdersEquity : 999;
-    const leveragePenalty = debtToEquity > 1.0 ? -5 : debtToEquity > 0.6 ? -2 : 0;
+    // T7 FIX: Gradual leverage penalty (was step at 0.6/1.0)
+    const leveragePenalty = debtToEquity > 2.0 ? -5 : debtToEquity > 1.5 ? -3 : debtToEquity > 0.8 ? -1 : 0;
 
     const targetPE = basePE + growthPremium + sentimentAdjustment + profitabilityBonus + leveragePenalty;
 

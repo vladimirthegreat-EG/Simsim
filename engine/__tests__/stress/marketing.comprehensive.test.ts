@@ -145,7 +145,7 @@ describe("Marketing Module — Comprehensive Stress Tests", () => {
       });
 
       it("brand decay and growth caps match documentation", () => {
-        expect(CONSTANTS.BRAND_DECAY_RATE).toBe(0.012);
+        expect(CONSTANTS.BRAND_DECAY_RATE).toBe(0.08); // POST-FIX: updated from 0.012 to 0.08
         expect(CONSTANTS.BRAND_MAX_GROWTH_PER_ROUND).toBe(0.04);
       });
 
@@ -184,7 +184,7 @@ describe("Marketing Module — Comprehensive Stress Tests", () => {
     // 1. Brand Decay Without Marketing
     // ─────────────────────────────────────────────
     describe("1. Brand Decay Without Marketing", () => {
-      it("brand decays by ~0.5% with no marketing spend", () => {
+      it("brand decays by ~8% with no marketing spend", () => { // POST-FIX: updated from 0.5% to 8%
         const state = createMinimalTeamState();
         state.brandValue = 0.50;
 
@@ -193,11 +193,11 @@ describe("Marketing Module — Comprehensive Stress Tests", () => {
         }, "mktg-decay-only");
 
         const brandAfter = output.results[0].newState.brandValue;
-        // Brand should decrease. Decay rate is 0.5% (BRAND_DECAY_RATE = 0.005)
-        // Expected: 0.50 * (1 - 0.005) = 0.4975 (approximately)
+        // Brand should decrease. Decay rate is 8% (BRAND_DECAY_RATE = 0.08) // POST-FIX: updated from 0.005 to 0.08
+        // Expected: 0.50 * (1 - 0.08) = 0.46 (approximately) // POST-FIX: updated for 8% decay
         expect(brandAfter).toBeLessThan(0.50);
         // Should not drop dramatically in one round
-        expect(brandAfter).toBeGreaterThan(0.45);
+        expect(brandAfter).toBeGreaterThan(0.40); // POST-FIX: updated from 0.45 to 0.40 for 8% decay
       });
 
       it("brand decays consistently over multiple rounds with no marketing", () => {
@@ -255,9 +255,9 @@ describe("Marketing Module — Comprehensive Stress Tests", () => {
         }, "mktg-growth-cap");
 
         const brandAfter = output.results[0].newState.brandValue;
-        // After decay: 0.30 * (1 - 0.005) = 0.2985
-        // Max growth is 6% = 0.06
-        // So brand should be at most 0.2985 + 0.06 = 0.3585
+        // After decay: 0.30 * (1 - 0.08) = 0.276 // POST-FIX: updated from 0.005 to 0.08
+        // Max growth is 4% = 0.04
+        // So brand should be at most 0.276 + 0.04 = 0.316
         // Allow small tolerance
         const decayedBrand = 0.30 * (1 - CONSTANTS.BRAND_DECAY_RATE);
         expect(brandAfter).toBeLessThanOrEqual(decayedBrand + CONSTANTS.BRAND_MAX_GROWTH_PER_ROUND + 0.005);
@@ -646,15 +646,15 @@ describe("Marketing Module — Comprehensive Stress Tests", () => {
     // 5.6 Promotion Discount 100%
     // ------------------------------------------
     describe("5.6 Promotion Discount 100%", () => {
-      it("BAL-03: 100% discount caps sales boost at 75%", () => {
+      it("BAL-03: 100% discount caps sales boost at 30%", () => { // POST-FIX: updated from 75% to 30%
         const { salesBoost } = MarketingModule.calculatePromotionImpact(
           100,          // 100% discount
           "Budget",     // Most price-elastic segment
           1.0,          // Maximum brand value
         );
 
-        // BAL-03: Max sales boost is 75%
-        expect(salesBoost).toBeLessThanOrEqual(0.75);
+        // BAL-03: Max sales boost is 30% // POST-FIX: updated from 75% to 30%
+        expect(salesBoost).toBeLessThanOrEqual(0.30); // POST-FIX: updated from 0.75 to 0.30
       });
 
       it("BAL-03: cap holds for all segments at 100% discount", () => {
@@ -665,7 +665,7 @@ describe("Marketing Module — Comprehensive Stress Tests", () => {
             segment,
             1.0,
           );
-          expect(salesBoost).toBeLessThanOrEqual(0.75);
+          expect(salesBoost).toBeLessThanOrEqual(0.30); // POST-FIX: updated from 0.75 to 0.30
         }
       });
 
@@ -716,11 +716,11 @@ describe("Marketing Module — Comprehensive Stress Tests", () => {
         // Verify total sponsorship cost (should be ~$84M)
         expect(totalSponsorshipCost).toBeGreaterThan(80_000_000);
 
-        // Growth must be capped at BRAND_MAX_GROWTH_PER_ROUND = 0.06
-        // Brand after = decayed + min(totalGrowth, 0.06) - (another decay pass)
+        // Growth must be capped at BRAND_MAX_GROWTH_PER_ROUND = 0.04
+        // Brand after = decayed + min(totalGrowth, 0.04) - (another decay pass)
         // Since growth is applied before decay in the module:
         // newBrand = min(1, startBrand + cappedGrowth) then decay
-        // So: brandAfter <= (0.30 + 0.06) * (1 - 0.005) = 0.3582
+        // So: brandAfter <= (0.30 + 0.04) * (1 - 0.08) = 0.3128 // POST-FIX: updated for 8% decay
         const maxPossible = (0.30 + CONSTANTS.BRAND_MAX_GROWTH_PER_ROUND) * (1 - CONSTANTS.BRAND_DECAY_RATE);
         expect(brandAfter).toBeLessThanOrEqual(maxPossible + 0.001);
       });

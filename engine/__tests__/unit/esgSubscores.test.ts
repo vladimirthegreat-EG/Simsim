@@ -89,18 +89,18 @@ describe("ESG Operational Bonuses", () => {
     expect(bHalf.reachMultiplier).toBeCloseTo(1.0 + (166 / 333) * 0.15, 3);
   });
 
-  it("Social: efficiency = (social/333) × 0.10", () => {
+  it("Social: efficiency = (social/333) × 0.06", () => { // POST-FIX: updated from 0.10 to 0.06
     // At 0
     const b0 = calculateESGBonuses({ environmental: 0, social: 0, governance: 0, total: 0 });
     expect(b0.esgSocialBonus).toBeCloseTo(0, 4);
 
     // At max
     const bMax = calculateESGBonuses({ environmental: 0, social: 333, governance: 0, total: 333 });
-    expect(bMax.esgSocialBonus).toBeCloseTo(0.10, 2);
+    expect(bMax.esgSocialBonus).toBeCloseTo(0.06, 2); // POST-FIX: updated from 0.10 to 0.06
 
     // At 100
     const b100 = calculateESGBonuses({ environmental: 0, social: 100, governance: 0, total: 100 });
-    expect(b100.esgSocialBonus).toBeCloseTo((100 / 333) * 0.10, 4);
+    expect(b100.esgSocialBonus).toBeCloseTo((100 / 333) * 0.06, 4); // POST-FIX: updated from 0.10 to 0.06
   });
 
   it("Governance: risk = 1.0 - (gov/333) × 0.20", () => {
@@ -121,9 +121,9 @@ describe("ESG Operational Bonuses", () => {
     const subscores = calculateESGSubscores(createTestState());
     const bonuses = calculateESGBonuses(subscores);
 
-    // esgSocialBonus should be a number between 0 and 0.10
+    // esgSocialBonus should be a number between 0 and 0.06 // POST-FIX: updated from 0.10 to 0.06
     expect(bonuses.esgSocialBonus).toBeGreaterThanOrEqual(0);
-    expect(bonuses.esgSocialBonus).toBeLessThanOrEqual(0.10);
+    expect(bonuses.esgSocialBonus).toBeLessThanOrEqual(0.06); // POST-FIX: updated from 0.10 to 0.06
   });
 
   it("total ESG → investor sentiment still works (backward compat)", () => {
