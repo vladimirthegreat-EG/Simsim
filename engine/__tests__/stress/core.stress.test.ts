@@ -149,8 +149,9 @@ describe("Core Stress — Category B: Edge Scenarios", () => {
     // Measure state size per team
     for (const state of result.finalStates) {
       const size = JSON.stringify(state).length;
-      // State should be < 50KB per team after 50 rounds (reasonable upper bound)
-      expect(size, `State size ${size} bytes exceeds 50KB limit`).toBeLessThan(50_000);
+      // State should be < 75KB per team after 50 rounds (reasonable upper bound)
+      // Raised from 50KB after factory tiers + production lines added more state fields
+      expect(size, `State size ${size} bytes exceeds 75KB limit`).toBeLessThan(75_000);
     }
   });
 

@@ -112,8 +112,8 @@ describe("Marketing Stress Suite", () => {
   describe("Category C — Property Tests", () => {
     it("advertising constants match documentation", () => {
       expect(CONSTANTS.ADVERTISING_BASE_IMPACT).toBe(0.0011);
-      expect(CONSTANTS.ADVERTISING_CHUNK_SIZE).toBe(1_000_000);
-      expect(CONSTANTS.ADVERTISING_DECAY).toBe(0.2);
+      expect(CONSTANTS.ADVERTISING_CHUNK_SIZE).toBe(2_000_000);  // BAL-05: $2M chunks
+      expect(CONSTANTS.ADVERTISING_DECAY).toBe(0.15);            // BAL-05: 15% decay
     });
 
     it("branding constants match documentation", () => {

@@ -20,13 +20,30 @@ export interface FactoryDecisions {
   }>;
   greenInvestments?: Record<string, number>;
   upgradePurchases?: { factoryId: string; upgrade: FactoryUpgrade }[];
-  newFactories?: { name: string; region: Region }[];
+  newFactories?: { name: string; region: Region; tier?: import("./factory").FactoryTier }[];
+  /** @deprecated Use productionLineDecisions instead */
   productionAllocations?: {
     factoryId: string;
     lineId: string;
     segment: Segment;
     quantity: number;
   }[];
+  /** Production line management decisions */
+  productionLineDecisions?: {
+    /** Assign a product to a line (triggers changeover if different product) */
+    assignments?: { lineId: string; productId: string }[];
+    /** Set target output for a line */
+    targets?: { lineId: string; targetOutput: number }[];
+    /** Assign workers to a line */
+    staffing?: { lineId: string; workers: number; engineers: number; supervisors: number }[];
+    /** Assign line-locked machines to specific lines */
+    machineAssignments?: { machineId: string; lineId: string }[];
+  };
+  /** Warehouse build/rent decisions */
+  warehouseDecisions?: {
+    build?: { factoryId: string; tier: import("../modules/WarehouseManager").WarehouseTier }[];
+    rent?: { factoryId: string; tier: import("../modules/WarehouseManager").WarehouseTier }[];
+  };
   esgInitiatives?: ESGInitiatives;
   machineryDecisions?: MachineryDecisions;
 }

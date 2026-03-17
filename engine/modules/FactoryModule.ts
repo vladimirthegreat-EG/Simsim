@@ -12,11 +12,15 @@ import {
   ModuleResult,
   CONSTANTS,
   Region,
+  FACTORY_TIERS,
 } from "../types";
+import type { FactoryTier } from "../types";
 import { createErrorResult } from "../utils";
 import { cloneTeamState } from "../utils/stateUtils";
 import type { EngineContext } from "../core/EngineContext";
 import { MachineryEngine } from "../machinery/MachineryEngine";
+import * as ProductionLineManager from "./ProductionLineManager";
+import * as WarehouseManager from "./WarehouseManager";
 
 export class FactoryModule {
   /**
@@ -152,16 +156,47 @@ export class FactoryModule {
 
     // Process new factory construction
     if (decisions.newFactories) {
-      for (const { name, region } of decisions.newFactories) {
-        if (newState.cash >= CONSTANTS.NEW_FACTORY_COST) {
-          const newFactory = this.createNewFactory(name, region, newState.factories.length, ctx);
+      for (const nf of decisions.newFactories) {
+        const tier: FactoryTier = nf.tier || "medium";
+        const tierConfig = FACTORY_TIERS[tier];
+        const cost = tierConfig.cost;
+        if (newState.cash >= cost) {
+          const newFactory = this.createNewFactory(nf.name, nf.region, newState.factories.length, ctx, tier);
           newState.factories.push(newFactory);
-          totalCosts += CONSTANTS.NEW_FACTORY_COST;
-          messages.push(`New factory "${name}" constructed in ${region}`);
+          totalCosts += cost;
+          messages.push(`New ${tierConfig.label} factory "${nf.name}" constructed in ${nf.region} ($${(cost / 1_000_000).toFixed(0)}M)`);
         } else {
-          messages.push(`Insufficient funds to construct factory "${name}"`);
+          messages.push(`Insufficient funds to construct factory "${nf.name}" ($${(cost / 1_000_000).toFixed(0)}M required)`);
         }
       }
+    }
+
+    // Process production line decisions
+    if (decisions.productionLineDecisions) {
+      const lineResult = ProductionLineManager.processProductionLineDecisions(newState, decisions.productionLineDecisions, ctx);
+      messages.push(...lineResult.messages);
+      totalCosts += lineResult.totalCost;
+    }
+
+    // Process changeover countdowns for all factories
+    for (const factory of newState.factories) {
+      const changeoverMessages = ProductionLineManager.processChangeoverCountdowns(factory);
+      messages.push(...changeoverMessages);
+    }
+
+    // Process warehouse decisions
+    WarehouseManager.ensureWarehouseState(newState);
+    if (decisions.warehouseDecisions) {
+      const whResult = WarehouseManager.processWarehouseDecisions(newState, decisions.warehouseDecisions, ctx);
+      messages.push(...whResult.messages);
+      totalCosts += whResult.totalCost;
+    }
+
+    // Charge rent for rented warehouses
+    const rentCost = WarehouseManager.calculateWarehouseRentCosts(newState);
+    if (rentCost > 0) {
+      totalCosts += rentCost;
+      messages.push(`Warehouse rent: $${(rentCost / 1_000).toFixed(0)}K`);
     }
 
     // Process ESG initiatives
@@ -534,23 +569,46 @@ export class FactoryModule {
    * @param region Factory region
    * @param index Factory index (for fallback ID generation)
    * @param ctx Engine context for deterministic ID generation
+   * @param tier Factory size tier (defaults to "medium" for backward compat)
    */
-  static createNewFactory(name: string, region: Region, index: number, ctx?: EngineContext): Factory {
+  static createNewFactory(name: string, region: Region, index: number, ctx?: EngineContext, tier: FactoryTier = "medium"): Factory {
     // Deterministic ID generation using context, or fallback pattern
     const id = ctx
       ? ctx.idGenerator.next("factory")
       : `factory-r0-${Date.now().toString(36)}-${index}`;
 
+    const tierConfig = FACTORY_TIERS[tier];
+
+    // Initialize empty production lines based on tier
+    const productionLines = Array.from({ length: tierConfig.maxLines }, (_, i) => ({
+      id: ctx
+        ? ctx.idGenerator.next("line")
+        : `${id}-line-${i}`,
+      factoryId: id,
+      productId: null as string | null,
+      segment: null as import("../types/factory").Segment | null,
+      targetOutput: 0,
+      assignedMachines: [] as string[],
+      assignedWorkers: 0,
+      assignedEngineers: 0,
+      assignedSupervisors: 0,
+      status: "idle" as const,
+      changeoverRoundsRemaining: 0,
+    }));
+
     return {
       id,
       name,
       region,
-      productionLines: [],
+      tier,
+      maxLines: tierConfig.maxLines,
+      baseCapacity: tierConfig.baseCapacity,
+      productionLines,
       workers: 0,
       engineers: 0,
       supervisors: 0,
-      efficiency: CONSTANTS.BASE_FACTORY_EFFICIENCY,     // Starting efficiency (worker/machine effectiveness)
-      utilization: 0,      // PATCH 3: Actual demand / max capacity
+      efficiency: CONSTANTS.BASE_FACTORY_EFFICIENCY,
+      utilization: 0,
       defectRate: CONSTANTS.BASE_DEFECT_RATE,
       materialLevel: 1,
       shippingCost: 100_000 * CONSTANTS.REGIONAL_COST_MODIFIER[region],
@@ -563,16 +621,15 @@ export class FactoryModule {
         factory: 0,
       },
       upgrades: [],
-      // PATCH 7: Upgrade economic benefits (initialized to baseline)
-      warrantyReduction: 0,         // No reduction initially
-      recallProbability: CONSTANTS.BASE_RECALL_PROBABILITY,      // 5% base recall risk
-      stockoutReduction: 0,         // No benefit initially
-      demandSpikeCapture: 0,        // No spike handling initially
-      costVolatility: CONSTANTS.BASE_COST_VOLATILITY,         // 15% base cost variance
-      co2Emissions: CONSTANTS.BASE_CO2_EMISSIONS, // Base emissions
+      warrantyReduction: 0,
+      recallProbability: CONSTANTS.BASE_RECALL_PROBABILITY,
+      stockoutReduction: 0,
+      demandSpikeCapture: 0,
+      costVolatility: CONSTANTS.BASE_COST_VOLATILITY,
+      co2Emissions: CONSTANTS.BASE_CO2_EMISSIONS,
       greenInvestment: 0,
-      burnoutRisk: 0,           // PATCH 3: Accumulates when utilization > 95%
-      maintenanceBacklog: 0,    // PATCH 3: Deferred maintenance hours
+      burnoutRisk: 0,
+      maintenanceBacklog: 0,
     };
   }
 

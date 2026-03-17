@@ -180,8 +180,9 @@ describe("Market Simulator Stress Suite", () => {
     });
 
     it("rubber-banding constants are correct", () => {
-      expect(CONSTANTS.RUBBER_BAND_LEADING_PENALTY).toBe(1.0);
-      expect(CONSTANTS.RUBBER_BAND_THRESHOLD).toBe(0.5);
+      expect(CONSTANTS.RB_MAX_COST_RELIEF).toBe(0.18);
+      expect(CONSTANTS.RB_MAX_PERCEPTION_BONUS).toBe(0.12);
+      expect(CONSTANTS.RB_MAX_DRAG).toBe(0.60);
     });
 
     it("brand critical mass constants match documentation", () => {

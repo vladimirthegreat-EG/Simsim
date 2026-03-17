@@ -177,6 +177,11 @@ export interface TeamState {
 
   // ESG
   esgScore: number;
+  esgSubscores?: {
+    environmental: number;  // 0-333
+    social: number;         // 0-333
+    governance: number;     // 0-333
+  };
   co2Emissions: number;
 
   // Material tier choices per segment (1-5, set via Factory decisions)
@@ -196,6 +201,9 @@ export interface TeamState {
 
   // Machinery states per factory
   machineryStates?: Record<string, FactoryMachineryState>;
+
+  // Warehouse states
+  warehouseState?: import("../modules/WarehouseManager").WarehouseState;
 
   // Rubber-banding factors (calculated at Step 0, used by other modules)
   rubberBanding?: RubberBandingFactors;

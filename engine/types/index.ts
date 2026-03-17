@@ -27,7 +27,10 @@ export type {
   ProductionLine,
   FactoryUpgrade,
   Factory,
+  FactoryTier,
+  FactoryTierConfig,
 } from "./factory";
+export { FACTORY_TIERS } from "./factory";
 
 // Product types
 export type { Product } from "./product";

@@ -10,15 +10,43 @@ export type Region = "North America" | "Europe" | "Asia" | "MENA";
 export type Segment = "Budget" | "General" | "Enthusiast" | "Professional" | "Active Lifestyle";
 
 // ============================================
+// FACTORY TIERS
+// ============================================
+
+export type FactoryTier = "small" | "medium" | "large";
+
+export interface FactoryTierConfig {
+  cost: number;
+  maxLines: number;
+  baseCapacity: number;  // Units per round
+  label: string;
+}
+
+export const FACTORY_TIERS: Record<FactoryTier, FactoryTierConfig> = {
+  small:  { cost: 30_000_000, maxLines: 2, baseCapacity: 10_000, label: "Small" },
+  medium: { cost: 50_000_000, maxLines: 3, baseCapacity: 25_000, label: "Medium" },
+  large:  { cost: 80_000_000, maxLines: 5, baseCapacity: 50_000, label: "Large" },
+};
+
+// ============================================
 // PRODUCTION
 // ============================================
 
 export interface ProductionLine {
   id: string;
-  segment: Segment;
-  productId: string;
-  capacity: number;      // Units per round
-  efficiency: number;    // 0-1 multiplier
+  factoryId: string;
+  productId: string | null;
+  segment: Segment | null;
+  targetOutput: number;
+  assignedMachines: string[];       // IDs of line-locked machines
+  assignedWorkers: number;
+  assignedEngineers: number;
+  assignedSupervisors: number;
+  status: "active" | "idle" | "changeover";
+  changeoverRoundsRemaining: number;
+  // Legacy fields for backward compatibility
+  capacity?: number;
+  efficiency?: number;
 }
 
 export type FactoryUpgrade =
@@ -58,6 +86,9 @@ export interface Factory {
   id: string;
   name: string;
   region: Region;
+  tier: FactoryTier;
+  maxLines: number;
+  baseCapacity: number;
   productionLines: ProductionLine[];
 
   // Staffing

@@ -34,7 +34,8 @@ export type ScenarioProfile =
   | "bankruptcy-spiral"
   | "segment-specialist"
   | "premium-pivot"
-  | "empty-decisions";
+  | "empty-decisions"
+  | "passive";
 
 // ============================================
 // HELPERS
@@ -334,6 +335,7 @@ const PROFILE_GENERATORS: Record<ScenarioProfile, (state: TeamState, round: numb
   "segment-specialist": segmentSpecialistDecisions,
   "premium-pivot": baselineBalancedDecisions, // handled in multi-round
   "empty-decisions": emptyDecisions,
+  "passive": emptyDecisions,           // do-nothing strategy
 };
 
 export function createDecisionsForProfile(
@@ -457,4 +459,99 @@ export function runProfileNRounds(opts: {
     ...opts,
     decisionFn: (state, round) => createDecisionsForProfile(opts.profile, state, round),
   });
+}
+
+// ============================================
+// CONVENIENCE ALIASES (used by stress tests that import directly from this file)
+// ============================================
+
+import { hashState } from "../core/EngineContext";
+
+/**
+ * Create a team state configured for a scenario profile (quick preset).
+ */
+export function createTeamState(_profile?: ScenarioProfile): TeamState {
+  const { teamState } = createGamePreset("quick");
+  return teamState;
+}
+
+/**
+ * Create a default market state.
+ */
+export function createMarketState(overrides?: Partial<MarketState>): MarketState {
+  return createMinimalMarketState(overrides);
+}
+
+/**
+ * Create decisions for a profile given current team state.
+ */
+export function createDecisions(profile: ScenarioProfile, state: TeamState, round: number = 1): AllDecisions {
+  return createDecisionsForProfile(profile, state, round);
+}
+
+/**
+ * Run a full multi-round simulation and return tracked state.
+ */
+export interface SimulationResult {
+  finalStates: TeamState[];
+  stateHashes: Record<number, Record<string, string>>;
+  roundOutputs: SimulationOutput[];
+}
+
+export function runSimulation(opts: {
+  teamCount: number;
+  rounds: number;
+  seed: string;
+  profile?: ScenarioProfile;
+  decisionFn?: (state: TeamState, round: number, teamIndex: number) => AllDecisions;
+  preset?: "quick" | "standard" | "full";
+}): SimulationResult {
+  const presetType = opts.preset ?? "quick";
+  const roundOutputs: SimulationOutput[] = [];
+  const stateHashes: Record<number, Record<string, string>> = {};
+
+  let teamStates: TeamState[] = [];
+  for (let i = 0; i < opts.teamCount; i++) {
+    const { teamState } = createGamePreset(presetType);
+    teamStates.push(teamState);
+  }
+
+  let marketState = createMinimalMarketState();
+
+  for (let round = 1; round <= opts.rounds; round++) {
+    const teams: SimulationInput["teams"] = [];
+    for (let i = 0; i < opts.teamCount; i++) {
+      const teamId = `team-${i + 1}`;
+      let decisions: AllDecisions;
+      if (opts.decisionFn) {
+        decisions = opts.decisionFn(teamStates[i], round, i);
+      } else {
+        const profile = opts.profile ?? "baseline-balanced";
+        decisions = createDecisionsForProfile(profile, teamStates[i], round);
+      }
+      teams.push({ id: teamId, state: teamStates[i], decisions });
+    }
+
+    const input: SimulationInput = {
+      roundNumber: round,
+      teams,
+      marketState,
+      matchSeed: opts.seed,
+    };
+
+    const output = SimulationEngine.processRound(input);
+    roundOutputs.push(output);
+
+    stateHashes[round] = {};
+    for (const result of output.results) {
+      stateHashes[round][result.teamId] = hashState(result.newState);
+    }
+
+    teamStates = output.results.map(r => r.newState);
+    if (output.newMarketState) {
+      marketState = output.newMarketState;
+    }
+  }
+
+  return { finalStates: teamStates, stateHashes, roundOutputs };
 }

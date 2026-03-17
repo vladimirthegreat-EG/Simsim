@@ -450,3 +450,44 @@ export function assertAllInvariantsPass(output: SimulationOutput): void {
     throw new Error(`${failures.length} invariant(s) failed:\n${failureMessages.join("\n")}`);
   }
 }
+
+// ============================================
+// ALIASES (used by stress tests that import directly)
+// ============================================
+
+import type { TeamState } from "../types/state";
+
+/** Alias for assertAllInvariantsPass — some tests import as assertAllInvariants */
+export function assertAllInvariants(stateOrOutput: TeamState | SimulationOutput): void {
+  // If it's a TeamState (no 'results' field), do basic checks
+  if (!("results" in stateOrOutput)) {
+    const state = stateOrOutput as TeamState;
+    const fields: (keyof TeamState)[] = [
+      "cash", "revenue", "netIncome", "totalAssets", "totalLiabilities",
+      "shareholdersEquity", "marketCap", "sharesIssued", "sharePrice", "eps",
+    ];
+    for (const field of fields) {
+      const val = state[field];
+      if (typeof val === "number" && (isNaN(val) || !isFinite(val))) {
+        throw new Error(`Invalid value in state.${field}: ${val}`);
+      }
+    }
+    return;
+  }
+  // Otherwise it's a SimulationOutput
+  assertAllInvariantsPass(stateOrOutput as SimulationOutput);
+}
+
+/** Alias for checkDeterminism — some tests import as assertDeterminism */
+export function assertDeterminism(output1: SimulationOutput, output2: SimulationOutput): void {
+  // Compare audit trail hashes
+  const h1 = output1.auditTrail?.finalStateHashes;
+  const h2 = output2.auditTrail?.finalStateHashes;
+  if (h1 && h2) {
+    for (const [teamId, hash] of Object.entries(h1)) {
+      if (h2[teamId] !== hash) {
+        throw new Error(`Determinism violation for ${teamId}: ${hash} vs ${h2[teamId]}`);
+      }
+    }
+  }
+}

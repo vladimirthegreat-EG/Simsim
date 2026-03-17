@@ -128,9 +128,9 @@ describe("HR Stress Suite", () => {
 
     it("worker constants match documentation", () => {
       expect(CONSTANTS.BASE_WORKER_OUTPUT).toBe(100);
-      expect(CONSTANTS.WORKERS_PER_MACHINE).toBe(2.5);
+      expect(CONSTANTS.WORKERS_PER_MACHINE).toBe(2.75);
       expect(CONSTANTS.WORKERS_PER_SUPERVISOR).toBe(15);
-      expect(CONSTANTS.BASE_TURNOVER_RATE).toBe(0.12);
+      expect(CONSTANTS.BASE_TURNOVER_RATE).toBe(0.125);
       expect(CONSTANTS.BASE_RD_POINTS_PER_ENGINEER).toBe(15); // v5.1.0 Audit F-04: raised from 10 to 15
     });
   });

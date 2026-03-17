@@ -79,6 +79,9 @@ export interface Machine {
   laborReduction?: number;      // Reduces worker needs (0-1)
   shippingReduction?: number;   // Reduces shipping costs (0-1)
   specialtySegments?: string[]; // Segments this machine excels at
+
+  // Production line assignment (null = unassigned or shared)
+  assignedLineId?: string | null;
 }
 
 // ============================================
@@ -109,6 +112,27 @@ export type MachineCategory =
   | "automation"        // Reduces labor
   | "logistics"         // Material handling
   | "specialized";      // Segment-specific
+
+// ============================================
+// MACHINE SHARING RULES
+// ============================================
+
+/**
+ * Shared machines serve ALL lines in a factory (not assigned to one line).
+ * Line-locked machines must be assigned to a specific production line.
+ */
+export const SHARED_MACHINE_TYPES: ReadonlySet<MachineType> = new Set([
+  "packaging_system",   // Boxes any product
+  "quality_scanner",    // Scans any product type
+  "testing_rig",        // Tests any product type
+  "conveyor_system",    // Moves products between stations
+  "forklift_fleet",     // Moves pallets regardless of content
+]);
+
+/** Check if a machine type is shared (factory-wide) vs line-locked */
+export function isSharedMachineType(type: MachineType): boolean {
+  return SHARED_MACHINE_TYPES.has(type);
+}
 
 // ============================================
 // MACHINERY DECISIONS

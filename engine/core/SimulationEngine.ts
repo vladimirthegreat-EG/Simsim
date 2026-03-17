@@ -18,6 +18,7 @@ import {
   RoundResults,
   ModuleResult,
   CONSTANTS,
+  FACTORY_TIERS,
   Employee,
   EmployeeStats,
   EngineerStats,
@@ -44,6 +45,8 @@ import { MaterialEngine } from "../materials/MaterialEngine";
 import { TariffEngine } from "../tariffs/TariffEngine";
 import { FinancialStatementsEngine } from "../finance";
 import { FXEngine } from "../fx/FXEngine";
+import { updateESGSubscores, calculateESGBonuses } from "../modules/ESGSubscoreCalculator";
+import { calculateStorageCosts, ensureWarehouseState } from "../modules/WarehouseManager";
 import { EconomyEngine } from "../economy/EconomyEngine";
 import { CashEnforcement } from "../finance/CashEnforcement";
 import { AchievementEngine } from "../modules/AchievementEngine";
@@ -670,8 +673,11 @@ export class SimulationEngine {
 
       // VAL-02: Guard all critical financial state writes against NaN/Infinity
       // Update total assets
-      team.state.totalAssets = safeNumber(team.state.cash +
-        team.state.factories.length * CONSTANTS.NEW_FACTORY_COST);
+      const factoryAssetValue = team.state.factories.reduce((sum, f) => {
+        const tierCost = FACTORY_TIERS[f.tier || "medium"]?.cost ?? CONSTANTS.NEW_FACTORY_COST;
+        return sum + tierCost;
+      }, 0);
+      team.state.totalAssets = safeNumber(team.state.cash + factoryAssetValue);
 
       // Update shareholders equity
       team.state.shareholdersEquity = safeNumber(team.state.totalAssets - team.state.totalLiabilities);
@@ -702,14 +708,33 @@ export class SimulationEngine {
           team.moduleResults.finance.messages.push(...postFunding.messages);
         }
         // Re-sync balance sheet and market cap after auto-funding changed cash/debt
-        team.state.totalAssets = safeNumber(team.state.cash +
-          team.state.factories.length * CONSTANTS.NEW_FACTORY_COST);
+        const factoryAssetValueResync = team.state.factories.reduce((sum, f) => {
+          const tierCost = FACTORY_TIERS[f.tier || "medium"]?.cost ?? CONSTANTS.NEW_FACTORY_COST;
+          return sum + tierCost;
+        }, 0);
+        team.state.totalAssets = safeNumber(team.state.cash + factoryAssetValueResync);
         team.state.shareholdersEquity = safeNumber(team.state.totalAssets - team.state.totalLiabilities);
         team.state.marketCap = safeNumber(FinanceModule.updateMarketCap(
           team.state, 0, investorSentiment
         ));
         team.state.sharePrice = safeNumber(team.state.sharesIssued > 0
           ? team.state.marketCap / team.state.sharesIssued : 0);
+      }
+
+      // Step 3.55: ESG subscores and warehouse storage costs
+      const esgSubscores = updateESGSubscores(team.state);
+      const esgBonuses = calculateESGBonuses(esgSubscores);
+
+      // Warehouse: calculate storage costs and apply obsolescence
+      ensureWarehouseState(team.state);
+      const storageCostResult = calculateStorageCosts(team.state, roundNumber);
+      if (storageCostResult.totalStorageCost > 0) {
+        team.state.cash -= storageCostResult.totalStorageCost;
+        summaryMessages.push(`  ${team.id}: Storage costs: $${(storageCostResult.totalStorageCost / 1_000).toFixed(0)}K`);
+      }
+      if (storageCostResult.totalWriteOffValue > 0) {
+        team.state.cash -= storageCostResult.totalWriteOffValue;
+        summaryMessages.push(`  ${team.id}: Inventory write-offs: $${(storageCostResult.totalWriteOffValue / 1_000).toFixed(0)}K (${storageCostResult.writeOffs.length} products)`);
       }
 
       // Step 3.6: Wire factory utilization and burnout — update after market demand is known
@@ -1029,9 +1054,12 @@ export class SimulationEngine {
     // Check cash constraints
     let projectedCash = state.cash;
 
-    // Factory costs
+    // Factory costs (tier-based)
     if (decisions.factory?.newFactories) {
-      const factoryCost = decisions.factory.newFactories.length * CONSTANTS.NEW_FACTORY_COST;
+      const factoryCost = decisions.factory.newFactories.reduce((sum, nf) => {
+        const tier = nf.tier || "medium";
+        return sum + (FACTORY_TIERS[tier]?.cost ?? CONSTANTS.NEW_FACTORY_COST);
+      }, 0);
       if (factoryCost > projectedCash) {
         errors.push("Insufficient funds for new factories");
         correctedDecisions.factory!.newFactories = [];
@@ -1162,7 +1190,7 @@ export class SimulationEngine {
     // Pick segments based on startingSegments count
     const activeSegments = ALL_SEGMENT_DEFS.slice(0, numSegments);
 
-    const defaultFactory = FactoryModule.createNewFactory("Main Factory", "North America", 0);
+    const defaultFactory = FactoryModule.createNewFactory("Main Factory", "North America", 0, undefined, "medium");
     defaultFactory.workers = workers;
     defaultFactory.supervisors = supervisors;
     defaultFactory.engineers = engineers;
@@ -1273,11 +1301,11 @@ export class SimulationEngine {
       cash: startingCash,
       revenue: 0,
       netIncome: 0,
-      totalAssets: startingCash + CONSTANTS.NEW_FACTORY_COST,
+      totalAssets: startingCash + FACTORY_TIERS.medium.cost,
       totalLiabilities: 0,
       shortTermDebt: 0,      // PATCH 1: Treasury bills, credit lines, short-term loans
       longTermDebt: 0,       // PATCH 1: Corporate bonds, long-term bank loans
-      shareholdersEquity: startingCash + CONSTANTS.NEW_FACTORY_COST,
+      shareholdersEquity: startingCash + FACTORY_TIERS.medium.cost,
       marketCap: CONSTANTS.DEFAULT_MARKET_CAP,
       sharesIssued: CONSTANTS.DEFAULT_SHARES_ISSUED,
       sharePrice: CONSTANTS.DEFAULT_SHARE_PRICE,
