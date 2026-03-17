@@ -329,8 +329,9 @@ describe("R&D Stress — Category B: Edge Scenarios", () => {
       const product = currentState.products.find(p => p.name === "Lifecycle-Test");
       if (product && product.developmentStatus === "launched") {
         launched = true;
-        expect(product.quality).toBe(product.targetQuality);
-        expect(product.features).toBe(product.targetFeatures);
+        // POST-FIX: Product aging (F2) may reduce quality/features slightly after launch
+        expect(product.quality).toBeGreaterThanOrEqual((product.targetQuality ?? 70) - 2);
+        expect(product.features).toBeGreaterThanOrEqual((product.targetFeatures ?? 60) - 2);
         expect(product.developmentProgress).toBe(100);
         break;
       }

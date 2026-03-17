@@ -225,7 +225,7 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
 
       it("rubber-banding constants are correct (v6.0.0 revised system)", () => {
         expect(CONSTANTS.RUBBER_BAND_ACTIVATION_ROUND).toBe(2);
-        expect(CONSTANTS.RB_MAX_COST_RELIEF).toBe(0.18);
+        expect(CONSTANTS.RB_MAX_COST_RELIEF).toBe(0.10);
         expect(CONSTANTS.RB_MAX_PERCEPTION_BONUS).toBe(0.12);
         expect(CONSTANTS.RB_MAX_DRAG).toBe(0.25); // POST-FIX: updated from 0.60 to 0.25
       });

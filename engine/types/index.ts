@@ -166,7 +166,7 @@ export const CONSTANTS = {
   // ESG (Existing)
   ESG_WORKPLACE_SAFETY_COST: 2_000_000,
   ESG_WORKPLACE_SAFETY_POINTS: 200,
-  ESG_CODE_OF_ETHICS_POINTS: 200,
+  ESG_CODE_OF_ETHICS_POINTS: 100,
   ESG_FAIR_WAGE_WORKER_POINTS: 220,
   ESG_FAIR_WAGE_SUPERVISOR_POINTS: 40,
   ESG_SUPPLIER_ETHICS_COST_MULTIPLIER: 1.20,
@@ -191,7 +191,7 @@ export const CONSTANTS = {
     // Governance (3 new)
     transparencyReport: { cost: 300_000, points: 50, investorTrustBonus: 0.10 },
     whistleblowerProtection: { cost: 200_000, points: 40, scandalRiskReduction: 0.25 },
-    executivePayRatio: { cost: 0, points: 100 },  // No direct cost, limits exec pay
+    executivePayRatio: { cost: 500_000, points: 100 },  // F10 FIX: was 0, now has admin cost
   },
 
   // ESG Initiative Tiers (unlocked based on ESG score or round)
@@ -383,7 +383,7 @@ export const CONSTANTS = {
   // Replaces threshold-based system with three indirect mechanisms
   RUBBER_BAND_ACTIVATION_ROUND: 2,      // Activate from round 2 (was 3 — too late, leaders snowballed)
   // Mechanism A — Cost Relief (trailing teams)
-  RB_MAX_COST_RELIEF: 0.14,             // Tuned: 14% cost relief (helps volume/cost-cutter viability)
+  RB_MAX_COST_RELIEF: 0.10,             // F7 FIX: 10% (was 18%)
   RB_COST_RELIEF_SENSITIVITY: 1.5,      // tanh ramp speed for cost relief
   // Mechanism B — Perception Boost (trailing teams)
   RB_MAX_PERCEPTION_BONUS: 0.12,        // Maximum 12% quality score boost (was 8%)
@@ -409,7 +409,7 @@ export const CONSTANTS = {
   // not from a hardcoded multiplier that guarantees balanced strategy wins.
 
   // v5.1.0: Tuning parameters (Audit F-03)
-  SOFTMAX_TEMPERATURE: 3.0,             // F6 FIX v4: back to 3.0 — fragmenting shares helps trailing strategies
+  SOFTMAX_TEMPERATURE: 1.8,             // F6 FIX: 1.8 (was 3)
 
   // Marketing parameters (wired for sweep)
   ADVERTISING_BASE_IMPACT: 0.0011,      // 0.11% brand per $1M advertising (sweep v5)
@@ -420,7 +420,7 @@ export const CONSTANTS = {
   BRANDING_LOG_MULTIPLIER: 1.5,         // Log multiplier for amounts >$2M (sweep v5)
 
   // Quality/Feature scoring caps
-  QUALITY_FEATURE_BONUS_CAP: 1.08,      // F4 FIX v3: 1.08 (1.10 still rd-focused dominant at 39-40%)
+  QUALITY_FEATURE_BONUS_CAP: 1.15,      // F4 FIX: 1.15 (was 1.07)
   QUALITY_MARKET_SHARE_BONUS: 0.0011,   // +0.11% market share per quality point (sweep v5)
 
   // ESG penalty system (PATCH 4: penalty-only, no bonuses)

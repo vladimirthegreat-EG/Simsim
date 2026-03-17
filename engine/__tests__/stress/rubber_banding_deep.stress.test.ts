@@ -885,7 +885,7 @@ describe("Legacy Compatibility", () => {
   it("v6.0.0 constants exist and old constants are removed", () => {
     // New constants
     expect(CONSTANTS.RUBBER_BAND_ACTIVATION_ROUND).toBe(2);
-    expect(CONSTANTS.RB_MAX_COST_RELIEF).toBe(0.18);
+    expect(CONSTANTS.RB_MAX_COST_RELIEF).toBe(0.10);
     expect(CONSTANTS.RB_COST_RELIEF_SENSITIVITY).toBe(1.5);
     expect(CONSTANTS.RB_MAX_PERCEPTION_BONUS).toBe(0.12);
     expect(CONSTANTS.RB_PERCEPTION_SENSITIVITY).toBe(1.2);

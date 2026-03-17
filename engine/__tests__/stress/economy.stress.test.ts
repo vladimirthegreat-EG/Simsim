@@ -33,11 +33,12 @@ describe("Economy Stress Suite", () => {
 
     it("initial market state has correct segment demands", () => {
       const ms = SimulationEngine.createInitialMarketState();
-      expect(ms.demandBySegment.Budget.totalDemand).toBe(500_000);
-      expect(ms.demandBySegment.General.totalDemand).toBe(400_000);
-      expect(ms.demandBySegment.Enthusiast.totalDemand).toBe(200_000);
-      expect(ms.demandBySegment.Professional.totalDemand).toBe(100_000);
-      expect(ms.demandBySegment["Active Lifestyle"].totalDemand).toBe(150_000);
+      // POST-FIX: Demand rebalanced for volume strategy viability
+      expect(ms.demandBySegment.Budget.totalDemand).toBe(700_000);
+      expect(ms.demandBySegment.General.totalDemand).toBe(450_000);
+      expect(ms.demandBySegment.Enthusiast.totalDemand).toBe(150_000);
+      expect(ms.demandBySegment.Professional.totalDemand).toBe(80_000);
+      expect(ms.demandBySegment["Active Lifestyle"].totalDemand).toBe(200_000);
     });
   });
 

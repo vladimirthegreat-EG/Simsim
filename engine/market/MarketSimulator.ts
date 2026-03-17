@@ -658,6 +658,16 @@ export class MarketSimulator {
       }
 
       priceScore = dynamicPriceScore * weights.price * priceFloorMultiplier;
+
+      // F12 FIX: Price ceiling penalty
+      const dynPriceRange = segmentData.priceRange;
+      let priceCeilingMultiplier = 1.0;
+      if (dynPriceRange && product.price > dynPriceRange.max * 0.90) {
+        const ceilingProximity = (product.price - dynPriceRange.max * 0.90) / (dynPriceRange.max * 0.10);
+        const ceilingPenalty = Math.min(0.20, ceilingProximity * 0.20);
+        priceCeilingMultiplier = 1 - ceilingPenalty;
+      }
+      priceScore *= priceCeilingMultiplier;
     } else {
       // Legacy static pricing (backward compatible)
       const priceRange = segmentData.priceRange;
@@ -683,12 +693,21 @@ export class MarketSimulator {
       }
 
       priceScore = Math.min(1, pricePosition) * weights.price * priceScoreMultiplier;
+
+      // F12 FIX: Price ceiling penalty
+      let priceCeilingMultiplier = 1.0;
+      if (priceRange && product.price > priceRange.max * 0.90) {
+        const ceilingProximity = (product.price - priceRange.max * 0.90) / (priceRange.max * 0.10);
+        const ceilingPenalty = Math.min(0.20, ceilingProximity * 0.20);
+        priceCeilingMultiplier = 1 - ceilingPenalty;
+      }
+      priceScore *= priceCeilingMultiplier;
     }
 
     // Quality Score: Product quality vs expectations
     // v2.2.0: Allow exceeding expectations with diminishing returns
     // v6.0.0: Rubber-banding Mechanism C raises expectations for leaders
-    const baseQualityExpectation = this.getQualityExpectation(segment);
+    const baseQualityExpectation = this.getQualityExpectation(segment, state.round);
     const rbFactors = state.rubberBanding;
     const qualityExpectationBoost = rbFactors?.qualityExpectationBoost ?? 0;
     const qualityExpectation = baseQualityExpectation + qualityExpectationBoost;
@@ -731,7 +750,11 @@ export class MarketSimulator {
     const brandScore = Math.sqrt(Math.max(0, state.brandValue)) * weights.brand * brandMultiplier; // FORMULA-02: guard sqrt(negative)
 
     // ESG Score: Sustainability premium (0-1 scale from 0-1000 score)
-    const esgRatio = state.esgScore / 1000;
+    // F11 FIX: Diminishing returns above 700
+    const rawEsgRatio = state.esgScore / 1000;
+    const esgRatio = rawEsgRatio <= 0.7
+      ? rawEsgRatio
+      : 0.7 + Math.sqrt((rawEsgRatio - 0.7) / 0.3) * 0.17;
     const esgMultiplier = marketState.marketPressures.sustainabilityPremium; // 0.1 to 0.6
     const esgScore = esgRatio * esgMultiplier * weights.esg;
 
@@ -799,7 +822,7 @@ export class MarketSimulator {
   /**
    * Get quality expectations by segment
    */
-  static getQualityExpectation(segment: Segment): number {
+  static getQualityExpectation(segment: Segment, round?: number): number {
     const expectations: Record<Segment, number> = {
       "Budget": 50,
       "General": 65,
@@ -807,7 +830,9 @@ export class MarketSimulator {
       "Professional": 90,
       "Active Lifestyle": 70,
     };
-    return expectations[segment];
+    const base = expectations[segment];
+    const drift = round && round > 1 ? (round - 1) * 0.5 : 0;
+    return Math.min(base + drift, 100);
   }
 
   /**

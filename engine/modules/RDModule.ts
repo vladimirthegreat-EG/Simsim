@@ -228,6 +228,24 @@ export class RDModule {
       }
     }
 
+    // F2 FIX: Product aging — launched products lose quality and features each round
+    const improvedProductIds = new Set(
+      (decisions.productImprovements || []).map(imp => imp.productId)
+    );
+    for (const product of newState.products) {
+      if (product.developmentStatus === "launched") {
+        const wasImproved = improvedProductIds.has(product.id);
+        const agingFactor = wasImproved ? 0.3 : 1.0;
+        const qualityDecay = 0.5 * agingFactor;
+        const featureDecay = 0.3 * agingFactor;
+        product.quality = Math.max(10, product.quality - qualityDecay);
+        product.features = Math.max(5, product.features - featureDecay);
+        if (!wasImproved && agingFactor === 1.0) {
+          (product as Record<string, unknown>).age = ((product as Record<string, unknown>).age as number || 0) + 1;
+        }
+      }
+    }
+
     // Patent generation — milestone-based, non-consuming (rdProgress accumulates freely)
     const patentThreshold = 200;
     const currentPatents = typeof newState.patents === "number" ? newState.patents : 0;

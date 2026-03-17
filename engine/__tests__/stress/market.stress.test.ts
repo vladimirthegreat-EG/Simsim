@@ -180,7 +180,7 @@ describe("Market Simulator Stress Suite", () => {
     });
 
     it("rubber-banding constants are correct", () => {
-      expect(CONSTANTS.RB_MAX_COST_RELIEF).toBe(0.18);
+      expect(CONSTANTS.RB_MAX_COST_RELIEF).toBe(0.10);
       expect(CONSTANTS.RB_MAX_PERCEPTION_BONUS).toBe(0.12);
       expect(CONSTANTS.RB_MAX_DRAG).toBe(0.25); // POST-FIX: updated from 0.60 to 0.25
     });

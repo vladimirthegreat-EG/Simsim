@@ -479,8 +479,11 @@ describe("R&D Module — Comprehensive Stress Tests", () => {
         );
         expect(product).toBeDefined();
         expect(product!.developmentStatus).toBe("launched");
-        expect(product!.quality).toBe(70); // Should reach target quality
-        expect(product!.features).toBe(60); // Should reach target features
+        // POST-FIX: Product aging (F2) reduces quality/features after launch, so use approximate
+        expect(product!.quality).toBeGreaterThanOrEqual(68);
+        expect(product!.quality).toBeLessThanOrEqual(70);
+        expect(product!.features).toBeGreaterThanOrEqual(58);
+        expect(product!.features).toBeLessThanOrEqual(60);
       });
     });
 

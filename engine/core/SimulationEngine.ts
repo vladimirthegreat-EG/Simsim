@@ -673,11 +673,20 @@ export class SimulationEngine {
 
       // VAL-02: Guard all critical financial state writes against NaN/Infinity
       // Update total assets
+      // F0 FIX: Use actual balance sheet totalAssets instead of hardcoded approximation
+      const balanceSheetAssets = (team.state as Record<string, unknown>).financialStatements &&
+        ((team.state as Record<string, unknown>).financialStatements as Record<string, unknown>)?.balanceSheet &&
+        (((team.state as Record<string, unknown>).financialStatements as Record<string, unknown>)?.balanceSheet as Record<string, unknown>)?.assets &&
+        ((((team.state as Record<string, unknown>).financialStatements as Record<string, unknown>)?.balanceSheet as Record<string, unknown>)?.assets as Record<string, unknown>)?.total as number | undefined;
       const factoryAssetValue = team.state.factories.reduce((sum, f) => {
         const tierCost = FACTORY_TIERS[f.tier || "medium"]?.cost ?? CONSTANTS.NEW_FACTORY_COST;
         return sum + tierCost;
       }, 0);
-      team.state.totalAssets = safeNumber(team.state.cash + factoryAssetValue);
+      team.state.totalAssets = safeNumber(
+        (balanceSheetAssets && Number.isFinite(balanceSheetAssets) && balanceSheetAssets > 0)
+          ? balanceSheetAssets
+          : team.state.cash + factoryAssetValue
+      );
 
       // Update shareholders equity
       team.state.shareholdersEquity = safeNumber(team.state.totalAssets - team.state.totalLiabilities);
@@ -707,12 +716,17 @@ export class SimulationEngine {
           summaryMessages.push(...postFunding.messages.map(m => `  ${team.id}: ${m}`));
           team.moduleResults.finance.messages.push(...postFunding.messages);
         }
-        // Re-sync balance sheet and market cap after auto-funding changed cash/debt
-        const factoryAssetValueResync = team.state.factories.reduce((sum, f) => {
-          const tierCost = FACTORY_TIERS[f.tier || "medium"]?.cost ?? CONSTANTS.NEW_FACTORY_COST;
-          return sum + tierCost;
-        }, 0);
-        team.state.totalAssets = safeNumber(team.state.cash + factoryAssetValueResync);
+        // F0 FIX: Re-sync using balance sheet total if available
+        const bsTotal = balanceSheetAssets;
+        if (bsTotal && Number.isFinite(bsTotal)) {
+          team.state.totalAssets = safeNumber(bsTotal);
+        } else {
+          const factoryAssetValueResync = team.state.factories.reduce((sum, f) => {
+            const tierCost = FACTORY_TIERS[f.tier || "medium"]?.cost ?? CONSTANTS.NEW_FACTORY_COST;
+            return sum + tierCost;
+          }, 0);
+          team.state.totalAssets = safeNumber(team.state.cash + factoryAssetValueResync);
+        }
         team.state.shareholdersEquity = safeNumber(team.state.totalAssets - team.state.totalLiabilities);
         team.state.marketCap = safeNumber(FinanceModule.updateMarketCap(
           team.state, 0, investorSentiment
