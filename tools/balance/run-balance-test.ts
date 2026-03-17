@@ -171,15 +171,33 @@ function runGame(gameId: number, assignments: StrategyArchetype[]): GameResult {
     }
   }
 
-  // Final rankings by revenue
-  const sorted = [...teams].sort((a, b) => b.state.revenue - a.state.revenue);
-  const rankings = sorted.map((t, i) => ({
-    archetype: t.archetype,
+  // T8: 5D BSC Composite Ranking (Revenue 20%, Stock Price 25%, EPS 20%, Market Share 15%, Achievements 20%)
+  const byRevenue = [...teams].sort((a, b) => b.state.revenue - a.state.revenue);
+  const byEPS = [...teams].sort((a, b) => b.state.eps - a.state.eps);
+  const byStockPrice = [...teams].sort((a, b) => (b.state.sharePrice ?? 0) - (a.state.sharePrice ?? 0));
+  const byMarketCap = [...teams].sort((a, b) => b.state.marketCap - a.state.marketCap);
+  const byAchievement = [...teams].sort((a, b) => (b.state.achievementScore ?? 0) - (a.state.achievementScore ?? 0));
+
+  const composite = teams.map((t) => {
+    const revRank = byRevenue.findIndex((x) => x.id === t.id) + 1;
+    const epsRank = byEPS.findIndex((x) => x.id === t.id) + 1;
+    const spRank = byStockPrice.findIndex((x) => x.id === t.id) + 1;
+    const mcRank = byMarketCap.findIndex((x) => x.id === t.id) + 1;
+    const achRank = byAchievement.findIndex((x) => x.id === t.id) + 1;
+    // 5D BSC: Revenue 25%, Stock Price 10%, EPS 15%, Market Cap 25%, Achievements 25%
+    const score = revRank * 0.25 + spRank * 0.10 + epsRank * 0.15 + mcRank * 0.25 + achRank * 0.25;
+    return { team: t, score, revRank, epsRank, spRank };
+  });
+  composite.sort((a, b) => a.score - b.score);
+
+  const rankings = composite.map((c, i) => ({
+    archetype: c.team.archetype,
     rank: i + 1,
-    revenue: t.state.revenue,
-    eps: t.state.eps,
-    cash: t.state.cash,
-    marketCap: t.state.marketCap,
+    revenue: c.team.state.revenue,
+    eps: c.team.state.eps,
+    cash: c.team.state.cash,
+    marketCap: c.team.state.marketCap,
+    compositeScore: c.score,
   }));
 
   return {

@@ -1173,33 +1173,58 @@ export class MarketSimulator {
   static calculateRankings(
     teams: Array<{ id: string; state: TeamState }>,
     marketResult: MarketSimulationResult
-  ): Array<{ teamId: string; rank: number; epsRank: number; shareRank: number; achievementRank: number }> {
-    // Rank by total revenue
+  ): Array<{ teamId: string; rank: number; epsRank: number; shareRank: number; achievementRank: number; stockPriceRank?: number; compositeScore?: number }> {
+    // Rank by total revenue (20% of BSC)
     const byRevenue = [...teams].sort(
       (a, b) => marketResult.revenueByTeam[b.id] - marketResult.revenueByTeam[a.id]
     );
 
-    // Rank by EPS
+    // Rank by EPS (20% of BSC)
     const byEPS = [...teams].sort((a, b) => b.state.eps - a.state.eps);
 
-    // Rank by total market share
+    // Rank by total market share (15% of BSC)
     const totalShares = teams.map(t => ({
       id: t.id,
       totalShare: Object.values(marketResult.marketShares[t.id]).reduce((sum, s) => sum + s, 0),
     }));
     const byShare = [...totalShares].sort((a, b) => b.totalShare - a.totalShare);
 
-    // Rank by achievement score (victory condition)
+    // Rank by achievement score (20% of BSC)
     const byAchievement = [...teams].sort(
       (a, b) => (b.state.achievementScore ?? 0) - (a.state.achievementScore ?? 0)
     );
 
-    return teams.map(team => ({
-      teamId: team.id,
-      rank: byRevenue.findIndex(t => t.id === team.id) + 1,
-      epsRank: byEPS.findIndex(t => t.id === team.id) + 1,
-      shareRank: byShare.findIndex(t => t.id === team.id) + 1,
-      achievementRank: byAchievement.findIndex(t => t.id === team.id) + 1,
+    // T8 FIX: Rank by stock price (25% of BSC)
+    const byStockPrice = [...teams].sort(
+      (a, b) => (b.state.sharePrice ?? 0) - (a.state.sharePrice ?? 0)
+    );
+
+    // T8 FIX: 5D BSC Composite — lower composite score = better rank
+    // Weights: Revenue 25%, Stock Price 10%, EPS 15%, Market Share 25%, Achievements 25%
+    // Revenue + market share = 50% of BSC (rewards volume & breadth)
+    // EPS + stock price = 25% (rewards profitability but doesn't dominate)
+    // Achievements = 25% (rewards strategic milestones)
+    const composite = teams.map(team => {
+      const revenueRank = byRevenue.findIndex(t => t.id === team.id) + 1;
+      const epsRank = byEPS.findIndex(t => t.id === team.id) + 1;
+      const shareRank = byShare.findIndex(t => t.id === team.id) + 1;
+      const achievementRank = byAchievement.findIndex(t => t.id === team.id) + 1;
+      const stockPriceRank = byStockPrice.findIndex(t => t.id === team.id) + 1;
+      const compositeScore =
+        revenueRank * 0.25 + stockPriceRank * 0.10 + epsRank * 0.15 +
+        shareRank * 0.25 + achievementRank * 0.25;
+      return { teamId: team.id, compositeScore, revenueRank, epsRank, shareRank, achievementRank, stockPriceRank };
+    });
+    composite.sort((a, b) => a.compositeScore - b.compositeScore);
+
+    return composite.map((c, idx) => ({
+      teamId: c.teamId,
+      rank: idx + 1,
+      epsRank: c.epsRank,
+      shareRank: c.shareRank,
+      achievementRank: c.achievementRank,
+      stockPriceRank: c.stockPriceRank,
+      compositeScore: c.compositeScore,
     }));
   }
 

@@ -1370,12 +1370,14 @@ export class SimulationEngine {
         tenYearBond: 4.5,
         corporateBond: 6.0,
       },
+      // Demand rebalanced: Budget highest (mass market), Professional/Enthusiast lower (niche)
+      // This ensures volume strategies can compete via higher unit sales despite lower margins
       demandBySegment: {
-        Budget: { totalDemand: 500000, priceRange: { min: 100, max: 300 }, growthRate: 0.02 },
-        General: { totalDemand: 400000, priceRange: { min: 300, max: 600 }, growthRate: 0.03 },
-        Enthusiast: { totalDemand: 200000, priceRange: { min: 600, max: 1000 }, growthRate: 0.04 },
-        Professional: { totalDemand: 100000, priceRange: { min: 1000, max: 1500 }, growthRate: 0.02 },
-        "Active Lifestyle": { totalDemand: 150000, priceRange: { min: 400, max: 800 }, growthRate: 0.05 },
+        Budget: { totalDemand: 700000, priceRange: { min: 100, max: 300 }, growthRate: 0.03 },
+        General: { totalDemand: 450000, priceRange: { min: 300, max: 600 }, growthRate: 0.03 },
+        Enthusiast: { totalDemand: 150000, priceRange: { min: 600, max: 1000 }, growthRate: 0.04 },
+        Professional: { totalDemand: 80000, priceRange: { min: 1000, max: 1500 }, growthRate: 0.02 },
+        "Active Lifestyle": { totalDemand: 200000, priceRange: { min: 400, max: 800 }, growthRate: 0.05 },
       },
       marketPressures: {
         priceCompetition: 0.5,
