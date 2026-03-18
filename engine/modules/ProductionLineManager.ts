@@ -417,16 +417,39 @@ export function unassignMachineFromLine(
 }
 
 /**
- * Get the total capacity of line-locked machines assigned to a specific line.
+ * Get the bottleneck capacity of line-locked machines assigned to a specific line.
+ * Returns the MINIMUM capacity across all assigned machines (bottleneck principle).
+ * A line with Assembly Line (10K) + CNC Machine (3K) → capacity = 3K.
  */
 export function getLineMachineCapacity(state: TeamState, lineId: string): number {
   const factory = getFactoryForLine(state, lineId);
   if (!factory) return 0;
 
   const machines = getFactoryMachines(state, factory.id);
-  return machines
-    .filter(m => m.assignedLineId === lineId && !isSharedMachineType(m.type))
-    .reduce((sum, m) => sum + m.capacityUnits, 0);
+  const lineLockedMachines = machines
+    .filter(m => m.assignedLineId === lineId && !isSharedMachineType(m.type) && m.capacityUnits > 0);
+
+  if (lineLockedMachines.length === 0) return 0;
+
+  // Bottleneck = smallest machine capacity on the line
+  return Math.min(...lineLockedMachines.map(m => m.capacityUnits));
+}
+
+/**
+ * Get the bottleneck machine on a production line (the one with lowest capacity).
+ * Returns null if no machines assigned.
+ */
+export function getLineBottleneckMachine(state: TeamState, lineId: string): Machine | null {
+  const factory = getFactoryForLine(state, lineId);
+  if (!factory) return null;
+
+  const machines = getFactoryMachines(state, factory.id);
+  const lineLockedMachines = machines
+    .filter(m => m.assignedLineId === lineId && !isSharedMachineType(m.type) && m.capacityUnits > 0);
+
+  if (lineLockedMachines.length === 0) return null;
+
+  return lineLockedMachines.reduce((min, m) => m.capacityUnits < min.capacityUnits ? m : min);
 }
 
 /**

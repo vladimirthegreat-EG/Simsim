@@ -104,7 +104,7 @@ describe("Machine Assignment to Lines", () => {
     expect(result.message).toContain("not found");
   });
 
-  it("getLineMachineCapacity sums only locked machines on that line", () => {
+  it("getLineMachineCapacity returns BOTTLENECK (min) of locked machines on that line", () => {
     const state = createTestState();
     const m1 = createTestMachine("assembly_line", "factory-1", "m1", 5000);
     m1.assignedLineId = "factory-1-line-0";
@@ -120,7 +120,8 @@ describe("Machine Assignment to Lines", () => {
       },
     };
 
-    expect(getLineMachineCapacity(state, "factory-1-line-0")).toBe(8000); // m1 + m2
+    // Bottleneck: min(5000, 3000) = 3000 (CNC is the bottleneck)
+    expect(getLineMachineCapacity(state, "factory-1-line-0")).toBe(3000);
     expect(getLineMachineCapacity(state, "factory-1-line-1")).toBe(5000); // m3 only
   });
 

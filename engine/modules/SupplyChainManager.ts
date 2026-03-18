@@ -10,6 +10,7 @@ import type { TeamState } from "../types/state";
 import type { Segment } from "../types/factory";
 import { CONSTANTS } from "../types";
 import * as WarehouseManager from "./WarehouseManager";
+import { getLineMachineCapacity } from "./ProductionLineManager";
 
 // ============================================
 // TYPES
@@ -96,19 +97,30 @@ export function calculateMaterialRequirements(
     const costPerUnit = SEGMENT_MATERIAL_COSTS[segment] ?? 150;
     const perMaterialCost = costPerUnit / MATERIAL_TYPES.length;
 
+    // Use actual achievable output: min(machine bottleneck, target)
+    let machineBottleneck: number;
+    try {
+      machineBottleneck = getLineMachineCapacity(state, line.id);
+    } catch {
+      machineBottleneck = 0;
+    }
+    const achievableOutput = machineBottleneck > 0
+      ? Math.min(machineBottleneck, line.targetOutput)
+      : line.targetOutput; // Fallback if no machines assigned
+
     const materials = MATERIAL_TYPES.map(type => ({
       type,
-      qtyNeeded: line.targetOutput,
-      estimatedCost: line.targetOutput * perMaterialCost,
+      qtyNeeded: achievableOutput,
+      estimatedCost: achievableOutput * perMaterialCost,
     }));
 
     requirements.push({
       lineId: line.id,
       productId: line.productId,
       segment,
-      targetOutput: line.targetOutput,
+      targetOutput: achievableOutput,
       materials,
-      totalMaterialCost: line.targetOutput * costPerUnit,
+      totalMaterialCost: achievableOutput * costPerUnit,
     });
   }
 
