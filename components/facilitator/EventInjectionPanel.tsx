@@ -16,6 +16,7 @@ import {
   Package,
   Globe,
   Plus,
+  Sliders,
   X,
 } from "lucide-react";
 
@@ -156,6 +157,7 @@ export function EventInjectionPanel({
   });
   const [targetTeams, setTargetTeams] = useState<string[] | "all">("all");
   const [showCustomForm, setShowCustomForm] = useState(false);
+  const [customEffects, setCustomEffects] = useState<Array<{ target: string; modifier: number }>>([]);
 
   const handlePresetClick = (preset: typeof PRESET_EVENTS[0]) => {
     setSelectedPreset(preset.type);
@@ -186,11 +188,12 @@ export function EventInjectionPanel({
       type: "custom",
       title: customEvent.title,
       description: customEvent.description,
-      effects: [],
+      effects: customEffects,
       targetTeams,
     });
 
     setCustomEvent({ title: "", description: "", type: "custom" });
+    setCustomEffects([]);
     setShowCustomForm(false);
     setTargetTeams("all");
   };
@@ -340,6 +343,71 @@ export function EventInjectionPanel({
               className="bg-slate-800 border-slate-700 text-white focus:border-purple-500 focus:ring-purple-500/20"
               rows={2}
             />
+
+            {/* Effects Builder */}
+            <div className="space-y-2.5">
+              <div>
+                <Label className="text-white font-medium flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-purple-400" />
+                  Event Effects
+                </Label>
+                <p className="text-slate-500 text-xs mt-0.5">
+                  Define how this event impacts the simulation
+                </p>
+              </div>
+
+              {customEffects.map((effect, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <select
+                    value={effect.target}
+                    onChange={(e) => {
+                      const updated = [...customEffects];
+                      updated[idx] = { ...updated[idx], target: e.target.value };
+                      setCustomEffects(updated);
+                    }}
+                    className="flex-1 rounded-md bg-slate-800 border border-slate-700 text-white text-sm px-2 py-1.5 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500/20"
+                  >
+                    <option value="gdp">gdp</option>
+                    <option value="inflation">inflation</option>
+                    <option value="consumerConfidence">consumerConfidence</option>
+                    <option value="demand_budget">demand_budget</option>
+                    <option value="demand_general">demand_general</option>
+                    <option value="demand_enthusiast">demand_enthusiast</option>
+                    <option value="demand_professional">demand_professional</option>
+                    <option value="demand_active_lifestyle">demand_active_lifestyle</option>
+                    <option value="material_cost">material_cost</option>
+                    <option value="sustainabilityPremium">sustainabilityPremium</option>
+                  </select>
+                  <Input
+                    type="number"
+                    step={0.01}
+                    value={effect.modifier}
+                    onChange={(e) => {
+                      const updated = [...customEffects];
+                      updated[idx] = { ...updated[idx], modifier: parseFloat(e.target.value) || 0 };
+                      setCustomEffects(updated);
+                    }}
+                    className="w-28 bg-slate-800 border-slate-700 text-white focus:border-purple-500 focus:ring-purple-500/20"
+                  />
+                  <button
+                    onClick={() => setCustomEffects(customEffects.filter((_, i) => i !== idx))}
+                    className="text-slate-600 hover:text-red-400 transition-colors p-1 rounded-lg hover:bg-slate-800"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCustomEffects([...customEffects, { target: "gdp", modifier: 0 }])}
+                className="border-slate-700 text-slate-400 hover:text-slate-300 hover:bg-slate-800 hover:border-slate-600 gap-1.5 transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Effect
+              </Button>
+            </div>
           </div>
         )}
 

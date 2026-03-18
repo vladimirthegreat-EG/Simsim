@@ -1,9 +1,12 @@
+export { AuditLogPanel } from "./AuditLogPanel";
 export { ComplexitySelector } from "./ComplexitySelector";
 export { DiscussionGuide } from "./DiscussionGuide";
 export { EventInjectionPanel } from "./EventInjectionPanel";
 export { FacilitatorDashboard } from "./FacilitatorDashboard";
+export { MessagesPanel } from "./MessagesPanel";
 export { ParticipantScorecard } from "./ParticipantScorecard";
 export { PostGameReport } from "./PostGameReport";
 export { RoundBrief } from "./RoundBrief";
 export { RoundHistoryPanel } from "./RoundHistoryPanel";
+export { TeamComparisonPanel } from "./TeamComparisonPanel";
 export { TeamDetailPanel } from "./TeamDetailPanel";

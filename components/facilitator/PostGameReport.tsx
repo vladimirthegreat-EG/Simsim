@@ -4,6 +4,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   FileText,
   Map,
@@ -14,11 +15,17 @@ import {
   ChevronUp,
   Users,
   AlertTriangle,
+  Download,
+  Loader2,
+  FlaskConical,
 } from "lucide-react";
+import { trpc } from "@/lib/api/trpc";
+import { toast } from "sonner";
 import type { PostGameReport as PostGameReportType } from "@/engine/types/facilitator";
 
 interface PostGameReportProps {
   report: PostGameReportType;
+  gameId?: string;
 }
 
 type Tab = "journeys" | "concepts" | "achievements" | "timeline" | "whatif";
@@ -31,9 +38,25 @@ const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: "whatif", label: "What If", icon: <GitBranch className="w-4 h-4" /> },
 ];
 
-export function PostGameReport({ report }: PostGameReportProps) {
+export function PostGameReport({ report, gameId }: PostGameReportProps) {
   const [activeTab, setActiveTab] = useState<Tab>("journeys");
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+  const [simulatingIdx, setSimulatingIdx] = useState<number | null>(null);
+  const [simulationResults, setSimulationResults] = useState<Record<number, any>>({});
+
+  const exportReport = trpc.game.exportReport.useMutation({
+    onSuccess: (data: any) => {
+      const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.filename || "report.json";
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Report exported!");
+    },
+    onError: (error: any) => toast.error(error.message),
+  });
 
   // Group timeline entries by round
   const timelineByRound = report.marketTimeline.reduce<Record<number, typeof report.marketTimeline>>(
@@ -48,9 +71,22 @@ export function PostGameReport({ report }: PostGameReportProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <FileText className="w-6 h-6 text-purple-400" />
-        <h2 className="text-xl font-bold text-white">Post-Game Report</h2>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <FileText className="w-6 h-6 text-purple-400" />
+          <h2 className="text-xl font-bold text-white">Post-Game Report</h2>
+        </div>
+        {gameId && (
+          <Button
+            onClick={() => exportReport.mutate({ gameId, format: "xlsx", section: "metrics" })}
+            disabled={exportReport.isPending}
+            variant="outline"
+            className="border-purple-500/40 text-purple-400 hover:bg-purple-500/10 gap-2"
+          >
+            {exportReport.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Export Data
+          </Button>
+        )}
       </div>
 
       {/* Executive Summary */}
@@ -226,7 +262,41 @@ export function PostGameReport({ report }: PostGameReportProps) {
                   <p className="text-cyan-400 text-xs mb-0.5">Alternative</p>
                   <p className="text-slate-200">{s.alternativeDecision}</p>
                 </div>
-                <p className="text-green-400 text-xs font-medium">{s.estimatedImpact}</p>
+                {simulationResults[i] ? (
+                  <div className="p-2 rounded bg-green-900/20 border border-green-500/20 space-y-1">
+                    <p className="text-green-400 text-xs font-medium">Simulated Impact</p>
+                    <p className="text-slate-200 text-sm">Revenue: {simulationResults[i].revenueDelta > 0 ? "+" : ""}{(simulationResults[i].revenueDelta / 1_000_000).toFixed(1)}M</p>
+                    <p className="text-slate-200 text-sm">Market Share: {simulationResults[i].shareDelta > 0 ? "+" : ""}{simulationResults[i].shareDelta.toFixed(1)}%</p>
+                  </div>
+                ) : (
+                  <p className="text-green-400 text-xs font-medium">{s.estimatedImpact}</p>
+                )}
+                {gameId && !simulationResults[i] && (
+                  <Button
+                    onClick={async () => {
+                      setSimulatingIdx(i);
+                      try {
+                        const result = await (trpc as any).game.runWhatIf.query({
+                          gameId,
+                          teamId: s.teamId,
+                          roundNumber: s.decisionRound,
+                          scenarioDescription: s.alternativeDecision,
+                        });
+                        setSimulationResults(prev => ({ ...prev, [i]: result }));
+                      } catch {
+                        toast.error("Simulation failed");
+                      }
+                      setSimulatingIdx(null);
+                    }}
+                    disabled={simulatingIdx === i}
+                    variant="outline"
+                    size="sm"
+                    className="border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/10 gap-1.5 mt-1"
+                  >
+                    {simulatingIdx === i ? <Loader2 className="w-3 h-3 animate-spin" /> : <FlaskConical className="w-3 h-3" />}
+                    {simulatingIdx === i ? "Simulating..." : "Simulate"}
+                  </Button>
+                )}
                 <div className="flex items-start gap-1.5 mt-1">
                   <AlertTriangle className="w-3 h-3 text-amber-400 mt-0.5 shrink-0" />
                   <p className="text-slate-500 text-xs italic">{s.caveat}</p>

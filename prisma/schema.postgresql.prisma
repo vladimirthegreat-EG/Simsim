@@ -25,6 +25,8 @@ model Facilitator {
   name         String
   passwordHash String
   games        Game[]
+  messages     Message[]
+  auditLogs    FacilitatorAuditLog[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -43,6 +45,8 @@ model Game {
   facilitator   Facilitator @relation(fields: [facilitatorId], references: [id])
   teams         Team[]
   rounds        Round[]
+  messages      Message[]
+  auditLogs     FacilitatorAuditLog[]
 
   // Timestamps
   createdAt DateTime  @default(now())
@@ -74,6 +78,7 @@ model Team {
   roundResults RoundResult[]
   achievements TeamAchievement[]
   achievementProgress AchievementProgress[]
+  messages     Message[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -102,6 +107,9 @@ model Round {
   game      Game           @relation(fields: [gameId], references: [id], onDelete: Cascade)
   decisions TeamDecision[]
   results   RoundResult[]
+
+  // Scheduling
+  scheduledAdvanceAt DateTime?
 
   // Timestamps
   startedAt          DateTime  @default(now())
@@ -199,4 +207,37 @@ model AchievementProgress {
 
   @@unique([teamId, achievementId])
   @@index([teamId])
+}
+
+// ============================================
+// FACILITATOR FEATURES
+// ============================================
+
+model Message {
+  id             String       @id @default(cuid())
+  gameId         String
+  game           Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  facilitatorId  String?
+  facilitator    Facilitator? @relation(fields: [facilitatorId], references: [id])
+  teamId         String?
+  team           Team?        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  content        String
+  isAnnouncement Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  @@index([gameId, createdAt])
+  @@index([teamId])
+}
+
+model FacilitatorAuditLog {
+  id            String      @id @default(cuid())
+  gameId        String
+  game          Game        @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  facilitatorId String
+  facilitator   Facilitator @relation(fields: [facilitatorId], references: [id])
+  action        String
+  details       String      @default("{}")
+  createdAt     DateTime    @default(now())
+
+  @@index([gameId, createdAt])
 }
