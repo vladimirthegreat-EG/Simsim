@@ -386,4 +386,74 @@ describe("Finance Module", () => {
       expect(accuracy).toBeCloseTo(60, 0);
     });
   });
+
+  // ============================================
+  // L1-FIN: Certified Formula Tests (Layer 1)
+  // ============================================
+  describe("L1-FIN: FinanceModule Certified Formula Tests", () => {
+    it("L1-FIN-01: loan increases cash AND debt", () => {
+      const state = fresh_company_state({
+        cash: 100_000_000,
+        longTermDebt: 0,
+        totalLiabilities: 0,
+      });
+      const initialCash = state.cash;
+
+      const { newState } = FinanceModule.process(state, {
+        loanRequest: { amount: 10_000_000, termMonths: 36 },
+      });
+
+      expect(newState.cash).toBeGreaterThan(initialCash);
+      expect(newState.longTermDebt).toBeGreaterThan(0);
+    });
+
+    it("L1-FIN-02: buyback with insufficient funds does not crash", () => {
+      const state = fresh_company_state({
+        cash: 5_000_000,
+        sharesIssued: 10_000_000,
+        sharePrice: 50,
+      });
+
+      // Should NOT throw — engine must handle gracefully
+      expect(() => {
+        FinanceModule.process(state, {
+          sharesBuyback: 20_000_000,
+        });
+      }).not.toThrow();
+
+      const { newState } = FinanceModule.process(state, {
+        sharesBuyback: 20_000_000,
+      });
+      expect(newState.cash).toBeGreaterThanOrEqual(0);
+    });
+
+    it("L1-FIN-03: dividend reduces cash", () => {
+      const state = fresh_company_state({
+        cash: 100_000_000,
+        sharesIssued: 10_000_000,
+      });
+      const initialCash = state.cash;
+
+      const { newState } = FinanceModule.process(state, {
+        dividendPerShare: 2,
+      });
+
+      // Cash should decrease by dividendPerShare × sharesIssued
+      expect(newState.cash).toBeLessThan(initialCash);
+    });
+
+    it("L1-IS-02: no NaN when team earns $0 revenue", () => {
+      const state = fresh_company_state({
+        revenue: 0,
+        netIncome: 0,
+        cash: 100_000_000,
+      });
+
+      const { newState } = FinanceModule.process(state, {});
+
+      expect(Number.isFinite(newState.cash)).toBe(true);
+      expect(Number.isNaN(newState.netIncome ?? 0)).toBe(false);
+      expect(Number.isNaN(newState.eps ?? 0)).toBe(false);
+    });
+  });
 });
