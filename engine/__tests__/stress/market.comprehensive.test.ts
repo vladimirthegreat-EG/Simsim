@@ -220,7 +220,7 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
       });
 
       it("softmax temperature = 1.8 is used (from CONSTANTS)", () => { // POST-FIX: updated from 3 to 1.8
-        expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(1.8); // POST-FIX: updated from 3 to 1.8
+        expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(2.5); // POST-FIX: updated from 3 to 1.8
       });
 
       it("rubber-banding constants are correct (v6.0.0 revised system)", () => {

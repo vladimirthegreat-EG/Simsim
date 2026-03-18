@@ -72,27 +72,37 @@ function tryUpgrade(state: TeamState, upgrade: string, cost: number): Array<{ fa
   return [{ factoryId: fid(state), upgrade }];
 }
 
-/** Build machinery decisions for R5+ divergence — buy additional machines */
+/** Build machinery decisions — buy machines + extra copies of low-capacity ones to raise bottleneck */
 function buildMachineryDecisions(state: TeamState): { purchases: Array<{ factoryId: string; machineType: string; quantity: number }> } | undefined {
-  const ownedMachineTypes = new Set(
-    Object.values(state.machineryStates ?? {}).flatMap(fms => fms.machines?.map(m => m.type) ?? [])
-  );
+  const ownedCounts: Record<string, number> = {};
+  for (const fms of Object.values(state.machineryStates ?? {})) {
+    for (const m of fms.machines ?? []) {
+      ownedCounts[m.type] = (ownedCounts[m.type] ?? 0) + 1;
+    }
+  }
+
   const purchases: Array<{ factoryId: string; machineType: string; quantity: number }> = [];
-  const buy = (type: string, cost: number) => {
-    if (!ownedMachineTypes.has(type) && state.cash > cost * 1.2) {
-      purchases.push({ factoryId: fid(state), machineType: type, quantity: 1 });
-      ownedMachineTypes.add(type);
+  const buyIfNeeded = (type: string, cost: number, targetCount: number) => {
+    const owned = ownedCounts[type] ?? 0;
+    const toBuy = Math.max(0, targetCount - owned);
+    if (toBuy > 0 && state.cash > cost * toBuy * 1.1) {
+      purchases.push({ factoryId: fid(state), machineType: type, quantity: toBuy });
+      ownedCounts[type] = (ownedCounts[type] ?? 0) + toBuy;
     }
   };
-  // Ensure all core machines are owned by R5+
-  buy("assembly_line", 5_000_000);
-  buy("packaging_system", 3_000_000);
-  buy("injection_molder", 7_000_000);
-  buy("pcb_assembler", 3_500_000);
-  buy("quality_scanner", 4_000_000);
-  buy("welding_station", 4_000_000);
-  buy("conveyor_system", 6_000_000);
-  buy("paint_booth", 5_000_000);
+
+  // Core machines (1 each)
+  buyIfNeeded("assembly_line", 5_000_000, 1);     // 10K capacity
+  buyIfNeeded("packaging_system", 3_000_000, 1);  // 20K (shared)
+  buyIfNeeded("quality_scanner", 4_000_000, 1);   // utility (shared)
+  buyIfNeeded("conveyor_system", 6_000_000, 1);   // 15K (shared)
+
+  // Low-capacity machines — buy multiples to raise bottleneck
+  buyIfNeeded("pcb_assembler", 3_500_000, 2);     // 6K × 2 = 12K (was bottleneck at 6K)
+  buyIfNeeded("welding_station", 4_000_000, 2);   // 5K × 2 = 10K
+  buyIfNeeded("injection_molder", 7_000_000, 1);  // 12K (high capacity, 1 is enough)
+  buyIfNeeded("paint_booth", 5_000_000, 1);       // 8K
+
   return purchases.length > 0 ? { purchases } : undefined;
 }
 
@@ -114,38 +124,44 @@ function sharedFoundation(state: TeamState, market: MarketState, round: number):
   const r = rs(round);
 
   // === FACTORY ===
-  // Factory upgrades (NOT machines — machines go in machineryDecisions)
+  // Factory upgrades — all strategies get the same production upgrades
   const upgrades = [
     ...(round >= 2 ? tryUpgrade(state, "automation", 75_000_000) : []),
     ...(round >= 3 ? tryUpgrade(state, "continuousImprovement", 30_000_000) : []),
+    ...(round >= 3 ? tryUpgrade(state, "leanManufacturing", 25_000_000) : []),
+    ...(round >= 4 ? tryUpgrade(state, "iotIntegration", 50_000_000) : []),
   ];
 
-  // Machine purchases — go through machineryDecisions, NOT upgradePurchases
-  // With bottleneck capacity (min), matching machine capacities matters
+  // Machine purchases — buy multiples of low-capacity machines to raise bottleneck
   const machinePurchases: Array<{ factoryId: string; machineType: string; quantity: number }> = [];
-  const ownedMachineTypes = new Set(
-    Object.values(state.machineryStates ?? {}).flatMap(fms => fms.machines?.map(m => m.type) ?? [])
-  );
-  const buyMachine = (type: string, cost: number) => {
-    if (!ownedMachineTypes.has(type) && cash > cost * 1.2) {
-      machinePurchases.push({ factoryId: fid(state), machineType: type, quantity: 1 });
-      ownedMachineTypes.add(type); // prevent double-buy in same round
+  const ownedCounts: Record<string, number> = {};
+  for (const fms of Object.values(state.machineryStates ?? {})) {
+    for (const m of fms.machines ?? []) {
+      ownedCounts[m.type] = (ownedCounts[m.type] ?? 0) + 1;
+    }
+  }
+  const buyIfNeeded = (type: string, cost: number, target: number) => {
+    const owned = ownedCounts[type] ?? 0;
+    const toBuy = Math.max(0, target - owned);
+    if (toBuy > 0 && cash > cost * toBuy * 1.1) {
+      machinePurchases.push({ factoryId: fid(state), machineType: type, quantity: toBuy });
+      ownedCounts[type] = (ownedCounts[type] ?? 0) + toBuy;
     }
   };
-  // R1: Assembly line (10K) + packaging (20K shared)
-  buyMachine("assembly_line", 5_000_000);
-  buyMachine("packaging_system", 3_000_000);
+  // R1: Core production machines
+  buyIfNeeded("assembly_line", 5_000_000, 1);     // 10K
+  buyIfNeeded("packaging_system", 3_000_000, 1);  // 20K shared
   if (round >= 2) {
-    buyMachine("injection_molder", 7_000_000);
-    buyMachine("pcb_assembler", 3_500_000);
+    buyIfNeeded("injection_molder", 7_000_000, 1); // 12K
+    buyIfNeeded("pcb_assembler", 3_500_000, 2);    // 6K × 2 = 12K (raise bottleneck)
   }
   if (round >= 3) {
-    buyMachine("quality_scanner", 4_000_000);
-    buyMachine("welding_station", 4_000_000);
+    buyIfNeeded("quality_scanner", 4_000_000, 1);  // shared utility
+    buyIfNeeded("welding_station", 4_000_000, 2);  // 5K × 2 = 10K (raise bottleneck)
   }
   if (round >= 4) {
-    buyMachine("conveyor_system", 6_000_000);
-    buyMachine("paint_booth", 5_000_000);
+    buyIfNeeded("conveyor_system", 6_000_000, 1);  // 15K shared
+    buyIfNeeded("paint_booth", 5_000_000, 1);      // 8K
   }
 
   const newFactories: Array<{ name: string; region: string }> = [];
@@ -635,25 +651,22 @@ export const automationStrategy: StrategyDecisionMaker = (state, market, round) 
   const upgrades = [
     ...tryUpgrade(state, "automation", 75_000_000),
     ...tryUpgrade(state, "continuousImprovement", 30_000_000),
-    ...tryUpgrade(state, "leanManufacturing", 40_000_000),
+    ...tryUpgrade(state, "leanManufacturing", 25_000_000),
     ...tryUpgrade(state, "iotIntegration", 50_000_000),
-    ...(round >= 7 ? tryUpgrade(state, "advancedRobotics", 100_000_000) : []),
   ];
 
   const newFactories: Array<{ name: string; region: string }> = [];
   if (factoryCount(state) < 2 && cash > 80_000_000)
     newFactories.push({ name: "Auto Plant Asia", region: "Asia" });
-  if (round >= 7 && factoryCount(state) < 3 && cash > 100_000_000)
-    newFactories.push({ name: "Auto Plant MENA", region: "MENA" });
 
   const factory = {
     efficiencyInvestments: {
       [fid(state)]: {
-        workers: Math.min(1_500_000 * r, cash * 0.08),
-        machinery: Math.min(8_000_000 * r, cash * 0.25),
+        workers: Math.min(2_000_000 * r, cash * 0.10),
+        machinery: Math.min(5_000_000 * r, cash * 0.15),
         supervisors: Math.min(500_000, cash * 0.04),
-        engineers: Math.min(2_000_000 * r, cash * 0.10),
-        factory: Math.min(3_500_000 * r, cash * 0.12),
+        engineers: Math.min(2_500_000 * r, cash * 0.10),
+        factory: Math.min(2_000_000 * r, cash * 0.08),
       },
     },
     greenInvestments: {},

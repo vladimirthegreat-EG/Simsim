@@ -395,7 +395,7 @@ export const CONSTANTS = {
 
   // Brand - Rebalanced (v7.0.0, Monte Carlo balance sweep)
   // Moderate decay — strategies now all invest in brand, so mechanic is less exploitable
-  BRAND_DECAY_RATE: 0.08,               // F9 FIX: 8% brand decay (was 1.2% — brand too sticky)
+  BRAND_DECAY_RATE: 0.04,               // Tuned: 4% brand decay (8% was too harsh, 1.2% too sticky)
   BRAND_MAX_GROWTH_PER_ROUND: 0.04,     // Max 4% brand growth per round (was 6%)
 
   // v7.0.0: Brand critical mass thresholds (Monte Carlo balance sweep)
@@ -409,7 +409,7 @@ export const CONSTANTS = {
   // not from a hardcoded multiplier that guarantees balanced strategy wins.
 
   // v5.1.0: Tuning parameters (Audit F-03)
-  SOFTMAX_TEMPERATURE: 1.8,             // F6 FIX: 1.8 (was 3)
+  SOFTMAX_TEMPERATURE: 2.5,             // Tuned: 2.5 (1.8 too sharp with bottleneck capacity, 3.0 too flat)
 
   // Marketing parameters (wired for sweep)
   ADVERTISING_BASE_IMPACT: 0.0011,      // 0.11% brand per $1M advertising (sweep v5)

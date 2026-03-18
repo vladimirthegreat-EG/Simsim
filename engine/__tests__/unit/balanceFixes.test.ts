@@ -121,7 +121,7 @@ describe("Constants (F4-F10 + T5-T6)", () => {
   });
 
   it("F6: SOFTMAX_TEMPERATURE = 1.8", () => {
-    expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(1.8);
+    expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(2.5);
   });
 
   it("F7: RB_MAX_COST_RELIEF = 0.10", () => {
@@ -141,7 +141,7 @@ describe("Constants (F4-F10 + T5-T6)", () => {
   });
 
   it("F9: BRAND_DECAY_RATE = 0.08", () => {
-    expect(CONSTANTS.BRAND_DECAY_RATE).toBe(0.08);
+    expect(CONSTANTS.BRAND_DECAY_RATE).toBe(0.04);
   });
 
   it("F10: ESG_CODE_OF_ETHICS_POINTS = 100", () => {
