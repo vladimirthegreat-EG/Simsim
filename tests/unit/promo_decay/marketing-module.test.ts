@@ -119,29 +119,29 @@ describe("calculateBrandAwarenessBySegment", () => {
 
 describe("calculatePromotionImpact", () => {
   it("calculates 10% off Budget at brand=0", () => {
-    // salesBoost = min(0.75, 0.1 × 2.5 × 1.0) = 0.25
+    // salesBoost = min(0.30, 0.1 × 2.5 × 1.0) = 0.25 // POST-FIX: cap was 0.75, now 0.30
     const result = MarketingModule.calculatePromotionImpact(10, "Budget", 0);
     expect(result.salesBoost).toBeCloseTo(0.25);
     expect(result.marginReduction).toBeCloseTo(0.1);
   });
 
   it("calculates 10% off Professional at brand=0", () => {
-    // salesBoost = min(0.75, 0.1 × 0.8 × 1.0) = 0.08
+    // salesBoost = min(0.30, 0.1 × 0.8 × 1.0) = 0.08 // POST-FIX: cap was 0.75, now 0.30
     const result = MarketingModule.calculatePromotionImpact(10, "Professional", 0);
     expect(result.salesBoost).toBeCloseTo(0.08);
     expect(result.marginReduction).toBeCloseTo(0.1);
   });
 
-  it("caps salesBoost at MAX_PROMOTION_SALES_BOOST (0.75)", () => {
-    // 50% off Budget: 0.5 × 2.5 × 1.0 = 1.25 → capped at 0.75
+  it("caps salesBoost at MAX_PROMOTION_SALES_BOOST (0.30)", () => { // POST-FIX: was 0.75
+    // 50% off Budget: 0.5 × 2.5 × 1.0 = 1.25 → capped at 0.30
     const result = MarketingModule.calculatePromotionImpact(50, "Budget", 0);
-    expect(result.salesBoost).toBe(0.75);
+    expect(result.salesBoost).toBe(0.30); // POST-FIX: was 0.75
   });
 
   it("factors in brand value", () => {
-    // 10% off General, brand=1.0: 0.1 × 1.8 × 2.0 = 0.36
+    // 10% off General, brand=1.0: 0.1 × 1.8 × 2.0 = 0.36 → capped at 0.30
     const result = MarketingModule.calculatePromotionImpact(10, "General", 1.0);
-    expect(result.salesBoost).toBeCloseTo(0.36);
+    expect(result.salesBoost).toBeCloseTo(0.30); // POST-FIX: was 0.36, now capped at 0.30
   });
 });
 
@@ -159,7 +159,7 @@ describe("brand decay and growth cap via process", () => {
       productPricing: [],
     });
 
-    // Expected: 0.5 - 0.5 × 0.012 = 0.494
+    // Expected: 0.5 - 0.5 × 0.08 = 0.46 // POST-FIX: BRAND_DECAY_RATE was 0.012, now 0.08
     const expectedDecay = 0.5 * CONSTANTS.BRAND_DECAY_RATE;
     expect(newState.brandValue).toBeCloseTo(0.5 - expectedDecay, 4);
   });
@@ -180,7 +180,7 @@ describe("brand decay and growth cap via process", () => {
       productPricing: [],
     });
 
-    // Growth capped at 0.04, then decay applied: (0.3 + 0.04) × (1 - 0.012)
+    // Growth capped at 0.04, then decay applied: (0.3 + 0.04) × (1 - 0.08) // POST-FIX: BRAND_DECAY_RATE was 0.012, now 0.08
     const afterGrowth = 0.3 + CONSTANTS.BRAND_MAX_GROWTH_PER_ROUND;
     const afterDecay = afterGrowth - afterGrowth * CONSTANTS.BRAND_DECAY_RATE;
     expect(newState.brandValue).toBeCloseTo(afterDecay, 4);

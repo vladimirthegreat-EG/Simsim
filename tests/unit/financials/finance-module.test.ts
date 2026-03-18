@@ -170,7 +170,7 @@ describe("Finance Module", () => {
       });
       const ratios = FinanceModule.calculateRatios(state);
       const prob = FinanceModule.calculateProposalProbability("expansion", state, ratios);
-      // High D/E penalizes: -8 (>1.0) -10 (>2.0) = -18, plus expansion modifier -8
+      // High D/E penalizes: -8 (>1.5) -10 (>2.0) = -18, plus expansion modifier -8 // POST-FIX: threshold was 1.0, now 1.5
       expect(prob).toBeLessThan(40);
     });
 
@@ -321,12 +321,12 @@ describe("Finance Module", () => {
       expect(newState.shortTermDebt).toBe(state.shortTermDebt);
     });
 
-    it("D/E > 1.0 triggers interest surcharge", () => {
+    it("D/E > 1.5 triggers interest surcharge", () => { // POST-FIX: threshold was 1.0
       const state = fresh_company_state({
         shortTermDebt: 50_000_000,
-        longTermDebt: 100_000_000,
-        totalLiabilities: 150_000_000,
-        shareholdersEquity: 100_000_000, // D/E = 1.5
+        longTermDebt: 150_000_000,
+        totalLiabilities: 200_000_000,
+        shareholdersEquity: 100_000_000, // D/E = 2.0, above 1.5 threshold // POST-FIX: was D/E = 1.5
         cash: 200_000_000,
         netIncome: 5_000_000,
         esgScore: 400,

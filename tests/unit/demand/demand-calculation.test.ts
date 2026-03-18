@@ -11,13 +11,13 @@ import type { Segment } from "@/engine/types/factory";
 describe("Demand Calculation", () => {
   // ─── Segment Score Weights ───
   describe("Segment Score Weights", () => {
-    it("Budget weights: price 65, quality 15, brand 5, esg 5, features 10", () => {
+    it("Budget weights: price 40, quality 22, brand 10, esg 8, features 20", () => { // POST-FIX: updated weights for balance tuning
       const w = CONSTANTS.SEGMENT_WEIGHTS["Budget"];
-      expect(w.price).toBe(65);
-      expect(w.quality).toBe(15);
-      expect(w.brand).toBe(5);
-      expect(w.esg).toBe(5);
-      expect(w.features).toBe(10);
+      expect(w.price).toBe(40); // POST-FIX: was 65
+      expect(w.quality).toBe(22); // POST-FIX: was 15
+      expect(w.brand).toBe(10); // POST-FIX: was 5
+      expect(w.esg).toBe(8); // POST-FIX: was 5
+      expect(w.features).toBe(20); // POST-FIX: was 10
     });
 
     it("Professional weights quality as highest priority", () => {
@@ -62,14 +62,14 @@ describe("Demand Calculation", () => {
   // ─── Quality Scoring Constants ───
   describe("Quality Scoring Constants", () => {
     it("quality score is capped at QUALITY_FEATURE_BONUS_CAP", () => {
-      expect(CONSTANTS.QUALITY_FEATURE_BONUS_CAP).toBe(1.07);
+      expect(CONSTANTS.QUALITY_FEATURE_BONUS_CAP).toBe(1.15); // POST-FIX: was 1.07
     });
   });
 
   // ─── Softmax Temperature ───
   describe("Softmax Allocation", () => {
-    it("SOFTMAX_TEMPERATURE is set to 3 for moderate allocation sharpness", () => {
-      expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(3);
+    it("SOFTMAX_TEMPERATURE is set to 1.8 for sharper allocation", () => { // POST-FIX: updated description
+      expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(1.8); // POST-FIX: was 3
     });
   });
 

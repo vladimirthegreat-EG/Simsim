@@ -96,16 +96,16 @@ describe("Multi-Company Market", () => {
       expect(CONSTANTS.RUBBER_BAND_ACTIVATION_ROUND).toBe(2);
     });
 
-    it("max cost relief is 18%", () => {
-      expect(CONSTANTS.RB_MAX_COST_RELIEF).toBe(0.18);
+    it("max cost relief is 10%", () => { // POST-FIX: was 18%
+      expect(CONSTANTS.RB_MAX_COST_RELIEF).toBe(0.10); // POST-FIX: was 0.18
     });
 
     it("max perception bonus is 12%", () => {
       expect(CONSTANTS.RB_MAX_PERCEPTION_BONUS).toBe(0.12);
     });
 
-    it("max drag on leaders is 60%", () => {
-      expect(CONSTANTS.RB_MAX_DRAG).toBe(0.60);
+    it("max drag on leaders is 25%", () => { // POST-FIX: was 60%
+      expect(CONSTANTS.RB_MAX_DRAG).toBe(0.25); // POST-FIX: was 0.60
     });
   });
 });
