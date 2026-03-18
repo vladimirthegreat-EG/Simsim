@@ -234,6 +234,7 @@ export const volumeStrategy: StrategyDecisionMaker = (state, market, round) => {
     upgradePurchases: upgrades,
     newFactories,
     esgInitiatives: {
+      workplaceHealthSafety: true,
       executivePayRatio: true,
       employeeWellness: true,
       diversityInclusion: true,
@@ -244,6 +245,7 @@ export const volumeStrategy: StrategyDecisionMaker = (state, market, round) => {
 
   const hr: Record<string, unknown> = {
     recruitmentSearches: [
+      { role: "worker", tier: "basic", factoryId: fid(state) },
       { role: "worker", tier: "basic", factoryId: fid(state) },
       { role: "worker", tier: "basic", factoryId: fid(state) },
       { role: "engineer", tier: "basic", factoryId: fid(state) },
@@ -271,39 +273,37 @@ export const volumeStrategy: StrategyDecisionMaker = (state, market, round) => {
       { name: "Budget Retailer Partnership", cost: Math.min(1_500_000, cash * 0.02), brandImpact: 0.008 },
     ],
     productPricing: [
-      { productId: "budget-product", newPrice: 185 },
-      { productId: "initial-product", newPrice: 405 },
-      { productId: "active-product", newPrice: 535 },
-      { productId: "enthusiast-product", newPrice: 755 },
-      { productId: "professional-product", newPrice: 1165 },
+      { productId: "budget-product", newPrice: 190 },
+      { productId: "initial-product", newPrice: 410 },
+      { productId: "active-product", newPrice: 540 },
+      { productId: "enthusiast-product", newPrice: 760 },
+      { productId: "professional-product", newPrice: 1170 },
     ],
   };
 
   const newProducts: Array<{ name: string; segment: string; targetQuality: number; targetFeatures: number; archetypeId?: string }> = [];
   if (hasTech(state, "process_optimization")) {
     if (!hasProduct(state, "Snapshot Phone"))
-      newProducts.push({ name: "Snapshot Phone", segment: "General", targetQuality: 60, targetFeatures: 55, archetypeId: "snapshot_phone" });
+      newProducts.push({ name: "Snapshot Phone", segment: "General", targetQuality: 55, targetFeatures: 50, archetypeId: "snapshot_phone" });
     if (!hasProduct(state, "Long Life Phone"))
-      newProducts.push({ name: "Long Life Phone", segment: "Budget", targetQuality: 55, targetFeatures: 40, archetypeId: "long_life_phone" });
+      newProducts.push({ name: "Long Life Phone", segment: "Budget", targetQuality: 50, targetFeatures: 38, archetypeId: "long_life_phone" });
     if (!hasProduct(state, "Outdoor Basic"))
-      newProducts.push({ name: "Outdoor Basic", segment: "Active Lifestyle", targetQuality: 60, targetFeatures: 50, archetypeId: "outdoor_basic" });
-    if (!hasProduct(state, "Connected Phone"))
-      newProducts.push({ name: "Connected Phone", segment: "General", targetQuality: 54, targetFeatures: 50, archetypeId: "connected_phone" });
+      newProducts.push({ name: "Outdoor Basic", segment: "Active Lifestyle", targetQuality: 55, targetFeatures: 48, archetypeId: "outdoor_basic" });
   }
   if (hasTech(state, "advanced_manufacturing")) {
     if (!hasProduct(state, "Rugged Phone"))
-      newProducts.push({ name: "Rugged Phone", segment: "Active Lifestyle", targetQuality: 62, targetFeatures: 55, archetypeId: "rugged_phone" });
+      newProducts.push({ name: "Rugged Phone", segment: "Active Lifestyle", targetQuality: 58, targetFeatures: 52, archetypeId: "rugged_phone" });
   }
 
   const rd = {
-    rdBudget: Math.min(12_000_000 * r, cash * 0.30),
+    rdBudget: Math.min(10_500_000 * r, cash * 0.25),
     newProducts,
     productImprovements: [
-      { productId: "budget-product", qualityIncrease: 4, featuresIncrease: 3 },
-      { productId: "initial-product", qualityIncrease: 3, featuresIncrease: 3 },
-      { productId: "active-product", qualityIncrease: 3, featuresIncrease: 3 },
-      { productId: "enthusiast-product", qualityIncrease: 2, featuresIncrease: 2 },
-      { productId: "professional-product", qualityIncrease: 2, featuresIncrease: 2 },
+      { productId: "budget-product", qualityIncrease: 2, featuresIncrease: 2 },
+      { productId: "initial-product", qualityIncrease: 2, featuresIncrease: 2 },
+      { productId: "active-product", qualityIncrease: 2, featuresIncrease: 2 },
+      { productId: "enthusiast-product", qualityIncrease: 1, featuresIncrease: 1 },
+      { productId: "professional-product", qualityIncrease: 1, featuresIncrease: 1 },
     ],
   };
 
@@ -849,7 +849,6 @@ export const rdFocusedStrategy: StrategyDecisionMaker = (state, market, round) =
   const hr: Record<string, unknown> = {
     recruitmentSearches: [
       { role: "engineer", tier: "basic", factoryId: fid(state) },
-      { role: "engineer", tier: "basic", factoryId: fid(state) },
       { role: "worker", tier: "basic", factoryId: fid(state) },
       { role: "worker", tier: "basic", factoryId: fid(state) },
       { role: "supervisor", tier: "basic", factoryId: fid(state) },
@@ -857,50 +856,43 @@ export const rdFocusedStrategy: StrategyDecisionMaker = (state, market, round) =
     trainingPrograms: [
       { role: "engineer", programType: "innovation" },
     ],
-    benefitChanges: {
-      professionalDevelopment: 4_000,
-    },
   };
 
   const marketing = {
     advertisingBudget: {
-      Budget: Math.min(3_000_000 * r, cash * 0.12),
-      General: Math.min(4_000_000 * r, cash * 0.15),
-      Enthusiast: Math.min(4_000_000 * r, cash * 0.15),
-      Professional: Math.min(3_500_000 * r, cash * 0.12),
-      "Active Lifestyle": Math.min(3_500_000 * r, cash * 0.12),
+      Budget: Math.min(2_500_000 * r, cash * 0.10),
+      General: Math.min(3_000_000 * r, cash * 0.12),
+      Enthusiast: Math.min(3_500_000 * r, cash * 0.12),
+      Professional: Math.min(3_000_000 * r, cash * 0.10),
+      "Active Lifestyle": Math.min(3_000_000 * r, cash * 0.10),
     },
-    brandingInvestment: Math.min(3_000_000 * r, cash * 0.12),
+    brandingInvestment: Math.min(2_500_000 * r, cash * 0.10),
     promotions: [] as Array<{ segment: string; discountPercent: number; duration: number }>,
-    sponsorships: round >= 6 ? [
-      { name: "Gaming Tournament", cost: Math.min(1_500_000, cash * 0.06), brandImpact: 0.008 },
+    sponsorships: round >= 8 ? [
+      { name: "Gaming Tournament", cost: Math.min(1_000_000, cash * 0.04), brandImpact: 0.006 },
     ] : [],
     productPricing: [
       { productId: "budget-product", newPrice: 190 },
       { productId: "initial-product", newPrice: 410 },
       { productId: "active-product", newPrice: 540 },
-      { productId: "enthusiast-product", newPrice: 765 },
-      { productId: "professional-product", newPrice: 1175 },
+      { productId: "enthusiast-product", newPrice: 760 },
+      { productId: "professional-product", newPrice: 1170 },
     ],
   };
 
-  // R&D focused: fewer but higher quality products (depth not breadth)
+  // R&D focused: fewer products, focus on 2-3 key segments
   const newProducts: Array<{ name: string; segment: string; targetQuality: number; targetFeatures: number; archetypeId?: string }> = [];
   if (hasTech(state, "process_optimization")) {
     if (!hasProduct(state, "Snapshot Phone"))
-      newProducts.push({ name: "Snapshot Phone", segment: "General", targetQuality: 58, targetFeatures: 52, archetypeId: "snapshot_phone" });
-    if (!hasProduct(state, "Outdoor Basic"))
-      newProducts.push({ name: "Outdoor Basic", segment: "Active Lifestyle", targetQuality: 58, targetFeatures: 48, archetypeId: "outdoor_basic" });
+      newProducts.push({ name: "Snapshot Phone", segment: "General", targetQuality: 55, targetFeatures: 50, archetypeId: "snapshot_phone" });
   }
   if (hasTech(state, "advanced_manufacturing")) {
     if (!hasProduct(state, "Camera Phone"))
-      newProducts.push({ name: "Camera Phone", segment: "Enthusiast", targetQuality: 65, targetFeatures: 60, archetypeId: "camera_phone" });
-    if (!hasProduct(state, "Business Phone"))
-      newProducts.push({ name: "Business Phone", segment: "Professional", targetQuality: 70, targetFeatures: 65, archetypeId: "business_phone" });
+      newProducts.push({ name: "Camera Phone", segment: "Enthusiast", targetQuality: 62, targetFeatures: 58, archetypeId: "camera_phone" });
   }
 
   const rd = {
-    rdBudget: Math.min(10_500_000 * r, cash * 0.22),
+    rdBudget: Math.min(10_500_000 * r, cash * 0.20),
     newProducts,
     productImprovements: [
       { productId: "enthusiast-product", qualityIncrease: 1, featuresIncrease: 1 },

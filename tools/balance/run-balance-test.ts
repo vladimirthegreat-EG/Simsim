@@ -18,7 +18,7 @@ import { STRATEGIES, type StrategyArchetype, type StrategyDecisionMaker } from "
 // ============================================
 
 const TOTAL_GAMES = 500;
-const ROUNDS_PER_GAME = 8;
+const ROUNDS_PER_GAME = 16;
 const TEAMS_PER_GAME = 5;
 const NOISE_FACTOR = 0.10; // ±10% random noise on decisions
 const SEED_BASE = 42;
