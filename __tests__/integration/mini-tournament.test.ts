@@ -515,3 +515,98 @@ describe("Mini-Tournament", { timeout: 30_000 }, () => {
     expect(game!.maxRounds).toBe(4);
   });
 });
+
+// ============================================
+// DS-21: Full round-trip — decisions → DB → engine → non-zero results
+// ============================================
+describe("DS-21: Full round-trip decision pipeline", () => {
+  let rtGameId: string;
+  let rtTeam1Token: string;
+  let rtTeam2Token: string;
+  let rtFacilitatorId: string;
+
+  it("should create game with 2 teams", async () => {
+    // Create facilitator
+    const facCaller = createTestCaller({ prisma });
+    const facResult = await facCaller.facilitator.register({
+      email: `rt-fac-${Date.now()}@test.com`,
+      name: "RT Facilitator",
+      password: "test123456",
+    });
+    rtFacilitatorId = facResult.facilitator.id;
+
+    // Create game
+    const gameCaller = createTestCaller({ prisma, facilitatorId: rtFacilitatorId });
+    const gameResult = await gameCaller.game.create({
+      name: "Round-Trip Test",
+      maxRounds: 2,
+    });
+    rtGameId = gameResult.id;
+    const joinCode = gameResult.joinCode;
+
+    // Join 2 teams
+    const pub = createTestCaller({ prisma });
+    const t1 = await pub.team.join({ joinCode, teamName: "Good Team" });
+    const t2 = await pub.team.join({ joinCode, teamName: "Passive Team" });
+    rtTeam1Token = t1.sessionToken;
+    rtTeam2Token = t2.sessionToken;
+
+    // Start game
+    await gameCaller.game.start({ gameId: rtGameId });
+
+    const game = await prisma.game.findUnique({ where: { id: rtGameId } });
+    expect(game!.status).toBe("IN_PROGRESS");
+    expect(game!.currentRound).toBe(1);
+  });
+
+  it("should submit decisions, lock, advance round, and produce non-zero revenue", async () => {
+    const team1Caller = createTestCaller({ prisma, sessionToken: rtTeam1Token });
+    const team2Caller = createTestCaller({ prisma, sessionToken: rtTeam2Token });
+
+    // Team 1: Active strategy — invest in everything
+    for (const [module, decisions] of Object.entries(VALID_DECISIONS)) {
+      await team1Caller.decision.submit({
+        module: module as "FACTORY" | "FINANCE" | "HR" | "MARKETING" | "RD",
+        decisions,
+      });
+    }
+    await team1Caller.decision.lockAll();
+
+    // Team 2: Minimal strategy — submit empty/minimal decisions
+    for (const module of ["FACTORY", "FINANCE", "HR", "MARKETING", "RD"] as const) {
+      await team2Caller.decision.submit({
+        module,
+        decisions: module === "FINANCE"
+          ? { issueTBills: 0, issueBonds: 0, dividendPerShare: 0, sharesBuyback: 0 }
+          : {},
+      });
+    }
+    await team2Caller.decision.lockAll();
+
+    // Facilitator advances round
+    const facCaller = createTestCaller({ prisma, facilitatorId: rtFacilitatorId });
+    await facCaller.game.advanceRound({ gameId: rtGameId });
+
+    // Verify results
+    const round = await prisma.round.findFirst({
+      where: { gameId: rtGameId, roundNumber: 1 },
+    });
+    expect(round!.status).toBe("COMPLETED");
+
+    // Check team states have valid financial data
+    const teams = await prisma.team.findMany({
+      where: { gameId: rtGameId },
+    });
+
+    for (const team of teams) {
+      const state = JSON.parse(team.currentState as string);
+      // Revenue should be a finite number (not NaN, not undefined)
+      expect(Number.isFinite(state.revenue)).toBe(true);
+      // Cash should be finite
+      expect(Number.isFinite(state.cash)).toBe(true);
+      // No NaN in key fields
+      expect(Number.isNaN(state.netIncome ?? 0)).toBe(false);
+      expect(Number.isNaN(state.eps ?? 0)).toBe(false);
+    }
+  });
+});

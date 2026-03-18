@@ -450,3 +450,119 @@ describe("Team join input contract", () => {
     }
   });
 });
+
+// ============================================
+// LAYER 0 — DECISION SAVE PIPELINE (DS-15 through DS-20)
+// ============================================
+describe("Decision Save Pipeline", () => {
+  it("DS-15: submit saves factory decisions to DB", async () => {
+    await teamCaller.decision.submit({
+      module: "FACTORY",
+      decisions: VALID_DECISIONS.FACTORY,
+    });
+
+    const record = await prisma.teamDecision.findFirst({
+      where: { module: "FACTORY" },
+    });
+    expect(record).not.toBeNull();
+    expect(record!.module).toBe("FACTORY");
+  });
+
+  it("DS-16: upsert replaces previous submission", async () => {
+    // First submission
+    await teamCaller.decision.submit({
+      module: "FACTORY",
+      decisions: VALID_DECISIONS.FACTORY,
+    });
+
+    // Second submission with different values
+    await teamCaller.decision.submit({
+      module: "FACTORY",
+      decisions: { ...VALID_DECISIONS.FACTORY, investments: { workerEfficiency: 999 } },
+    });
+
+    // Should be exactly 1 record, not 2
+    const records = await prisma.teamDecision.findMany({
+      where: { module: "FACTORY" },
+    });
+    expect(records.length).toBe(1);
+  });
+
+  it("DS-17: all 5 modules saved as separate records", async () => {
+    // Submit all 5 modules
+    for (const [module, decisions] of Object.entries(VALID_DECISIONS)) {
+      await teamCaller.decision.submit({
+        module: module as "FACTORY" | "FINANCE" | "HR" | "MARKETING" | "RD",
+        decisions,
+      });
+    }
+
+    const records = await prisma.teamDecision.findMany({});
+    const modules = new Set(records.map(r => r.module));
+    expect(modules.size).toBeGreaterThanOrEqual(5);
+  });
+
+  it("DS-18: lockAll blocks when module missing", async () => {
+    // Create a fresh game/team with only 4 modules submitted
+    const fac2 = await seedFacilitator(prisma);
+    const game2 = await seedGame(prisma, fac2.id, { status: "IN_PROGRESS", currentRound: 1 });
+    const team2 = await seedTeam(prisma, game2.id, { sessionToken: "lock-test-token" });
+    await seedRound(prisma, game2.id, 1, { status: "ACCEPTING_DECISIONS" });
+    const caller2 = createTestCaller({ prisma, sessionToken: "lock-test-token" });
+
+    // Submit only 4 modules (missing RD)
+    for (const module of ["FACTORY", "FINANCE", "HR", "MARKETING"] as const) {
+      await caller2.decision.submit({ module, decisions: VALID_DECISIONS[module] });
+    }
+
+    try {
+      await caller2.decision.lockAll();
+      expect.fail("Should have thrown for missing module");
+    } catch (error) {
+      expect(error).toBeInstanceOf(TRPCError);
+    }
+  });
+
+  it("DS-19: lockAll succeeds when all 5 present", async () => {
+    const fac3 = await seedFacilitator(prisma);
+    const game3 = await seedGame(prisma, fac3.id, { status: "IN_PROGRESS", currentRound: 1 });
+    const team3 = await seedTeam(prisma, game3.id, { sessionToken: "lock-all-token" });
+    await seedRound(prisma, game3.id, 1, { status: "ACCEPTING_DECISIONS" });
+    const caller3 = createTestCaller({ prisma, sessionToken: "lock-all-token" });
+
+    // Submit all 5 modules
+    for (const [module, decisions] of Object.entries(VALID_DECISIONS)) {
+      await caller3.decision.submit({
+        module: module as "FACTORY" | "FINANCE" | "HR" | "MARKETING" | "RD",
+        decisions,
+      });
+    }
+
+    const result = await caller3.decision.lockAll();
+    expect(result.success).toBe(true);
+    expect(result.lockedCount).toBe(5);
+
+    // Verify DB state
+    const locked = await prisma.teamDecision.findMany({
+      where: { teamId: team3.id, isLocked: true },
+    });
+    expect(locked.length).toBe(5);
+  });
+
+  it("DS-20: getSubmitted returns saved decisions", async () => {
+    const fac4 = await seedFacilitator(prisma);
+    const game4 = await seedGame(prisma, fac4.id, { status: "IN_PROGRESS", currentRound: 1 });
+    await seedTeam(prisma, game4.id, { sessionToken: "get-sub-token" });
+    await seedRound(prisma, game4.id, 1, { status: "ACCEPTING_DECISIONS" });
+    const caller4 = createTestCaller({ prisma, sessionToken: "get-sub-token" });
+
+    await caller4.decision.submit({ module: "FACTORY", decisions: VALID_DECISIONS.FACTORY });
+    await caller4.decision.submit({ module: "HR", decisions: VALID_DECISIONS.HR });
+
+    const submitted = await caller4.decision.getSubmitted();
+    expect(submitted.length).toBeGreaterThanOrEqual(2);
+    const modules = submitted.map((s: { module: string }) => s.module);
+    expect(modules).toContain("FACTORY");
+    expect(modules).toContain("HR");
+  });
+});
