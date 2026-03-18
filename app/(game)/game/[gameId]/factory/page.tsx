@@ -446,6 +446,10 @@ export default function FactoryPage({ params }: PageProps) {
   const [newFactories, setNewFactories] = useState<Array<{ region: string; name: string }>>(factory.newFactories);
   const [maintenanceInvestment, setMaintenanceInvestment] = useState(0);
 
+  // Production line decisions state
+  const [lineTargets, setLineTargets] = useState<Record<string, number>>({});
+  const [lineProductAssignments, setLineProductAssignments] = useState<Record<string, string>>({});
+
   // Logistics state
   const [fromRegion, setFromRegion] = useState<Region>("Asia");
   const [toRegion, setToRegion] = useState<Region>("North America");
@@ -511,6 +515,24 @@ export default function FactoryPage({ params }: PageProps) {
     setFactoryDecisions({ newFactories });
   }, [newFactories, setFactoryDecisions]);
 
+  // Build production line decisions from local state
+  const productionLineDecisions = useMemo(() => {
+    const targets = Object.entries(lineTargets)
+      .filter(([, target]) => target > 0)
+      .map(([lineId, targetOutput]) => ({ lineId, targetOutput }));
+    const assignments = Object.entries(lineProductAssignments)
+      .filter(([, productId]) => productId)
+      .map(([lineId, productId]) => ({ lineId, productId }));
+    return (targets.length > 0 || assignments.length > 0) ? { targets, assignments } : undefined;
+  }, [lineTargets, lineProductAssignments]);
+
+  // Sync production line decisions to store
+  useEffect(() => {
+    if (productionLineDecisions) {
+      setFactoryDecisions({ productionLineDecisions });
+    }
+  }, [productionLineDecisions, setFactoryDecisions]);
+
   // Get current decisions for submission
   const getDecisions = useCallback(() => ({
     efficiencyInvestment,
@@ -518,7 +540,8 @@ export default function FactoryPage({ params }: PageProps) {
     productionAllocations,
     upgradePurchases,
     newFactories,
-  }), [efficiencyInvestment, esgInvestment, productionAllocations, upgradePurchases, newFactories]);
+    productionLineDecisions,
+  }), [efficiencyInvestment, esgInvestment, productionAllocations, upgradePurchases, newFactories, productionLineDecisions]);
 
   const { data: teamState, isLoading } = trpc.team.getMyState.useQuery();
   const { data: materialsState, isLoading: materialsLoading } = trpc.material.getMaterialsState.useQuery();
@@ -1459,7 +1482,7 @@ export default function FactoryPage({ params }: PageProps) {
             </CardContent>
           </Card>
 
-          {/* Production Lines Status */}
+          {/* Production Lines — Interactive Controls */}
           <Card className="bg-slate-800/80 border-slate-700/50 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
@@ -1470,66 +1493,93 @@ export default function FactoryPage({ params }: PageProps) {
                 </Badge>
               </CardTitle>
               <CardDescription className="text-slate-400">
-                Each production line manufactures one product. Assign products, set targets, and monitor bottlenecks.
+                Assign products to lines, set target output, and monitor bottlenecks. Capacity = min(machines, workers, target) × efficiency.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {(selectedFactory.productionLines ?? []).length === 0 ? (
                 <div className="text-center text-slate-500 py-6">
-                  No production lines configured. Factory tier determines available lines.
+                  No production lines available. Factory tier determines max lines (Small: 2, Medium: 3, Large: 5).
                 </div>
               ) : (
                 (selectedFactory.productionLines ?? []).map((line: { id: string; productId: string | null; segment: string | null; targetOutput: number; assignedWorkers: number; assignedEngineers: number; assignedSupervisors: number; assignedMachines: string[]; status: string; changeoverRoundsRemaining: number }, idx: number) => {
                   const product = state?.products?.find((p: { id: string }) => p.id === line.productId);
+                  const launchedProducts = (state?.products ?? []).filter((p: { developmentStatus: string }) => p.developmentStatus === "launched");
                   const isActive = line.status === "active" && line.productId;
                   const isChangeover = line.status === "changeover";
                   const statusColor = isActive ? "text-green-400" : isChangeover ? "text-yellow-400" : "text-slate-500";
                   const statusBg = isActive ? "bg-green-500/10 border-green-500/30" : isChangeover ? "bg-yellow-500/10 border-yellow-500/30" : "bg-slate-700/30 border-slate-600/30";
+                  const currentTarget = lineTargets[line.id] ?? line.targetOutput ?? 0;
 
                   return (
                     <div key={line.id} className={`p-4 rounded-lg border ${statusBg}`}>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-white font-medium">Line {idx + 1}</span>
-                            <span className={`text-xs uppercase font-semibold ${statusColor}`}>
-                              {isChangeover ? `Changeover (${line.changeoverRoundsRemaining}r)` : line.status}
-                            </span>
-                          </div>
-                          <div className="text-sm text-slate-400 mt-1">
-                            {product ? (
-                              <>{product.name ?? line.productId} — <span className="text-slate-300">{line.segment}</span></>
-                            ) : (
-                              <span className="italic">No product assigned</span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-white font-medium">{formatNumber(line.targetOutput)} units</div>
-                          <div className="text-xs text-slate-400">target output</div>
+                      {/* Line header */}
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-white font-medium">Line {idx + 1}</span>
+                          <span className={`text-xs uppercase font-semibold ${statusColor}`}>
+                            {isChangeover ? `Changeover (${line.changeoverRoundsRemaining}r)` : line.status}
+                          </span>
                         </div>
                       </div>
 
-                      {isActive && (
-                        <div className="grid grid-cols-4 gap-3 mt-3 text-xs">
-                          <div>
-                            <span className="text-slate-500">Workers</span>
-                            <div className="text-slate-300 font-medium">{line.assignedWorkers}</div>
-                          </div>
-                          <div>
-                            <span className="text-slate-500">Engineers</span>
-                            <div className="text-slate-300 font-medium">{line.assignedEngineers}</div>
-                          </div>
-                          <div>
-                            <span className="text-slate-500">Supervisors</span>
-                            <div className="text-slate-300 font-medium">{line.assignedSupervisors}</div>
-                          </div>
-                          <div>
-                            <span className="text-slate-500">Machines</span>
-                            <div className="text-slate-300 font-medium">{line.assignedMachines?.length ?? 0}</div>
-                          </div>
+                      {/* Product assignment dropdown */}
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                          <label className="text-xs text-slate-500 mb-1 block">Product</label>
+                          <select
+                            className="w-full bg-slate-700 border border-slate-600 text-white text-sm rounded px-2 py-1.5"
+                            value={lineProductAssignments[line.id] ?? line.productId ?? ""}
+                            onChange={(e) => {
+                              setLineProductAssignments(prev => ({ ...prev, [line.id]: e.target.value }));
+                            }}
+                          >
+                            <option value="">— Unassigned —</option>
+                            {launchedProducts.map((p: { id: string; name: string; segment: string }) => (
+                              <option key={p.id} value={p.id}>{p.name} ({p.segment})</option>
+                            ))}
+                          </select>
                         </div>
-                      )}
+                        <div>
+                          <label className="text-xs text-slate-500 mb-1 block">Target Output</label>
+                          <input
+                            type="number"
+                            className="w-full bg-slate-700 border border-slate-600 text-white text-sm rounded px-2 py-1.5"
+                            value={currentTarget}
+                            min={0}
+                            max={selectedFactory.baseCapacity ?? 25000}
+                            step={500}
+                            onChange={(e) => {
+                              const val = Math.max(0, Math.min(selectedFactory.baseCapacity ?? 25000, Number(e.target.value)));
+                              setLineTargets(prev => ({ ...prev, [line.id]: val }));
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Staff & machine summary */}
+                      <div className="grid grid-cols-5 gap-2 text-xs">
+                        <div className="bg-slate-700/40 rounded p-2">
+                          <span className="text-slate-500 block">Workers</span>
+                          <span className="text-slate-300 font-medium">{line.assignedWorkers ?? 0}</span>
+                        </div>
+                        <div className="bg-slate-700/40 rounded p-2">
+                          <span className="text-slate-500 block">Engineers</span>
+                          <span className="text-slate-300 font-medium">{line.assignedEngineers ?? 0}</span>
+                        </div>
+                        <div className="bg-slate-700/40 rounded p-2">
+                          <span className="text-slate-500 block">Supervisors</span>
+                          <span className="text-slate-300 font-medium">{line.assignedSupervisors ?? 0}</span>
+                        </div>
+                        <div className="bg-slate-700/40 rounded p-2">
+                          <span className="text-slate-500 block">Machines</span>
+                          <span className="text-slate-300 font-medium">{line.assignedMachines?.length ?? 0}</span>
+                        </div>
+                        <div className="bg-slate-700/40 rounded p-2">
+                          <span className="text-slate-500 block">Output</span>
+                          <span className="text-emerald-400 font-medium">{formatNumber(currentTarget)}</span>
+                        </div>
+                      </div>
                     </div>
                   );
                 })
@@ -3417,6 +3467,60 @@ export default function FactoryPage({ params }: PageProps) {
               variant={esgInvestment >= 2_000_000 ? "success" : "default"}
             />
           </div>
+
+          {/* ESG Subscore Breakdown */}
+          {(() => {
+            const subscores = state?.esgSubscores;
+            const env = subscores?.environmental ?? 0;
+            const soc = subscores?.social ?? 0;
+            const gov = subscores?.governance ?? 0;
+            const reachBonus = ((env / 333) * 0.15 * 100).toFixed(1);
+            const effBonus = ((soc / 333) * 0.06 * 100).toFixed(1);
+            const riskReduction = ((gov / 333) * 0.20 * 100).toFixed(1);
+
+            return (
+              <Card className="bg-slate-800/80 border-slate-700/50">
+                <CardHeader>
+                  <CardTitle className="text-white text-base flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-emerald-400" />
+                    ESG Subscore Breakdown
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-300">Environmental</span>
+                      <span className="text-xs text-emerald-400">+{reachBonus}% market reach</span>
+                    </div>
+                    <div className="w-full bg-slate-700 rounded-full h-2">
+                      <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${Math.min(100, (env / 333) * 100)}%` }} />
+                    </div>
+                    <span className="text-xs text-slate-500">{env} / 333</span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-300">Social</span>
+                      <span className="text-xs text-blue-400">+{effBonus}% production efficiency</span>
+                    </div>
+                    <div className="w-full bg-slate-700 rounded-full h-2">
+                      <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${Math.min(100, (soc / 333) * 100)}%` }} />
+                    </div>
+                    <span className="text-xs text-slate-500">{soc} / 333</span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-300">Governance</span>
+                      <span className="text-xs text-purple-400">-{riskReduction}% breakdown risk</span>
+                    </div>
+                    <div className="w-full bg-slate-700 rounded-full h-2">
+                      <div className="bg-purple-500 h-2 rounded-full" style={{ width: `${Math.min(100, (gov / 333) * 100)}%` }} />
+                    </div>
+                    <span className="text-xs text-slate-500">{gov} / 333</span>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* CO2 Reduction Investment */}
           <Card className="bg-slate-800/80 border-slate-700/50">

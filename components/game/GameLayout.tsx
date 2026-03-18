@@ -75,8 +75,7 @@ const moduleToComplexityKey: Record<string, keyof ReturnType<typeof useComplexit
   hr: "hr",
   marketing: "marketing",
   rnd: "rd",
-  logistics: null, // Always visible (operations)
-  "supply-chain": null, // Always visible (operations)
+  "supply-chain": null, // Always visible (operations — includes logistics)
   news: null, // Always visible
   results: null, // Always visible
   achievements: null, // Always visible
@@ -133,15 +132,8 @@ const modules = [
     color: "text-purple-400",
   },
   {
-    id: "logistics",
-    name: "Logistics",
-    icon: Truck,
-    path: "/logistics",
-    color: "text-amber-400",
-  },
-  {
     id: "supply-chain",
-    name: "Supply Chain",
+    name: "Supply Chain & Logistics",
     icon: Package,
     path: "/supply-chain",
     color: "text-teal-400",

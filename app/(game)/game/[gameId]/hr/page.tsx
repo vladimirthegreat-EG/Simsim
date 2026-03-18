@@ -1561,22 +1561,43 @@ export default function HRPage({ params }: PageProps) {
                                 <div className="grid grid-cols-3 gap-3">
                                   <div className="space-y-1">
                                     <label className="text-xs text-slate-500">Workers</label>
-                                    <div className={`text-sm font-medium ${isActive ? "text-blue-300" : "text-slate-500"}`}>
-                                      {line.assignedWorkers}
-                                    </div>
+                                    <input
+                                      type="number"
+                                      className="w-full bg-slate-700 border border-slate-600 text-white text-sm rounded px-2 py-1"
+                                      value={line.assignedWorkers}
+                                      min={0}
+                                      max={factory.workers}
+                                      disabled={!isActive}
+                                      readOnly
+                                    />
                                   </div>
                                   <div className="space-y-1">
                                     <label className="text-xs text-slate-500">Engineers</label>
-                                    <div className={`text-sm font-medium ${isActive ? "text-blue-300" : "text-slate-500"}`}>
-                                      {line.assignedEngineers}
-                                    </div>
+                                    <input
+                                      type="number"
+                                      className="w-full bg-slate-700 border border-slate-600 text-white text-sm rounded px-2 py-1"
+                                      value={line.assignedEngineers}
+                                      min={0}
+                                      max={factory.engineers}
+                                      disabled={!isActive}
+                                      readOnly
+                                    />
                                   </div>
                                   <div className="space-y-1">
                                     <label className="text-xs text-slate-500">Supervisors</label>
-                                    <div className={`text-sm font-medium ${isActive ? "text-blue-300" : "text-slate-500"}`}>
-                                      {line.assignedSupervisors}
-                                    </div>
+                                    <input
+                                      type="number"
+                                      className="w-full bg-slate-700 border border-slate-600 text-white text-sm rounded px-2 py-1"
+                                      value={line.assignedSupervisors}
+                                      min={0}
+                                      max={factory.supervisors}
+                                      disabled={!isActive}
+                                      readOnly
+                                    />
                                   </div>
+                                </div>
+                                <div className="text-xs text-slate-500 mt-1 italic">
+                                  Staff auto-distributed evenly. Manual assignment coming soon.
                                 </div>
                               </div>
                             );
