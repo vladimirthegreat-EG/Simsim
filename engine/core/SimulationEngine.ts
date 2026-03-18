@@ -48,6 +48,7 @@ import { FXEngine } from "../fx/FXEngine";
 import { updateESGSubscores, calculateESGBonuses } from "../modules/ESGSubscoreCalculator";
 import { calculateStorageCosts, ensureWarehouseState } from "../modules/WarehouseManager";
 import { normalizeProductionLines, autoAssignMachinesToLines } from "../modules/ProductionLineManager";
+import { PatentEngine, initializePatentRegistry as PatentEngine_initializePatentRegistry } from "../modules/PatentEngine";
 import { EconomyEngine } from "../economy/EconomyEngine";
 import { CashEnforcement } from "../finance/CashEnforcement";
 import { AchievementEngine } from "../modules/AchievementEngine";
@@ -518,6 +519,50 @@ export class SimulationEngine {
       });
     }
 
+    // Step 1.7: Patent processing — between R&D and market simulation
+    // Patents affect market scoring via blocking penalties
+    try {
+      const patentRegistry = marketState.patentRegistry ?? PatentEngine_initializePatentRegistry();
+      const patentTeamDecisions = processedTeams.map(team => {
+        const teamInput = input.teams.find(t => t.id === team.id);
+        const rdDec = teamInput?.decisions?.rd;
+        return {
+          teamId: team.id,
+          state: team.state,
+          decisions: {
+            filings: rdDec?.patentFilings?.map(techId => ({ techId })),
+            licenseRequests: rdDec?.patentLicenseRequests?.map(patentId => ({ patentId, fromTeamId: "" })),
+            challenges: rdDec?.patentChallenges?.map(patentId => ({ patentId })),
+          },
+        };
+      });
+
+      const patentResult = PatentEngine.processRound(
+        patentRegistry,
+        patentTeamDecisions,
+        roundNumber,
+        processedTeams[0]?.ctx
+      );
+
+      // Update market state with new patent registry
+      marketState.patentRegistry = patentResult.updatedRegistry;
+
+      // Apply patent costs/revenue to team cash
+      for (const team of processedTeams) {
+        const revenue = patentResult.result.licensingRevenue[team.id] ?? 0;
+        if (revenue !== 0) {
+          team.state.cash += revenue;
+          summaryMessages.push(`  ${team.id}: Patent revenue/costs: $${(revenue / 1_000_000).toFixed(1)}M`);
+        }
+      }
+
+      if (patentResult.result.messages.length > 0) {
+        summaryMessages.push(...patentResult.result.messages.map(m => `  Patent: ${m}`));
+      }
+    } catch (patentError) {
+      summaryMessages.push(`  Patent processing error: ${patentError instanceof Error ? patentError.message : String(patentError)}`);
+    }
+
     // Step 2: Run market simulation (competition between all teams)
     // Use the first team's context for market simulation (all contexts share same market seed)
     summaryMessages.push("Running market simulation...");
@@ -908,8 +953,9 @@ export class SimulationEngine {
       marketCtx,
       processedTeams.map(t => ({ id: t.id, state: t.state }))
     );
-    // Carry forward economic cycle state to next round
+    // Carry forward economic cycle state and patent registry to next round
     newMarketState.economicCycleState = marketState.economicCycleState;
+    newMarketState.patentRegistry = marketState.patentRegistry;
 
     if (economicImpactMessages.length > 0) {
       summaryMessages.push(...economicImpactMessages);

@@ -63,4 +63,6 @@ export interface MarketState {
   };
   /** Dynamic price expectations per segment (optional for backward compat) */
   dynamicPricing?: Partial<Record<Segment, DynamicPriceExpectation>>;
+  /** Patent registry — tracks active patents across all teams */
+  patentRegistry?: import("../modules/PatentEngine").PatentRegistry;
 }
