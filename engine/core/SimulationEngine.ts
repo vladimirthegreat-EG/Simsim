@@ -74,6 +74,39 @@ import { EconomicCycleEngine } from "../economy/EconomicCycle";
 import { loadConfig } from "../config/loader";
 import type { EngineConfig } from "../config/schema";
 
+/**
+ * Sanitize a number: replace NaN/Infinity with 0, clamp magnitude to max.
+ * Allows negative values (e.g. salary adjustments) but caps magnitude.
+ */
+function sanitizeNum(val: unknown, max: number): number {
+  if (typeof val !== "number" || !Number.isFinite(val)) return 0;
+  if (val > max) return max;
+  if (val < -max) return -max;
+  return val;
+}
+
+/**
+ * Recursively sanitize all numeric values in a decisions object.
+ * Prevents NaN, Infinity, and absurdly large numbers from causing engine hangs.
+ * Fixes ABUSE-001, ABUSE-002, ABUSE-003.
+ */
+function sanitizeDecisionNumbers(obj: Record<string, unknown>, max: number): void {
+  for (const key of Object.keys(obj)) {
+    const val = obj[key];
+    if (typeof val === "number") {
+      obj[key] = sanitizeNum(val, max);
+    } else if (val && typeof val === "object" && !Array.isArray(val)) {
+      sanitizeDecisionNumbers(val as Record<string, unknown>, max);
+    } else if (Array.isArray(val)) {
+      for (const item of val) {
+        if (item && typeof item === "object") {
+          sanitizeDecisionNumbers(item as Record<string, unknown>, max);
+        }
+      }
+    }
+  }
+}
+
 export interface TeamInput {
   id: string;
   state: TeamState;
@@ -152,6 +185,16 @@ export class SimulationEngine {
     );
     if (rbActive) {
       summaryMessages.push("Rubber-banding factors calculated (continuous system active).");
+    }
+
+    // Step 0.1: Sanitize all decision inputs — prevent NaN/Infinity/MAX_SAFE_INTEGER hangs
+    // Fixes ABUSE-001, ABUSE-002, ABUSE-003
+    const MAX_BUDGET = 1_000_000_000; // $1B hard cap on any single budget
+    for (const team of input.teams) {
+      const d = team.decisions;
+      if (d) {
+        sanitizeDecisionNumbers(d, MAX_BUDGET);
+      }
     }
 
     // Step 0.5: Normalize production lines and auto-assign machines

@@ -192,11 +192,9 @@ describe("Abuse Stress — Adversarial Inputs (Safe)", () => {
 // ABUSE CASES — KNOWN HANGS (skipped)
 // ============================================
 
-describe("Abuse Stress — Known Engine Hangs (DEFECTS)", () => {
-  it.skip("ABUSE-001 [S0]: NaN in rdBudget — causes infinite loop", () => {
-    // DEFECT: NaN propagates through the engine pipeline and causes
-    // an infinite loop (likely in market simulation or financial calculations).
-    // Engine needs input validation to reject NaN before processing.
+describe("Abuse Stress — Input Sanitization (Previously Engine Hangs)", () => {
+  it("ABUSE-001 [FIXED]: NaN in rdBudget — sanitized to 0, no hang", () => {
+    // FIXED: Input sanitization at Step 0.1 replaces NaN with 0
     const output = runAbuse({
       rd: { rdBudget: NaN },
       factory: {},
@@ -206,11 +204,12 @@ describe("Abuse Stress — Known Engine Hangs (DEFECTS)", () => {
     }, "abuse-nan-rd");
 
     expect(output.results.length).toBe(1);
+    // Cash should be finite (no NaN propagation)
+    expect(Number.isFinite(output.results[0].newState.cash)).toBe(true);
   });
 
-  it.skip("ABUSE-002 [S0]: Infinity in advertisingBudget — causes infinite loop", () => {
-    // DEFECT: Infinity propagates and causes the engine to hang.
-    // Needs input validation to clamp or reject Infinity values.
+  it("ABUSE-002 [FIXED]: Infinity in advertisingBudget — clamped, no hang", () => {
+    // FIXED: Input sanitization at Step 0.1 clamps Infinity to $1B cap
     const output = runAbuse({
       marketing: { advertisingBudget: { Budget: Infinity } },
       factory: {},
@@ -220,12 +219,11 @@ describe("Abuse Stress — Known Engine Hangs (DEFECTS)", () => {
     }, "abuse-inf-ad");
 
     expect(output.results.length).toBe(1);
+    expect(Number.isFinite(output.results[0].newState.cash)).toBe(true);
   });
 
-  it.skip("ABUSE-003 [S1]: Number.MAX_SAFE_INTEGER as budget — causes hang", () => {
-    // DEFECT: Extremely large numbers cause the engine to take
-    // excessively long (effectively infinite) to process.
-    // Needs budget cap validation.
+  it("ABUSE-003 [FIXED]: Number.MAX_SAFE_INTEGER as budget — clamped to $1B, no hang", () => {
+    // FIXED: Input sanitization at Step 0.1 clamps to MAX_BUDGET ($1B)
     const output = runAbuse({
       rd: { rdBudget: Number.MAX_SAFE_INTEGER },
       factory: {},
@@ -235,5 +233,6 @@ describe("Abuse Stress — Known Engine Hangs (DEFECTS)", () => {
     }, "abuse-maxint");
 
     expect(output.results.length).toBe(1);
+    expect(Number.isFinite(output.results[0].newState.cash)).toBe(true);
   });
 });
