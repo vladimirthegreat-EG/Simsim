@@ -20,6 +20,7 @@ import { calculateCrowdingFactor, FIRST_MOVER_MAX_BONUS, FIRST_MOVER_DECAY_ROUND
 import { SEGMENT_FEATURE_PREFERENCES, TECH_FAMILIES, calculateFeatureMatchScore } from "../types/features";
 import type { ProductFeatureSet } from "../types/features";
 import { getDemandMultiplier } from "@/lib/config/demandCycles";
+import { getFactoryBottleneckAnalysis } from "../modules/ProductionLineManager";
 
 /** EMA smoothing factor for dynamic pricing. */
 const DYNAMIC_PRICE_EMA_ALPHA = 0.3;
@@ -359,8 +360,9 @@ export class MarketSimulator {
         const demandUnits = Math.floor(segmentDemand * share);
         const team = teams.find(t => t.id === position.teamId);
         const allocationPct = team?.state?.productionAllocations?.[segment];
+        // Use line-based capacity if configured, else legacy allocation %
         const productionCapacity = team
-          ? MarketSimulator.getTeamProductionCapacity(team.state, segment, allocationPct)
+          ? MarketSimulator.getTeamProductionCapacityFromLines(team.state, segment, allocationPct)
           : 0;
         const cappedUnits = Math.min(demandUnits, productionCapacity);
         const spareCapacity = Math.max(0, productionCapacity - demandUnits);
@@ -883,9 +885,16 @@ export class MarketSimulator {
       ? state.factories.reduce((sum, f) => sum + f.defectRate, 0) / state.factories.length
       : 0.06;
 
-    // Check for automation upgrade across factories
-    const hasAutomation = state.factories.some(f => f.upgrades.includes("automation"));
-    const automationMultiplier = hasAutomation ? 5 : 1;
+    // F1 FIX: Tiered automation (matches FactoryModule)
+    let automationMultiplier = 1.0;
+    for (const factory of state.factories) {
+      if (factory.upgrades.includes("automation")) automationMultiplier = Math.max(automationMultiplier, 1.15);
+      if (factory.upgrades.includes("advancedRobotics")) automationMultiplier += 0.15;
+      if (factory.upgrades.includes("continuousImprovement")) automationMultiplier += 0.10;
+      if (factory.upgrades.includes("leanManufacturing")) automationMultiplier += 0.10;
+      if (factory.upgrades.includes("flexibleManufacturing")) automationMultiplier += 0.10;
+      break; // Use first factory's upgrades
+    }
 
     // G5: Factory breakdowns reduce production capacity — each active breakdown reduces by 10%
     const activeBreakdowns = state.factoryExpansion?.activeBreakdowns?.length ?? 0;
@@ -893,6 +902,50 @@ export class MarketSimulator {
 
     // Final capacity = raw × efficiency × (1 - defects) × automation × (1 - breakdown penalty)
     return Math.floor(rawCapacity * avgEfficiency * (1 - avgDefectRate) * automationMultiplier * (1 - breakdownPenalty));
+  }
+
+  /**
+   * Calculate production capacity using production lines (new system).
+   * Sums projectedOutput from all active lines targeting the given segment.
+   * Falls back to legacy getTeamProductionCapacity if no lines are configured.
+   */
+  static getTeamProductionCapacityFromLines(
+    state: TeamState,
+    segment: Segment,
+    allocationPercent?: number
+  ): number {
+    // Check if any factory has active configured lines for this segment
+    const hasConfiguredLines = state.factories.some(
+      f => f.productionLines?.some(l => l.status === "active" && l.segment === segment && l.productId)
+    );
+
+    if (!hasConfiguredLines) {
+      // Fallback to legacy capacity calculation
+      return MarketSimulator.getTeamProductionCapacity(state, segment, allocationPercent);
+    }
+
+    let totalCapacity = 0;
+    for (const factory of state.factories) {
+      try {
+        const analysis = getFactoryBottleneckAnalysis(state, factory.id);
+        for (const [lineId, result] of Object.entries(analysis)) {
+          const line = factory.productionLines?.find(l => l.id === lineId);
+          if (line?.segment === segment && (result as { projectedOutput: number }).projectedOutput > 0) {
+            totalCapacity += (result as { projectedOutput: number }).projectedOutput;
+          }
+        }
+      } catch {
+        // If bottleneck analysis fails, fallback for this factory
+        totalCapacity += MarketSimulator.getTeamProductionCapacity(state, segment, allocationPercent) / Math.max(1, state.factories.length);
+      }
+    }
+
+    // If line-based capacity is 0 (no machines assigned yet), fall back to legacy
+    if (totalCapacity === 0) {
+      return MarketSimulator.getTeamProductionCapacity(state, segment, allocationPercent);
+    }
+
+    return Math.floor(totalCapacity);
   }
 
   /**

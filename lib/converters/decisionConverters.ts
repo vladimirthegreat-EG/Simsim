@@ -80,6 +80,29 @@ export function convertFactoryDecisions(
     };
   }
 
+  // Pass through production line decisions if present
+  const productionLineDecisions = ui.productionLineDecisions ? {
+    assignments: ui.productionLineDecisions.assignments,
+    targets: ui.productionLineDecisions.targets,
+    staffing: ui.productionLineDecisions.staffing,
+    machineAssignments: ui.productionLineDecisions.machineAssignments,
+  } : undefined;
+
+  // Pass through warehouse decisions if present
+  const warehouseDecisions = ui.warehouseDecisions ? {
+    build: ui.warehouseDecisions.build?.map(w => ({
+      factoryId: w.factoryId,
+      tier: w.tier as 0 | 1 | 2 | 3,
+    })),
+    rent: ui.warehouseDecisions.rent?.map(w => ({
+      factoryId: w.factoryId,
+      tier: w.tier as 0 | 1 | 2 | 3,
+    })),
+  } : undefined;
+
+  // Convert ESG initiatives
+  const esgInitiatives = ui.esgInitiatives ? { ...ui.esgInitiatives } : undefined;
+
   return {
     efficiencyInvestments,
     greenInvestments,
@@ -90,8 +113,12 @@ export function convertFactoryDecisions(
     newFactories: ui.newFactories.map(f => ({
       name: f.name,
       region: f.region as "domestic" | "asia" | "europe" | "americas",
+      tier: (f as { tier?: string }).tier as "small" | "medium" | "large" | undefined,
     })),
     productionAllocations,
+    productionLineDecisions,
+    warehouseDecisions,
+    esgInitiatives,
     machineryDecisions,
   };
 }

@@ -25,7 +25,21 @@ export interface UIFactoryDecisions {
   esgInvestment: number;
   productionAllocations: Record<string, number>;
   upgradePurchases: Array<{ factoryId: string; upgradeName: string }>;
-  newFactories: Array<{ region: string; name: string }>;
+  newFactories: Array<{ region: string; name: string; tier?: string }>;
+  // Production line management
+  productionLineDecisions?: {
+    assignments?: Array<{ lineId: string; productId: string }>;
+    targets?: Array<{ lineId: string; targetOutput: number }>;
+    staffing?: Array<{ lineId: string; workers: number; engineers: number; supervisors: number }>;
+    machineAssignments?: Array<{ machineId: string; lineId: string }>;
+  };
+  // Warehouse build/rent
+  warehouseDecisions?: {
+    build?: Array<{ factoryId: string; tier: number }>;
+    rent?: Array<{ factoryId: string; tier: number }>;
+  };
+  // ESG initiative activations
+  esgInitiatives?: Record<string, boolean | number>;
 }
 
 export interface UIFinanceDecisions {

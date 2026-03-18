@@ -47,6 +47,7 @@ import { FinancialStatementsEngine } from "../finance";
 import { FXEngine } from "../fx/FXEngine";
 import { updateESGSubscores, calculateESGBonuses } from "../modules/ESGSubscoreCalculator";
 import { calculateStorageCosts, ensureWarehouseState } from "../modules/WarehouseManager";
+import { normalizeProductionLines, autoAssignMachinesToLines } from "../modules/ProductionLineManager";
 import { EconomyEngine } from "../economy/EconomyEngine";
 import { CashEnforcement } from "../finance/CashEnforcement";
 import { AchievementEngine } from "../modules/AchievementEngine";
@@ -150,6 +151,12 @@ export class SimulationEngine {
     );
     if (rbActive) {
       summaryMessages.push("Rubber-banding factors calculated (continuous system active).");
+    }
+
+    // Step 0.5: Normalize production lines and auto-assign machines
+    for (const team of input.teams) {
+      normalizeProductionLines(team.state);
+      autoAssignMachinesToLines(team.state);
     }
 
     // Step 1: Process each team's decisions through all modules

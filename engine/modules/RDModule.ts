@@ -358,16 +358,39 @@ export class RDModule {
     if (state.factories.length === 0) return;
     const factory = state.factories[0];
     if (!factory.productionLines) factory.productionLines = [];
-    // Check if a production line already exists for this segment
-    const existingLine = factory.productionLines.find(
-      l => l.segment === product.segment
-    );
+
+    // Check if a production line already exists for this product
+    const existingLine = factory.productionLines.find(l => l.productId === product.id);
     if (existingLine) return;
 
+    // Check if there's an idle line we can assign to
+    const idleLine = factory.productionLines.find(l => l.status === "idle" && !l.productId);
+    if (idleLine) {
+      idleLine.productId = product.id;
+      idleLine.segment = product.segment as import("../types/factory").Segment;
+      idleLine.status = "active";
+      const activeCount = Math.max(1, factory.productionLines.filter(l => l.productId).length);
+      idleLine.targetOutput = Math.floor((factory.baseCapacity || 25000) / activeCount);
+      if (!idleLine.assignedWorkers) idleLine.assignedWorkers = Math.floor((factory.workers || 0) / activeCount);
+      if (!idleLine.assignedEngineers) idleLine.assignedEngineers = Math.floor((factory.engineers || 0) / activeCount);
+      if (!idleLine.assignedSupervisors) idleLine.assignedSupervisors = Math.floor((factory.supervisors || 0) / activeCount);
+      return;
+    }
+
+    // Create a new full production line
+    const activeCount = Math.max(1, factory.productionLines.filter(l => l.productId).length + 1);
     factory.productionLines.push({
       id: `line-${product.segment.toLowerCase().replace(/\s+/g, "-")}-${factory.productionLines.length + 1}`,
-      segment: product.segment,
+      factoryId: factory.id,
+      segment: product.segment as import("../types/factory").Segment,
       productId: product.id,
+      targetOutput: Math.floor((factory.baseCapacity || 25000) / activeCount),
+      assignedMachines: [],
+      assignedWorkers: Math.floor((factory.workers || 0) / activeCount),
+      assignedEngineers: Math.floor((factory.engineers || 0) / activeCount),
+      assignedSupervisors: Math.floor((factory.supervisors || 0) / activeCount),
+      status: "active",
+      changeoverRoundsRemaining: 0,
       capacity: 50_000,
       efficiency: factory.efficiency || 0.7,
     });

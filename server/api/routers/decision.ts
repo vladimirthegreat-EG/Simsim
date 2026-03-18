@@ -7,6 +7,7 @@ import { GameStatus, RoundStatus, GameModule, type GameModuleType } from "../sha
  * Factory decisions schema
  */
 const factoryDecisionsSchema = z.object({
+  // Legacy field names (API format)
   investments: z.object({
     workerEfficiency: z.number().min(0).default(0),
     supervisorEfficiency: z.number().min(0).default(0),
@@ -18,24 +19,51 @@ const factoryDecisionsSchema = z.object({
     factoryId: z.string(),
     amount: z.number().min(0),
   })).optional(),
+  // UI field names (accepted alongside legacy)
+  efficiencyInvestment: z.object({
+    workers: z.number().min(0).default(0),
+    engineers: z.number().min(0).default(0),
+    equipment: z.number().min(0).default(0),
+  }).optional(),
+  esgInvestment: z.number().min(0).optional(),
+  // Shared fields
   upgradePurchases: z.array(z.object({
     factoryId: z.string(),
     upgradeName: z.string(),
   })).optional(),
   newFactories: z.array(z.object({
     region: z.string(),
-    segment: z.string(),
+    segment: z.string().optional(),
     name: z.string(),
+    tier: z.string().optional(),
   })).optional(),
-  esgChanges: z.array(z.object({
-    factoryId: z.string(),
-    initiative: z.string(),
-    activate: z.boolean(),
-  })).optional(),
+  productionAllocations: z.record(z.string(), z.number()).optional(),
   productionAllocation: z.array(z.object({
     factoryId: z.string(),
     lineId: z.string(),
     targetUnits: z.number().min(0),
+  })).optional(),
+  // Production line decisions (new)
+  productionLineDecisions: z.object({
+    assignments: z.array(z.object({ lineId: z.string(), productId: z.string() })).optional(),
+    targets: z.array(z.object({ lineId: z.string(), targetOutput: z.number().min(0) })).optional(),
+    staffing: z.array(z.object({
+      lineId: z.string(), workers: z.number().min(0),
+      engineers: z.number().min(0), supervisors: z.number().min(0),
+    })).optional(),
+    machineAssignments: z.array(z.object({ machineId: z.string(), lineId: z.string() })).optional(),
+  }).optional(),
+  // Warehouse decisions (new)
+  warehouseDecisions: z.object({
+    build: z.array(z.object({ factoryId: z.string(), tier: z.number().min(0).max(3) })).optional(),
+    rent: z.array(z.object({ factoryId: z.string(), tier: z.number().min(0).max(3) })).optional(),
+  }).optional(),
+  // ESG initiatives
+  esgInitiatives: z.record(z.string(), z.union([z.boolean(), z.number()])).optional(),
+  esgChanges: z.array(z.object({
+    factoryId: z.string(),
+    initiative: z.string(),
+    activate: z.boolean(),
   })).optional(),
 });
 

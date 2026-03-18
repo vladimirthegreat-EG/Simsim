@@ -13,6 +13,87 @@ import { isSharedMachineType } from "../machinery/types";
 import type { Machine } from "../machinery/types";
 
 // ============================================
+// NORMALIZATION & AUTO-ASSIGNMENT
+// ============================================
+
+/**
+ * Normalize legacy production lines to the full interface.
+ * Fills missing fields so calculateLineOutput() works correctly.
+ * Call at start of processRound() for each team.
+ */
+export function normalizeProductionLines(state: TeamState): void {
+  for (const factory of state.factories) {
+    if (!factory.productionLines) factory.productionLines = [];
+
+    const activeLines = factory.productionLines.filter(l => l.productId != null);
+    const lineCount = Math.max(1, activeLines.length);
+
+    for (const line of factory.productionLines) {
+      // Fill missing required fields
+      if (!line.factoryId) line.factoryId = factory.id;
+      if (line.assignedMachines === undefined) line.assignedMachines = [];
+      if (line.status === undefined) line.status = line.productId ? "active" : "idle";
+      if (line.changeoverRoundsRemaining === undefined) line.changeoverRoundsRemaining = 0;
+      if (line.segment === undefined) line.segment = null;
+
+      // Default target output: split factory capacity evenly across active lines
+      if (line.targetOutput === undefined || line.targetOutput === 0) {
+        if (line.productId && line.status === "active") {
+          line.targetOutput = Math.floor((factory.baseCapacity || 25000) / lineCount);
+        }
+      }
+
+      // Default staffing: distribute factory workers evenly across active lines
+      if (line.assignedWorkers === undefined || line.assignedWorkers === 0) {
+        if (line.productId && line.status === "active") {
+          line.assignedWorkers = Math.floor((factory.workers || 0) / lineCount);
+          line.assignedEngineers = Math.floor((factory.engineers || 0) / lineCount);
+          line.assignedSupervisors = Math.floor((factory.supervisors || 0) / lineCount);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Auto-assign unassigned line-locked machines to active production lines.
+ * Shared machines (packaging, scanner, testing_rig, conveyor, forklift) stay factory-wide.
+ * Distributes machines round-robin across lines that have no machines assigned.
+ */
+export function autoAssignMachinesToLines(state: TeamState): void {
+  for (const factory of state.factories) {
+    const machines = getFactoryMachines(state, factory.id);
+    if (machines.length === 0) continue;
+
+    const activeLines = factory.productionLines.filter(
+      l => l.status === "active" && l.productId != null
+    );
+    if (activeLines.length === 0) continue;
+
+    // Find unassigned line-locked machines
+    const unassigned = machines.filter(
+      m => !isSharedMachineType(m.type) && (!m.assignedLineId || m.assignedLineId === null)
+    );
+    if (unassigned.length === 0) continue;
+
+    // Find lines that need machines
+    const linesNeedingMachines = activeLines.filter(l => l.assignedMachines.length === 0);
+    if (linesNeedingMachines.length === 0) return;
+
+    // Round-robin assignment
+    let lineIdx = 0;
+    for (const machine of unassigned) {
+      const targetLine = linesNeedingMachines[lineIdx % linesNeedingMachines.length];
+      machine.assignedLineId = targetLine.id;
+      if (!targetLine.assignedMachines.includes(machine.id)) {
+        targetLine.assignedMachines.push(machine.id);
+      }
+      lineIdx++;
+    }
+  }
+}
+
+// ============================================
 // QUERIES
 // ============================================
 
