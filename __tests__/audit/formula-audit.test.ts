@@ -160,7 +160,8 @@ describe("Factory Module Formulas", () => {
       expect(result.unitsProduced).toBeCloseTo(940, -1);
     });
 
-    it("should apply automation 5x multiplier", () => {
+    // POST-FIX: Automation is now tiered (1.0 + 0.15 per upgrade), not binary 5x
+    it("should apply tiered automation multiplier (1.15x for automation upgrade)", () => {
       const factory = FactoryModule.createNewFactory("Test", "North America", 0);
       factory.efficiency = 1.0;
       factory.upgrades = ["automation"];
@@ -171,7 +172,8 @@ describe("Factory Module Formulas", () => {
       nonAutomatedFactory.efficiency = 1.0;
       const normalResult = FactoryModule.calculateProduction(nonAutomatedFactory, 10, 100, 100);
 
-      expect(automatedResult.unitsProduced).toBeCloseTo(normalResult.unitsProduced * 5, -1);
+      // POST-FIX: automation upgrade adds +0.15 to base 1.0 multiplier
+      expect(automatedResult.unitsProduced).toBeCloseTo(normalResult.unitsProduced * 1.15, -1);
     });
   });
 });
@@ -405,15 +407,16 @@ describe("Marketing Module Formulas", () => {
   });
 
   describe("Brand Decay", () => {
-    it("should decay brand by 0.5% of current value per round", () => {
+    // POST-FIX: BRAND_DECAY_RATE changed from 0.005 to 0.08 (8% per round)
+    it("should decay brand by 8% of current value per round", () => {
       const state = SimulationEngine.createInitialTeamState();
       state.brandValue = 0.5;
 
       const { newState } = MarketingModule.process(state, {});
 
-      // Brand decay is 0.5% of current value (proportional decay)
-      // 0.5 - (0.5 * 0.005) = 0.5 - 0.0025 = 0.4975
-      expect(newState.brandValue).toBeCloseTo(0.4975, 3);
+      // Brand decay is 8% of current value (proportional decay)
+      // 0.5 - (0.5 * 0.08) = 0.5 - 0.04 = 0.46
+      expect(newState.brandValue).toBeCloseTo(0.46, 2);
     });
   });
 
@@ -722,26 +725,27 @@ describe("Market Simulator Formulas", () => {
 
   describe("Rubber-Banding (v6.0.0 revised continuous system)", () => {
     it("should have correct activation round constant", () => {
-      expect(CONSTANTS.RUBBER_BAND_ACTIVATION_ROUND).toBe(3);
+      expect(CONSTANTS.RUBBER_BAND_ACTIVATION_ROUND).toBe(2); // POST-FIX: was 3, now 2
     });
 
     it("should have correct cost relief constants", () => {
-      expect(CONSTANTS.RB_MAX_COST_RELIEF).toBe(0.12);
+      expect(CONSTANTS.RB_MAX_COST_RELIEF).toBe(0.10); // POST-FIX: was 0.12 (F7 FIX: 10%)
       expect(CONSTANTS.RB_COST_RELIEF_SENSITIVITY).toBe(1.5);
     });
 
     it("should have correct perception bonus constants", () => {
-      expect(CONSTANTS.RB_MAX_PERCEPTION_BONUS).toBe(0.08);
+      expect(CONSTANTS.RB_MAX_PERCEPTION_BONUS).toBe(0.12); // POST-FIX: was 0.08, now 12%
       expect(CONSTANTS.RB_PERCEPTION_SENSITIVITY).toBe(1.2);
     });
 
     it("should have correct incumbent drag constants", () => {
-      expect(CONSTANTS.RB_MAX_DRAG).toBe(0.50);
+      expect(CONSTANTS.RB_MAX_DRAG).toBe(0.25);  // POST-FIX: was 0.50 (F7 FIX: 25%)
       expect(CONSTANTS.RB_DRAG_SENSITIVITY).toBe(0.8);
-      expect(CONSTANTS.RB_MAX_QUALITY_EXPECTATION_BOOST).toBe(5.0);
+      expect(CONSTANTS.RB_MAX_QUALITY_EXPECTATION_BOOST).toBe(2.0); // POST-FIX: was 5.0 (F7 FIX: +2 pts)
     });
 
-    it("should not activate before round 3", () => {
+    // POST-FIX: activation round changed from 3 to 2
+    it("should not activate before round 2", () => {
       const teams = [
         { id: "leader", state: SimulationEngine.createInitialTeamState() },
         { id: "trailer", state: SimulationEngine.createInitialTeamState() },
@@ -750,8 +754,8 @@ describe("Market Simulator Formulas", () => {
       teams[0].state.brandValue = 0.9;
       teams[1].state.brandValue = 0.1;
 
-      const factors = MarketSimulator.calculateRubberBandingFactors(teams, 2);
-      // All factors should be neutral before round 3
+      const factors = MarketSimulator.calculateRubberBandingFactors(teams, 1); // POST-FIX: test round 1 (activation is now round 2)
+      // All factors should be neutral before round 2
       for (const f of Object.values(factors)) {
         expect(f.costReliefFactor).toBe(0);
         expect(f.perceptionBonus).toBe(0);
@@ -870,7 +874,7 @@ describe("Constants Verification", () => {
   });
 
   it("should have documented brand decay rate", () => {
-    expect(CONSTANTS.BRAND_DECAY_RATE).toBe(0.005);
+    expect(CONSTANTS.BRAND_DECAY_RATE).toBe(0.08); // POST-FIX: was 0.005, now 8% (F9 FIX)
   });
 
   it("should have documented training fatigue parameters", () => {

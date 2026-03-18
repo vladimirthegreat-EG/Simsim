@@ -40,11 +40,12 @@ describe("Testkit Verification", () => {
 
     it("creates valid MarketState with 5 segments", () => {
       const ms = createMinimalMarketState();
-      expect(ms.demandBySegment.Budget.totalDemand).toBe(500_000);
-      expect(ms.demandBySegment.General.totalDemand).toBe(400_000);
-      expect(ms.demandBySegment.Enthusiast.totalDemand).toBe(200_000);
-      expect(ms.demandBySegment.Professional.totalDemand).toBe(100_000);
-      expect(ms.demandBySegment["Active Lifestyle"].totalDemand).toBe(150_000);
+      // POST-FIX: all segment demands updated to match current engine values
+      expect(ms.demandBySegment.Budget.totalDemand).toBe(700_000);
+      expect(ms.demandBySegment.General.totalDemand).toBe(450_000);
+      expect(ms.demandBySegment.Enthusiast.totalDemand).toBe(150_000);
+      expect(ms.demandBySegment.Professional.totalDemand).toBe(80_000);
+      expect(ms.demandBySegment["Active Lifestyle"].totalDemand).toBe(200_000);
     });
 
     it("creates valid EngineContext", () => {

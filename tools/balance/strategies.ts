@@ -72,6 +72,30 @@ function tryUpgrade(state: TeamState, upgrade: string, cost: number): Array<{ fa
   return [{ factoryId: fid(state), upgrade }];
 }
 
+/** Build machinery decisions for R5+ divergence — buy additional machines */
+function buildMachineryDecisions(state: TeamState): { purchases: Array<{ factoryId: string; machineType: string; quantity: number }> } | undefined {
+  const ownedMachineTypes = new Set(
+    Object.values(state.machineryStates ?? {}).flatMap(fms => fms.machines?.map(m => m.type) ?? [])
+  );
+  const purchases: Array<{ factoryId: string; machineType: string; quantity: number }> = [];
+  const buy = (type: string, cost: number) => {
+    if (!ownedMachineTypes.has(type) && state.cash > cost * 1.2) {
+      purchases.push({ factoryId: fid(state), machineType: type, quantity: 1 });
+      ownedMachineTypes.add(type);
+    }
+  };
+  // Ensure all core machines are owned by R5+
+  buy("assembly_line", 5_000_000);
+  buy("packaging_system", 3_000_000);
+  buy("injection_molder", 7_000_000);
+  buy("pcb_assembler", 3_500_000);
+  buy("quality_scanner", 4_000_000);
+  buy("welding_station", 4_000_000);
+  buy("conveyor_system", 6_000_000);
+  buy("paint_booth", 5_000_000);
+  return purchases.length > 0 ? { purchases } : undefined;
+}
+
 /** Round-scaling multiplier for spending growth */
 function rs(round: number): number {
   if (round <= 2) return 1.0;
@@ -90,10 +114,39 @@ function sharedFoundation(state: TeamState, market: MarketState, round: number):
   const r = rs(round);
 
   // === FACTORY ===
+  // Factory upgrades (NOT machines — machines go in machineryDecisions)
   const upgrades = [
     ...(round >= 2 ? tryUpgrade(state, "automation", 75_000_000) : []),
     ...(round >= 3 ? tryUpgrade(state, "continuousImprovement", 30_000_000) : []),
   ];
+
+  // Machine purchases — go through machineryDecisions, NOT upgradePurchases
+  // With bottleneck capacity (min), matching machine capacities matters
+  const machinePurchases: Array<{ factoryId: string; machineType: string; quantity: number }> = [];
+  const ownedMachineTypes = new Set(
+    Object.values(state.machineryStates ?? {}).flatMap(fms => fms.machines?.map(m => m.type) ?? [])
+  );
+  const buyMachine = (type: string, cost: number) => {
+    if (!ownedMachineTypes.has(type) && cash > cost * 1.2) {
+      machinePurchases.push({ factoryId: fid(state), machineType: type, quantity: 1 });
+      ownedMachineTypes.add(type); // prevent double-buy in same round
+    }
+  };
+  // R1: Assembly line (10K) + packaging (20K shared)
+  buyMachine("assembly_line", 5_000_000);
+  buyMachine("packaging_system", 3_000_000);
+  if (round >= 2) {
+    buyMachine("injection_molder", 7_000_000);
+    buyMachine("pcb_assembler", 3_500_000);
+  }
+  if (round >= 3) {
+    buyMachine("quality_scanner", 4_000_000);
+    buyMachine("welding_station", 4_000_000);
+  }
+  if (round >= 4) {
+    buyMachine("conveyor_system", 6_000_000);
+    buyMachine("paint_booth", 5_000_000);
+  }
 
   const newFactories: Array<{ name: string; region: string }> = [];
   if (round >= 3 && factoryCount(state) < 2 && cash > 80_000_000) {
@@ -115,6 +168,7 @@ function sharedFoundation(state: TeamState, market: MarketState, round: number):
     },
     upgradePurchases: upgrades,
     newFactories,
+    machineryDecisions: machinePurchases.length > 0 ? { purchases: machinePurchases } : undefined,
     esgInitiatives: {
       ...(round >= 2 ? { executivePayRatio: true } : {}),
       ...(round >= 3 ? { employeeWellness: true } : {}),
@@ -123,13 +177,16 @@ function sharedFoundation(state: TeamState, market: MarketState, round: number):
     } as Record<string, unknown>,
   };
 
-  // === HR ===
+  // === HR === (more workers to match machine capacity)
   const hr: Record<string, unknown> = {
     recruitmentSearches: [
       { role: "worker", tier: "basic", factoryId: fid(state) },
+      { role: "worker", tier: "basic", factoryId: fid(state) },
       { role: "engineer", tier: "basic", factoryId: fid(state) },
+      ...(round >= 2 ? [{ role: "worker", tier: "basic", factoryId: fid(state) }] : []),
       ...(round >= 3 ? [{ role: "worker", tier: "basic", factoryId: fid(state) }] : []),
-      ...(round >= 4 ? [{ role: "supervisor", tier: "basic", factoryId: fid(state) }] : []),
+      ...(round >= 3 ? [{ role: "supervisor", tier: "basic", factoryId: fid(state) }] : []),
+      ...(round >= 4 ? [{ role: "worker", tier: "basic", factoryId: fid(state) }] : []),
     ],
     trainingPrograms: [
       { role: "worker", programType: "efficiency" },
@@ -190,6 +247,8 @@ function sharedFoundation(state: TeamState, market: MarketState, round: number):
     dividendPerShare: round >= 3 ? 0.5 : 0,
   };
 
+  const machDecisions = buildMachineryDecisions(state);
+  if (machDecisions) factory.machineryDecisions = machDecisions;
   return { factory, hr, marketing, rd, finance } as AllDecisions;
 }
 
@@ -308,6 +367,8 @@ export const volumeStrategy: StrategyDecisionMaker = (state, market, round) => {
   };
 
   const finance: Record<string, unknown> = { dividendPerShare: 0.5 };
+  const machDecisions = buildMachineryDecisions(state);
+  if (machDecisions) factory.machineryDecisions = machDecisions;
   return { factory, hr, marketing, rd, finance } as AllDecisions;
 };
 
@@ -426,6 +487,8 @@ export const premiumStrategy: StrategyDecisionMaker = (state, market, round) => 
   };
 
   const finance: Record<string, unknown> = { dividendPerShare: 0.5 };
+  const machDecisions = buildMachineryDecisions(state);
+  if (machDecisions) factory.machineryDecisions = machDecisions;
   return { factory, hr, marketing, rd, finance } as AllDecisions;
 };
 
@@ -550,6 +613,8 @@ export const brandStrategy: StrategyDecisionMaker = (state, market, round) => {
   };
 
   const finance: Record<string, unknown> = { dividendPerShare: 0.5 };
+  const machDecisions = buildMachineryDecisions(state);
+  if (machDecisions) factory.machineryDecisions = machDecisions;
   return { factory, hr, marketing, rd, finance } as AllDecisions;
 };
 
@@ -670,6 +735,8 @@ export const automationStrategy: StrategyDecisionMaker = (state, market, round) 
   };
 
   const finance: Record<string, unknown> = { dividendPerShare: 0.5 };
+  const machDecisions = buildMachineryDecisions(state);
+  if (machDecisions) factory.machineryDecisions = machDecisions;
   return { factory, hr, marketing, rd, finance } as AllDecisions;
 };
 
@@ -796,6 +863,8 @@ export const balancedStrategy: StrategyDecisionMaker = (state, market, round) =>
   };
 
   const finance: Record<string, unknown> = { dividendPerShare: 0.5 };
+  const machDecisions = buildMachineryDecisions(state);
+  if (machDecisions) factory.machineryDecisions = machDecisions;
   return { factory, hr, marketing, rd, finance } as AllDecisions;
 };
 
@@ -904,6 +973,8 @@ export const rdFocusedStrategy: StrategyDecisionMaker = (state, market, round) =
   };
 
   const finance: Record<string, unknown> = { dividendPerShare: 0.5 };
+  const machDecisions = buildMachineryDecisions(state);
+  if (machDecisions) factory.machineryDecisions = machDecisions;
   return { factory, hr, marketing, rd, finance } as AllDecisions;
 };
 
@@ -1025,6 +1096,8 @@ export const costCutterStrategy: StrategyDecisionMaker = (state, market, round) 
 
   // Cost-cutter saves on R&D to invest more in factory efficiency — higher dividend reflects profitability focus
   const finance: Record<string, unknown> = { dividendPerShare: 1.0 };
+  const machDecisions = buildMachineryDecisions(state);
+  if (machDecisions) factory.machineryDecisions = machDecisions;
   return { factory, hr, marketing, rd, finance } as AllDecisions;
 };
 
