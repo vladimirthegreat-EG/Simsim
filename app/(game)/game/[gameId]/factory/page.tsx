@@ -449,6 +449,8 @@ export default function FactoryPage({ params }: PageProps) {
   // Production line decisions state
   const [lineTargets, setLineTargets] = useState<Record<string, number>>({});
   const [lineProductAssignments, setLineProductAssignments] = useState<Record<string, string>>({});
+  const [activeESGInitiatives, setActiveESGInitiatives] = useState<Record<string, boolean>>({});
+  const [newFactoryTier, setNewFactoryTier] = useState<string>("medium");
 
   // Logistics state
   const [fromRegion, setFromRegion] = useState<Region>("Asia");
@@ -533,6 +535,14 @@ export default function FactoryPage({ params }: PageProps) {
     }
   }, [productionLineDecisions, setFactoryDecisions]);
 
+  // Sync ESG initiatives to store
+  useEffect(() => {
+    const activeKeys = Object.entries(activeESGInitiatives).filter(([, v]) => v);
+    if (activeKeys.length > 0) {
+      setFactoryDecisions({ esgInitiatives: activeESGInitiatives });
+    }
+  }, [activeESGInitiatives, setFactoryDecisions]);
+
   // Get current decisions for submission
   const getDecisions = useCallback(() => ({
     efficiencyInvestment,
@@ -541,7 +551,8 @@ export default function FactoryPage({ params }: PageProps) {
     upgradePurchases,
     newFactories,
     productionLineDecisions,
-  }), [efficiencyInvestment, esgInvestment, productionAllocations, upgradePurchases, newFactories, productionLineDecisions]);
+    esgInitiatives: Object.keys(activeESGInitiatives).length > 0 ? activeESGInitiatives : undefined,
+  }), [efficiencyInvestment, esgInvestment, productionAllocations, upgradePurchases, newFactories, productionLineDecisions, activeESGInitiatives]);
 
   const { data: teamState, isLoading } = trpc.team.getMyState.useQuery();
   const { data: materialsState, isLoading: materialsLoading } = trpc.material.getMaterialsState.useQuery();
@@ -817,13 +828,17 @@ export default function FactoryPage({ params }: PageProps) {
     }
   };
 
-  // Toggle new factory order
+  // Toggle new factory order (includes tier selection)
   const toggleNewFactory = (regionId: string) => {
     const pending = newFactories.some(f => f.region === regionId);
     if (pending) {
       setNewFactories(prev => prev.filter(f => f.region !== regionId));
     } else {
-      setNewFactories(prev => [...prev, { region: regionId, name: `Factory ${factories.length + newFactories.length + 1}` }]);
+      setNewFactories(prev => [...prev, {
+        region: regionId,
+        name: `Factory ${factories.length + newFactories.length + 1}`,
+        tier: newFactoryTier,
+      }]);
     }
   };
 
@@ -934,20 +949,7 @@ export default function FactoryPage({ params }: PageProps) {
             <Cog className="w-4 h-4 mr-2 inline-block" />
             Machinery
           </TabsTrigger>
-          <TabsTrigger
-            value="logistics"
-            className="data-[state=active]:bg-teal-600 data-[state=active]:text-white transition-all duration-300 hover:scale-105 active:scale-95"
-          >
-            <Truck className="w-4 h-4 mr-2 inline-block" />
-            Logistics
-          </TabsTrigger>
-          <TabsTrigger
-            value="supply-chain"
-            className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white transition-all duration-300 hover:scale-105 active:scale-95"
-          >
-            <Package className="w-4 h-4 mr-2 inline-block" />
-            Supply Chain
-          </TabsTrigger>
+          {/* Logistics and Supply Chain tabs removed — use dedicated Supply Chain & Logistics page */}
           <TabsTrigger
             value="upgrades"
             className="data-[state=active]:bg-pink-600 data-[state=active]:text-white transition-all duration-300 hover:scale-105 active:scale-95"
@@ -2899,6 +2901,28 @@ export default function FactoryPage({ params }: PageProps) {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {/* Factory Tier Selector */}
+              <div className="mb-4 p-3 bg-slate-700/50 rounded-lg">
+                <label className="text-sm text-slate-300 font-medium block mb-2">Factory Size</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: "small", label: "Small", cost: "$30M", lines: "2 lines", capacity: "10K units" },
+                    { id: "medium", label: "Medium", cost: "$50M", lines: "3 lines", capacity: "25K units" },
+                    { id: "large", label: "Large", cost: "$80M", lines: "5 lines", capacity: "50K units" },
+                  ].map(tier => (
+                    <button
+                      key={tier.id}
+                      className={`p-2 rounded border text-left text-xs ${newFactoryTier === tier.id ? "border-orange-500 bg-orange-500/10" : "border-slate-600 bg-slate-700/30"}`}
+                      onClick={() => setNewFactoryTier(tier.id)}
+                    >
+                      <div className="text-white font-medium">{tier.label}</div>
+                      <div className="text-slate-400">{tier.cost} · {tier.lines}</div>
+                      <div className="text-slate-500">{tier.capacity}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {newFactories.length > 0 && (
                 <div className="mb-4 p-3 bg-green-900/20 border border-green-700 rounded-lg">
                   <p className="text-green-400 text-sm font-medium mb-2">Pending Factory Construction:</p>
@@ -2959,8 +2983,9 @@ export default function FactoryPage({ params }: PageProps) {
           </motion.div>
         </TabsContent>
 
-        {/* Logistics Tab */}
-        <TabsContent value="logistics" className="space-y-6">
+        {/* Logistics & Supply Chain tabs REMOVED — use dedicated Supply Chain & Logistics page */}
+        {/* @deprecated - these duplicate the main Supply Chain page */}
+        <TabsContent value="__removed_logistics" className="hidden">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -3163,8 +3188,7 @@ export default function FactoryPage({ params }: PageProps) {
           </motion.div>
         </TabsContent>
 
-        {/* Supply Chain Tab */}
-        <TabsContent value="supply-chain" className="space-y-6">
+        <TabsContent value="__removed_supply_chain" className="hidden">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -3586,7 +3610,14 @@ export default function FactoryPage({ params }: PageProps) {
                       <span className="text-slate-500">{init.cost}</span>
                       <span className="text-green-400">{init.points}</span>
                     </div>
-                    <Button size="sm" variant="outline" className="w-full mt-2 h-7 text-xs">Activate</Button>
+                    <Button
+                      size="sm"
+                      variant={activeESGInitiatives[init.id] ? "default" : "outline"}
+                      className={`w-full mt-2 h-7 text-xs ${activeESGInitiatives[init.id] ? "bg-green-600 hover:bg-green-700" : ""}`}
+                      onClick={() => setActiveESGInitiatives(prev => ({ ...prev, [init.id]: !prev[init.id] }))}
+                    >
+                      {activeESGInitiatives[init.id] ? "✓ Active" : "Activate"}
+                    </Button>
                   </div>
                 ))}
               </div>
