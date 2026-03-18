@@ -139,15 +139,30 @@ const marketingDecisionsSchema = z.object({
  * R&D decisions schema
  */
 const rdDecisionsSchema = z.object({
+  // UI field names
+  rdInvestment: z.number().min(0).optional(),
+  newProducts: z.array(z.object({
+    name: z.string(),
+    segment: z.string(),
+    qualityTarget: z.number().min(0).default(0),
+    featuresTarget: z.number().min(0).default(0),
+    priceTarget: z.number().min(0).optional(),
+    archetypeId: z.string().optional(),
+  })).optional(),
+  techUpgrades: z.array(z.string()).optional(),
+  patentFilings: z.array(z.string()).optional(),
+  patentLicenseRequests: z.array(z.string()).optional(),
+  patentChallenges: z.array(z.string()).optional(),
+  // Legacy field names (backward compat)
   rdBudgetAllocation: z.array(z.object({
     productId: z.string(),
     budget: z.number().min(0),
-    focus: z.enum(["innovation", "quality", "cost_reduction"]),
+    focus: z.string(),
   })).optional(),
   newProductProjects: z.array(z.object({
     name: z.string(),
     segment: z.string(),
-    targetFeatures: z.array(z.string()),
+    targetFeatures: z.array(z.string()).optional(),
   })).optional(),
 });
 

@@ -198,6 +198,7 @@ export interface RDDecisions {
     segment: Segment;
     targetQuality: number;
     targetFeatures: number;
+    priceTarget?: number;
     /** Phone archetype ID (new system - undefined = legacy product creation) */
     archetypeId?: string;
   }[];
@@ -206,6 +207,14 @@ export interface RDDecisions {
     qualityIncrease?: number;
     featuresIncrease?: number;
   }[];
+  /** Tech IDs to research/unlock */
+  techUpgrades?: string[];
+  /** Patent filing decisions */
+  patentFilings?: string[];
+  /** Patent license requests */
+  patentLicenseRequests?: string[];
+  /** Patent challenge decisions */
+  patentChallenges?: string[];
 }
 
 // ============================================

@@ -210,7 +210,13 @@ export function convertRDDecisions(ui: UIRDDecisions): EngineRDDecisions {
       segment: p.segment as Segment,
       targetQuality: p.qualityTarget,
       targetFeatures: p.featuresTarget,
+      priceTarget: p.priceTarget,
       archetypeId: p.archetypeId,
     })),
+    // Pass through tech upgrades, patent decisions
+    techUpgrades: ui.techUpgrades?.length ? ui.techUpgrades : undefined,
+    patentFilings: ui.patentFilings?.length ? ui.patentFilings : undefined,
+    patentLicenseRequests: ui.patentLicenseRequests?.length ? ui.patentLicenseRequests : undefined,
+    patentChallenges: ui.patentChallenges?.length ? ui.patentChallenges : undefined,
   };
 }

@@ -294,6 +294,24 @@ export class RDModule {
       }
     }
 
+    // Process manual tech upgrade decisions (player-chosen research)
+    if (decisions.techUpgrades && decisions.techUpgrades.length > 0) {
+      for (const techId of decisions.techUpgrades) {
+        if (newState.unlockedTechnologies!.includes(techId)) {
+          messages.push(`Technology "${techId}" already unlocked.`);
+          continue;
+        }
+        // Check if player has enough rdProgress for the tech
+        const techConfig = (CONSTANTS.RD_TECH_TREE as Record<string, { rdPointsRequired: number }>)[techId];
+        if (techConfig && newState.rdProgress >= techConfig.rdPointsRequired) {
+          newState.unlockedTechnologies!.push(techId);
+          messages.push(`Technology manually researched: ${techId.replace(/_/g, " ")}!`);
+        } else {
+          messages.push(`Cannot research "${techId}": insufficient R&D progress (need ${techConfig?.rdPointsRequired ?? "?"} pts).`);
+        }
+      }
+    }
+
     // Research decay: technologies not applied to products decay over time
     if (newState.researchDecayTimers) {
       const unlockedTechs = newState.unlockedTechnologies ?? [];
