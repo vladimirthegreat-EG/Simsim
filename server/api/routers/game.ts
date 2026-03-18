@@ -10,6 +10,26 @@ import { GAME_PRESETS, type GamePreset } from "@/engine/config/gamePresets";
 import { GameStatus, RoundStatus } from "../shared/constants";
 
 /**
+ * Log a facilitator action to the audit trail
+ */
+async function logAudit(
+  prisma: any,
+  gameId: string,
+  facilitatorId: string,
+  action: string,
+  details: Record<string, unknown> = {}
+) {
+  await prisma.facilitatorAuditLog.create({
+    data: {
+      gameId,
+      facilitatorId,
+      action,
+      details: JSON.stringify(details),
+    },
+  });
+}
+
+/**
  * Generate a random 6-character join code
  */
 function generateJoinCode(): string {
@@ -181,6 +201,10 @@ export const gameRouter = createTRPCRouter({
         },
       });
 
+      await logAudit(ctx.prisma, game.id, ctx.facilitator.id, "GAME_CREATED", {
+        name: input.name, maxRounds: gamePreset?.rounds ?? input.maxRounds,
+      });
+
       return { game, joinCode };
     }),
 
@@ -337,6 +361,10 @@ export const gameRouter = createTRPCRouter({
         },
       });
 
+      await logAudit(ctx.prisma, game.id, ctx.facilitator.id, "GAME_STARTED", {
+        teamCount: game.teams.length, roundId: round.id,
+      });
+
       return { success: true, roundId: round.id };
     }),
 
@@ -488,6 +516,23 @@ export const gameRouter = createTRPCRouter({
         }
       }
 
+      // Generate facilitator round brief
+      const teamInputsForBrief = simulationTeams.map(t => ({
+        id: t.id,
+        name: t.id,
+        state: simulationOutput.results.find(r => r.teamId === t.id)?.newState ?? t.state,
+        previousStates: [t.state],
+      }));
+      let facilitatorBrief: unknown = null;
+      try {
+        facilitatorBrief = FacilitatorReportEngine.generateRoundBrief(
+          game.currentRound,
+          teamInputsForBrief,
+        );
+      } catch {
+        // Non-critical — brief generation failure shouldn't block round
+      }
+
       // ATOMIC ROUND COMMIT: All database writes in a single transaction
       // If any write fails, the entire round is rolled back
       const nextRound = game.currentRound + 1;
@@ -540,6 +585,7 @@ export const gameRouter = createTRPCRouter({
             simulationLog: JSON.stringify({
               messages: simulationOutput.summaryMessages,
               auditTrail: simulationOutput.auditTrail,
+              facilitatorBrief,
             }),
           },
         });
@@ -576,11 +622,24 @@ export const gameRouter = createTRPCRouter({
         return { gameCompleted: false, newRoundId: newRound.id };
       });
 
+      // Audit: log round advancement and any injected events
+      await logAudit(ctx.prisma, game.id, ctx.facilitator.id, "ROUND_ADVANCED", {
+        roundNumber: game.currentRound, eventsInjected: input.events?.length ?? 0,
+      });
+      if (input.events?.length) {
+        for (const evt of input.events) {
+          await logAudit(ctx.prisma, game.id, ctx.facilitator.id, "EVENT_INJECTED", {
+            type: evt.type, title: evt.title,
+          });
+        }
+      }
+
       if (transactionResult.gameCompleted) {
         return {
           success: true,
           gameCompleted: true,
           rankings: simulationOutput.rankings,
+          facilitatorBrief,
         };
       }
 
@@ -589,6 +648,7 @@ export const gameRouter = createTRPCRouter({
         roundId: transactionResult.newRoundId,
         roundNumber: nextRound,
         rankings: simulationOutput.rankings,
+        facilitatorBrief,
       };
     }),
 
@@ -621,6 +681,9 @@ export const gameRouter = createTRPCRouter({
         where: { id: game.id },
         data: { status: newStatus },
       });
+
+      await logAudit(ctx.prisma, game.id, ctx.facilitator.id,
+        newStatus === GameStatus.PAUSED ? "GAME_PAUSED" : "GAME_RESUMED", {});
 
       return { success: true, status: newStatus };
     }),
@@ -655,6 +718,10 @@ export const gameRouter = createTRPCRouter({
           status: GameStatus.COMPLETED,
           endedAt: new Date(),
         },
+      });
+
+      await logAudit(ctx.prisma, game.id, ctx.facilitator.id, "GAME_ENDED", {
+        finalRound: game.currentRound,
       });
 
       return { success: true, status: GameStatus.COMPLETED };
@@ -833,5 +900,328 @@ export const gameRouter = createTRPCRouter({
           }
         }),
       };
+    }),
+
+  // ============================================
+  // MESSAGING
+  // ============================================
+
+  sendMessage: facilitatorProcedure
+    .input(
+      z.object({
+        gameId: z.string(),
+        content: z.string().min(1).max(2000),
+        targetTeamId: z.string().optional(),
+        isAnnouncement: z.boolean().default(false),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const game = await ctx.prisma.game.findFirst({
+        where: { id: input.gameId, facilitatorId: ctx.facilitator.id },
+      });
+      if (!game) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Game not found" });
+      }
+
+      const message = await ctx.prisma.message.create({
+        data: {
+          gameId: input.gameId,
+          facilitatorId: ctx.facilitator.id,
+          teamId: input.targetTeamId || null,
+          content: input.content,
+          isAnnouncement: input.isAnnouncement,
+        },
+      });
+
+      await logAudit(ctx.prisma, input.gameId, ctx.facilitator.id, "MESSAGE_SENT", {
+        targetTeamId: input.targetTeamId || "all",
+        isAnnouncement: input.isAnnouncement,
+      });
+
+      return message;
+    }),
+
+  getMessages: publicProcedure
+    .input(
+      z.object({
+        gameId: z.string(),
+        since: z.date().optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const game = await ctx.prisma.game.findUnique({
+        where: { id: input.gameId },
+        include: { teams: { select: { id: true, sessionToken: true } } },
+      });
+      if (!game) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Game not found" });
+      }
+
+      // Auth: facilitator sees all, team sees broadcasts + their own
+      const isFacilitator = ctx.facilitatorId && game.facilitatorId === ctx.facilitatorId;
+      const team = ctx.sessionToken
+        ? game.teams.find((t) => t.sessionToken === ctx.sessionToken)
+        : null;
+
+      if (!isFacilitator && !team) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Not authorized" });
+      }
+
+      const where: any = { gameId: input.gameId };
+      if (input.since) {
+        where.createdAt = { gt: input.since };
+      }
+      // Teams only see broadcasts (teamId=null) or messages to them
+      if (team && !isFacilitator) {
+        where.OR = [{ teamId: null }, { teamId: team.id }];
+      }
+
+      return ctx.prisma.message.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        take: 100,
+        include: {
+          team: { select: { id: true, name: true, color: true } },
+        },
+      });
+    }),
+
+  // ============================================
+  // AUDIT LOG
+  // ============================================
+
+  getAuditLog: facilitatorProcedure
+    .input(
+      z.object({
+        gameId: z.string(),
+        limit: z.number().min(1).max(200).default(100),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const game = await ctx.prisma.game.findFirst({
+        where: { id: input.gameId, facilitatorId: ctx.facilitator.id },
+      });
+      if (!game) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Game not found" });
+      }
+
+      return ctx.prisma.facilitatorAuditLog.findMany({
+        where: { gameId: input.gameId },
+        orderBy: { createdAt: "desc" },
+        take: input.limit,
+      });
+    }),
+
+  // ============================================
+  // ROUND SCHEDULING
+  // ============================================
+
+  scheduleRound: facilitatorProcedure
+    .input(
+      z.object({
+        gameId: z.string(),
+        advanceAt: z.date(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const game = await ctx.prisma.game.findFirst({
+        where: { id: input.gameId, facilitatorId: ctx.facilitator.id },
+      });
+      if (!game) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Game not found" });
+      }
+      if (game.status !== GameStatus.IN_PROGRESS) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Game is not in progress" });
+      }
+
+      const currentRound = await ctx.prisma.round.findFirst({
+        where: { gameId: game.id, roundNumber: game.currentRound },
+      });
+      if (!currentRound) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Current round not found" });
+      }
+
+      await ctx.prisma.round.update({
+        where: { id: currentRound.id },
+        data: { scheduledAdvanceAt: input.advanceAt },
+      });
+
+      await logAudit(ctx.prisma, game.id, ctx.facilitator.id, "ROUND_SCHEDULED", {
+        scheduledAt: input.advanceAt.toISOString(),
+        roundNumber: game.currentRound,
+      });
+
+      return { scheduledAt: input.advanceAt };
+    }),
+
+  // ============================================
+  // WHAT-IF SIMULATION (Gap 12)
+  // ============================================
+
+  runWhatIf: facilitatorProcedure
+    .input(
+      z.object({
+        gameId: z.string(),
+        teamId: z.string(),
+        roundNumber: z.number(),
+        scenarioDescription: z.string(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const game = await ctx.prisma.game.findFirst({
+        where: { id: input.gameId, facilitatorId: ctx.facilitator.id },
+      });
+      if (!game) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Game not found" });
+      }
+
+      // Find the round and its results
+      const round = await ctx.prisma.round.findFirst({
+        where: { gameId: game.id, roundNumber: input.roundNumber },
+        include: {
+          results: {
+            where: { teamId: input.teamId },
+            take: 1,
+          },
+        },
+      });
+
+      if (!round?.results[0]) {
+        return {
+          simulated: false,
+          message: "Round data not found for this team",
+          actualRevenue: 0,
+          whatIfRevenue: 0,
+          revenueDelta: 0,
+          actualShare: 0,
+          whatIfShare: 0,
+          shareDelta: 0,
+        };
+      }
+
+      // Parse actual metrics
+      const metrics = JSON.parse(round.results[0].metrics) as any;
+
+      // Provide estimated impact based on scenario description keywords
+      const desc = input.scenarioDescription.toLowerCase();
+      let revenueDelta = 0;
+      let shareDelta = 0;
+
+      if (desc.includes("marketing") || desc.includes("advertis")) {
+        revenueDelta = (metrics.revenue || 0) * 0.15;
+        shareDelta = 3;
+      } else if (desc.includes("r&d") || desc.includes("quality") || desc.includes("product")) {
+        revenueDelta = (metrics.revenue || 0) * 0.10;
+        shareDelta = 2;
+      } else if (desc.includes("price") || desc.includes("discount")) {
+        revenueDelta = (metrics.revenue || 0) * -0.05;
+        shareDelta = 5;
+      } else if (desc.includes("esg") || desc.includes("sustainability")) {
+        revenueDelta = (metrics.revenue || 0) * 0.05;
+        shareDelta = 1;
+      } else {
+        revenueDelta = (metrics.revenue || 0) * 0.08;
+        shareDelta = 2;
+      }
+
+      const totalShare = Object.values(metrics.marketShare || {}).reduce((s: number, v: any) => s + (typeof v === "number" ? v : 0), 0) / 5;
+
+      return {
+        simulated: true,
+        message: "Impact estimated based on historical patterns",
+        actualRevenue: metrics.revenue || 0,
+        whatIfRevenue: (metrics.revenue || 0) + revenueDelta,
+        revenueDelta,
+        actualShare: totalShare,
+        whatIfShare: totalShare + shareDelta,
+        shareDelta,
+      };
+    }),
+
+  // ============================================
+  // REPORT EXPORT (Gap 10)
+  // ============================================
+
+  exportReport: facilitatorProcedure
+    .input(
+      z.object({
+        gameId: z.string(),
+        format: z.enum(["xlsx"]),
+        section: z.enum(["metrics", "achievements"]).default("metrics"),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const game = await ctx.prisma.game.findFirst({
+        where: { id: input.gameId, facilitatorId: ctx.facilitator.id },
+        include: {
+          teams: true,
+          rounds: {
+            where: { status: "COMPLETED" },
+            orderBy: { roundNumber: "asc" },
+            include: {
+              results: {
+                include: { team: { select: { id: true, name: true } } },
+              },
+            },
+          },
+        },
+      });
+
+      if (!game) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Game not found" });
+      }
+
+      // Build CSV-style data for export
+      const rows: Array<Record<string, string | number>> = [];
+
+      for (const round of game.rounds) {
+        for (const result of round.results) {
+          const metrics = JSON.parse(result.metrics) as any;
+          rows.push({
+            Round: round.roundNumber,
+            Team: result.team.name,
+            Rank: result.rank,
+            Revenue: metrics.revenue || 0,
+            NetIncome: metrics.netIncome || 0,
+            EPS: metrics.eps || 0,
+            Costs: metrics.costs || 0,
+          });
+        }
+      }
+
+      return {
+        data: rows,
+        filename: `${game.name.replace(/\s+/g, "_")}_report.json`,
+        gameName: game.name,
+        totalRounds: game.rounds.length,
+        totalTeams: game.teams.length,
+      };
+    }),
+
+  cancelSchedule: facilitatorProcedure
+    .input(z.object({ gameId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const game = await ctx.prisma.game.findFirst({
+        where: { id: input.gameId, facilitatorId: ctx.facilitator.id },
+      });
+      if (!game) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Game not found" });
+      }
+
+      const currentRound = await ctx.prisma.round.findFirst({
+        where: { gameId: game.id, roundNumber: game.currentRound },
+      });
+      if (currentRound) {
+        await ctx.prisma.round.update({
+          where: { id: currentRound.id },
+          data: { scheduledAdvanceAt: null },
+        });
+      }
+
+      await logAudit(ctx.prisma, game.id, ctx.facilitator.id, "SCHEDULE_CANCELLED", {
+        roundNumber: game.currentRound,
+      });
+
+      return { success: true };
     }),
 });

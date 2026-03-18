@@ -1,4 +1,4 @@
-// PostgreSQL version of schema for Vercel/Supabase production
+// SQLite version of schema for local development
 // To use: Copy this file to schema.prisma
 
 generator client {
@@ -6,15 +6,14 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 // ============================================
 // CORE MODELS
 // ============================================
-// Using strings for status fields for compatibility with both SQLite and PostgreSQL
+// Note: Using strings instead of enums for SQLite compatibility
 // GameStatus: LOBBY, IN_PROGRESS, ROUND_PROCESSING, PAUSED, COMPLETED
 // RoundStatus: PENDING, ACCEPTING_DECISIONS, LOCKED, PROCESSING, COMPLETED
 // GameModule: FACTORY, FINANCE, HR, MARKETING, RD
@@ -25,6 +24,8 @@ model Facilitator {
   name         String
   passwordHash String
   games        Game[]
+  messages     Message[]
+  auditLogs    FacilitatorAuditLog[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -43,6 +44,8 @@ model Game {
   facilitator   Facilitator @relation(fields: [facilitatorId], references: [id])
   teams         Team[]
   rounds        Round[]
+  messages      Message[]
+  auditLogs     FacilitatorAuditLog[]
 
   // Timestamps
   createdAt DateTime  @default(now())
@@ -63,17 +66,12 @@ model Team {
   // Current state snapshot (denormalized for fast reads)
   currentState String @default("{}")
 
-  // Achievement tracking
-  achievementPoints Int @default(0)
-  achievementState  String @default("{}") // ExtendedAchievementState JSON
-
   // Relationships
   gameId       String
   game         Game           @relation(fields: [gameId], references: [id], onDelete: Cascade)
   decisions    TeamDecision[]
   roundResults RoundResult[]
-  achievements TeamAchievement[]
-  achievementProgress AchievementProgress[]
+  messages     Message[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -102,6 +100,9 @@ model Round {
   game      Game           @relation(fields: [gameId], references: [id], onDelete: Cascade)
   decisions TeamDecision[]
   results   RoundResult[]
+
+  // Scheduling
+  scheduledAdvanceAt DateTime?
 
   // Timestamps
   startedAt          DateTime  @default(now())
@@ -163,40 +164,34 @@ model RoundResult {
 }
 
 // ============================================
-// ACHIEVEMENT MODELS
+// FACILITATOR FEATURES
 // ============================================
 
-model TeamAchievement {
-  id            String   @id @default(cuid())
-  achievementId String   // References achievement definition ID
-  earnedRound   Int      // Round when achievement was earned
-  earnedAt      DateTime @default(now())
-  pointsAwarded Int      // Points awarded (can be negative for infamy)
-  wasHidden     Boolean  @default(false) // Was this a secret achievement
+model Message {
+  id             String       @id @default(cuid())
+  gameId         String
+  game           Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  facilitatorId  String?
+  facilitator    Facilitator? @relation(fields: [facilitatorId], references: [id])
+  teamId         String?
+  team           Team?        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  content        String
+  isAnnouncement Boolean      @default(false)
+  createdAt      DateTime     @default(now())
 
-  // Relationships
-  teamId String
-  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
-
-  @@unique([teamId, achievementId])
+  @@index([gameId, createdAt])
   @@index([teamId])
-  @@index([achievementId])
 }
 
-model AchievementProgress {
-  id              String   @id @default(cuid())
-  achievementId   String   // References achievement definition ID
-  currentValue    Float    @default(0)
-  targetValue     Float    @default(0)
-  percentComplete Float    @default(0)
-  sustainedRounds Int      @default(0) // For sustained requirements
-  history         String   @default("[]") // JSON array of historical values
-  updatedAt       DateTime @updatedAt
+model FacilitatorAuditLog {
+  id            String      @id @default(cuid())
+  gameId        String
+  game          Game        @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  facilitatorId String
+  facilitator   Facilitator @relation(fields: [facilitatorId], references: [id])
+  action        String
+  details       String      @default("{}")
+  createdAt     DateTime    @default(now())
 
-  // Relationships
-  teamId String
-  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
-
-  @@unique([teamId, achievementId])
-  @@index([teamId])
+  @@index([gameId, createdAt])
 }

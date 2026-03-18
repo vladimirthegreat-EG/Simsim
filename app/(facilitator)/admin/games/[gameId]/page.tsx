@@ -1,11 +1,12 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { trpc } from "@/lib/api/trpc";
 import { toast } from "sonner";
 import {
@@ -29,9 +30,20 @@ import {
   StopCircle,
   FileText,
   MessageSquare,
+  LayoutDashboard,
+  GitCompare,
+  Shield,
+  Bell,
 } from "lucide-react";
 import { EventInjectionPanel, PostGameReport, DiscussionGuide } from "@/components/facilitator";
 import { TeamDetailPanel } from "@/components/facilitator";
+import { FacilitatorDashboard } from "@/components/facilitator/FacilitatorDashboard";
+import { RoundBrief } from "@/components/facilitator/RoundBrief";
+import { MessagesPanel } from "@/components/facilitator/MessagesPanel";
+import { TeamComparisonPanel } from "@/components/facilitator/TeamComparisonPanel";
+import { AuditLogPanel } from "@/components/facilitator/AuditLogPanel";
+import { FacilitatorReportEngine } from "@/engine/modules/FacilitatorReportEngine";
+import type { TeamState } from "@/engine/types";
 
 interface PageProps {
   params: Promise<{ gameId: string }>;
@@ -70,12 +82,17 @@ export default function GameControlPage({ params }: PageProps) {
     },
   });
 
+  const [showBrief, setShowBrief] = useState<any>(null);
+
   const advanceRound = trpc.game.advanceRound.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       if (data.gameCompleted) {
         toast.success("Game completed!");
       } else {
         toast.success(`Advanced to Round ${data.roundNumber}`);
+      }
+      if (data.facilitatorBrief) {
+        setShowBrief(data.facilitatorBrief);
       }
       setPendingEvents([]);
       refetch();
@@ -132,6 +149,53 @@ export default function GameControlPage({ params }: PageProps) {
       events: pendingEvents.length > 0 ? pendingEvents : undefined,
     });
   };
+
+  // Round scheduling
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [scheduleMinutes, setScheduleMinutes] = useState(10);
+  const scheduleRound = trpc.game.scheduleRound.useMutation({
+    onSuccess: () => {
+      toast.success(`Round scheduled to advance in ${scheduleMinutes} minutes`);
+      setShowScheduleDialog(false);
+      refetch();
+    },
+    onError: (error: any) => toast.error(error.message),
+  });
+  const cancelSchedule = trpc.game.cancelSchedule.useMutation({
+    onSuccess: () => {
+      toast.success("Schedule cancelled");
+      refetch();
+    },
+    onError: (error: any) => toast.error(error.message),
+  });
+
+  // ─── Dashboard computed data (Gaps 2, 3) ───
+  const parsedTeams = useMemo(() => {
+    if (!game?.teams) return [];
+    return game.teams.map((t: any) => {
+      let state: TeamState | null = null;
+      try { state = JSON.parse(t.currentState) as TeamState; } catch {}
+      return { id: t.id, name: t.name, color: t.color, state };
+    }).filter((t: any) => t.state !== null);
+  }, [game?.teams]);
+
+  const { teamHealth, tensions, alerts } = useMemo(() => {
+    if (parsedTeams.length === 0) return { teamHealth: [], tensions: [], alerts: [] as string[] };
+    try {
+      const th = FacilitatorReportEngine.generateTeamHealthSummaries(parsedTeams as any);
+      const te = FacilitatorReportEngine.detectCompetitiveTensions(parsedTeams as any);
+      const al: string[] = [];
+      for (const t of parsedTeams) {
+        const s = t.state as any;
+        if (s?.cash < 5_000_000) al.push(`${t.name}: Cash critical ($${(s.cash / 1_000_000).toFixed(1)}M)`);
+        if (s?.products?.filter((p: any) => p.developmentStatus === "launched").length === 0) al.push(`${t.name}: No launched products`);
+        if (s?.esgScore < 200) al.push(`${t.name}: ESG below 200 (${s.esgScore})`);
+      }
+      return { teamHealth: th, tensions: te, alerts: al };
+    } catch {
+      return { teamHealth: [], tensions: [], alerts: [] as string[] };
+    }
+  }, [parsedTeams]);
 
   if (sessionLoading || gameLoading) {
     return (
@@ -378,6 +442,14 @@ export default function GameControlPage({ params }: PageProps) {
                     )}
                   </Button>
                   <Button
+                    onClick={() => setShowScheduleDialog(true)}
+                    variant="outline"
+                    className="border-blue-500/40 text-blue-400 hover:bg-blue-500/10 hover:border-blue-500/60 gap-2 transition-all"
+                  >
+                    <Clock className="w-4 h-4" />
+                    Schedule
+                  </Button>
+                  <Button
                     onClick={() => togglePause.mutate({ gameId })}
                     disabled={togglePause.isPending}
                     variant="outline"
@@ -470,19 +542,36 @@ export default function GameControlPage({ params }: PageProps) {
         </div>
 
         {/* Tabbed Content */}
-        <Tabs defaultValue={game.status === "COMPLETED" ? "report" : "teams"} className="w-full">
-          <TabsList className="bg-slate-900 border border-slate-800 rounded-xl p-1 h-auto">
+        <Tabs defaultValue={game.status === "COMPLETED" ? "report" : "dashboard"} className="w-full">
+          <TabsList className="bg-slate-900 border border-slate-800 rounded-xl p-1 h-auto flex-wrap">
+            <TabsTrigger value="dashboard" className="data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-500 rounded-lg gap-2 px-4 py-2.5 transition-all">
+              <LayoutDashboard className="w-4 h-4" />
+              Dashboard
+              {alerts.length > 0 && <Badge className="ml-1 bg-red-500/20 text-red-400 border-red-500/30 text-xs px-1.5">{alerts.length}</Badge>}
+            </TabsTrigger>
             <TabsTrigger value="teams" className="data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-500 rounded-lg gap-2 px-4 py-2.5 transition-all">
               <Users className="w-4 h-4" />
               Teams
+            </TabsTrigger>
+            <TabsTrigger value="compare" className="data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-500 rounded-lg gap-2 px-4 py-2.5 transition-all">
+              <GitCompare className="w-4 h-4" />
+              Compare
             </TabsTrigger>
             <TabsTrigger value="events" className="data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-500 rounded-lg gap-2 px-4 py-2.5 transition-all">
               <Zap className="w-4 h-4" />
               Events
             </TabsTrigger>
+            <TabsTrigger value="messages" className="data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-500 rounded-lg gap-2 px-4 py-2.5 transition-all">
+              <MessageSquare className="w-4 h-4" />
+              Messages
+            </TabsTrigger>
             <TabsTrigger value="history" className="data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-500 rounded-lg gap-2 px-4 py-2.5 transition-all">
               <History className="w-4 h-4" />
               History
+            </TabsTrigger>
+            <TabsTrigger value="audit" className="data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-500 rounded-lg gap-2 px-4 py-2.5 transition-all">
+              <Shield className="w-4 h-4" />
+              Audit Log
             </TabsTrigger>
             {game.status === "COMPLETED" && (
               <TabsTrigger value="report" className="data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-500 rounded-lg gap-2 px-4 py-2.5 transition-all">
@@ -492,11 +581,39 @@ export default function GameControlPage({ params }: PageProps) {
             )}
             {game.status === "COMPLETED" && (
               <TabsTrigger value="discussion" className="data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-500 rounded-lg gap-2 px-4 py-2.5 transition-all">
-                <MessageSquare className="w-4 h-4" />
+                <FileText className="w-4 h-4" />
                 Discussion
               </TabsTrigger>
             )}
           </TabsList>
+
+          {/* Dashboard Tab */}
+          <TabsContent value="dashboard" className="mt-4">
+            <FacilitatorDashboard
+              teams={teamHealth}
+              tensions={tensions}
+              currentRound={game.currentRound}
+              alerts={alerts}
+            />
+          </TabsContent>
+
+          {/* Compare Tab */}
+          <TabsContent value="compare" className="mt-4">
+            <TeamComparisonPanel teams={parsedTeams as any} />
+          </TabsContent>
+
+          {/* Messages Tab */}
+          <TabsContent value="messages" className="mt-4">
+            <MessagesPanel
+              gameId={gameId}
+              teams={game.teams.map((t: any) => ({ id: t.id, name: t.name, color: t.color }))}
+            />
+          </TabsContent>
+
+          {/* Audit Log Tab */}
+          <TabsContent value="audit" className="mt-4">
+            <AuditLogPanel gameId={gameId} />
+          </TabsContent>
 
           {/* Teams Tab */}
           <TabsContent value="teams" className="mt-4">
@@ -639,7 +756,7 @@ export default function GameControlPage({ params }: PageProps) {
                     <span className="text-slate-400 text-sm ml-3">Generating report...</span>
                   </div>
                 ) : postGameData?.report ? (
-                  <PostGameReport report={postGameData.report} />
+                  <PostGameReport report={postGameData.report} gameId={gameId} />
                 ) : (
                   <p className="text-slate-400 text-center py-8">No report data available.</p>
                 )}
@@ -814,6 +931,68 @@ export default function GameControlPage({ params }: PageProps) {
           </div>
         )}
       </main>
+
+      {/* Schedule Dialog */}
+      <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-blue-400" />
+              Schedule Round Advance
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-slate-400 text-sm">The round will auto-advance after the selected time.</p>
+            <div className="flex items-center gap-3">
+              <label className="text-slate-300 text-sm">Advance in:</label>
+              <select
+                value={scheduleMinutes}
+                onChange={(e) => setScheduleMinutes(Number(e.target.value))}
+                className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm"
+              >
+                <option value={5}>5 minutes</option>
+                <option value={10}>10 minutes</option>
+                <option value={15}>15 minutes</option>
+                <option value={30}>30 minutes</option>
+                <option value={60}>1 hour</option>
+              </select>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button
+                onClick={() => {
+                  const advanceAt = new Date(Date.now() + scheduleMinutes * 60 * 1000);
+                  scheduleRound.mutate({ gameId, advanceAt });
+                }}
+                disabled={scheduleRound.isPending}
+                className="bg-blue-600 hover:bg-blue-500 gap-2"
+              >
+                <Clock className="w-4 h-4" />
+                {scheduleRound.isPending ? "Scheduling..." : "Set Schedule"}
+              </Button>
+              <Button
+                onClick={() => setShowScheduleDialog(false)}
+                variant="outline"
+                className="border-slate-600 text-slate-400"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* RoundBrief Dialog — shown after round advancement */}
+      <Dialog open={!!showBrief} onOpenChange={() => setShowBrief(null)}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-amber-400" />
+              Round Summary
+            </DialogTitle>
+          </DialogHeader>
+          {showBrief && <RoundBrief brief={showBrief} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

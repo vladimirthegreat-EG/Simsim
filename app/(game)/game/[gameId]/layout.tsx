@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { GameLayout } from "@/components/game/GameLayout";
 import { RoundBriefing } from "@/components/game/RoundBriefing";
+import { MessageBanner } from "@/components/game/MessageBanner";
 import { trpc } from "@/lib/api/trpc";
 import { toast } from "sonner";
 import { ComplexityProvider } from "@/lib/contexts/ComplexityContext";
@@ -584,6 +585,7 @@ export default function GamePageLayout({ children, params }: LayoutProps) {
         startingCash={startingCash}
       >
         {children}
+        <MessageBanner gameId={gameId} />
       </GameLayout>
     </ComplexityProvider>
   );
