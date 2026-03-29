@@ -209,11 +209,41 @@ export class SimulationEngine {
         );
 
         currentState.materials.inventory = updatedInventory;
-        currentState.materials.totalInventoryValue = updatedInventory.reduce(
+
+        // Auto-procurement: replenish materials below production threshold
+        // This simulates a basic purchasing department that maintains minimum stock levels
+        const AUTO_REORDER_THRESHOLD = 50_000; // reorder when below 50K units
+        const AUTO_ORDER_QTY = 100_000; // order 100K units
+        const materialTypes = ["display", "processor", "memory", "storage", "camera", "battery", "chassis", "other"] as const;
+        for (const matType of materialTypes) {
+          const existing = currentState.materials.inventory.find(inv => inv.materialType === matType);
+          const currentQty = existing?.quantity ?? 0;
+          if (currentQty < AUTO_REORDER_THRESHOLD) {
+            const orderCost = AUTO_ORDER_QTY * 15; // ~$15/unit average
+            if (currentState.cash > orderCost * 2) { // only order if can afford 2x (safety margin)
+              if (existing) {
+                existing.quantity += AUTO_ORDER_QTY;
+                existing.averageCost = ((existing.averageCost * currentQty) + (15 * AUTO_ORDER_QTY)) / (currentQty + AUTO_ORDER_QTY);
+              } else {
+                currentState.materials.inventory.push({
+                  materialType: matType,
+                  spec: `Auto-ordered ${matType}`,
+                  quantity: AUTO_ORDER_QTY,
+                  averageCost: 15,
+                  sourceRegion: "North America" as any,
+                });
+              }
+              currentState.cash = safeNumber(currentState.cash - orderCost);
+              currentState.accountsPayable += orderCost;
+            }
+          }
+        }
+
+        currentState.materials.totalInventoryValue = currentState.materials.inventory.reduce(
           (sum, inv) => sum + inv.quantity * inv.averageCost,
           0
         );
-        currentState.materials.holdingCosts = MaterialEngine.calculateHoldingCosts(updatedInventory);
+        currentState.materials.holdingCosts = MaterialEngine.calculateHoldingCosts(currentState.materials.inventory);
 
         // 1A FIX: Deduct holding costs from cash (was calculated but never deducted)
         if (currentState.materials.holdingCosts > 0) {

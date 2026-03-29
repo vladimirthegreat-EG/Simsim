@@ -1,5 +1,5 @@
 /**
- * Strategy Bots v12.0 — Realistic non-uniform human players
+ * Strategy Bots v13.0 — Competitively balanced non-uniform human players
  *
  * DESIGN PRINCIPLE:
  *   Each strategy is distinct FROM ROUND 1. No shared foundation.
@@ -13,6 +13,11 @@
  *   - Non-identical ad budgets across segments
  *   - Salary adjustments and training programs per archetype
  *   - Round-based variation: spending jitters, shifting priorities
+ *
+ * BALANCE TARGET: All strategies 10-30% win rate, none above 35% or below 8%.
+ *   - All strategies reach 4-5 segments by round 6
+ *   - Advertising covers all segments with products
+ *   - Spending proportional to strategy identity
  */
 
 import type { TeamState, MarketState, AllDecisions } from "../../engine/types";
@@ -94,8 +99,9 @@ function existingProductIds(state: TeamState): string[] {
 }
 
 // ============================================
-// VOLUME STRATEGY — Low prices, Budget+General focus,
-// Assembly Lines for max capacity, hire lots of workers
+// VOLUME STRATEGY — High output, low prices, broad coverage,
+// Assembly Lines for max capacity, hire lots of workers.
+// Expands to 5 segments by R5. Competitive ad spend.
 // ============================================
 
 export const volumeStrategy: StrategyDecisionMaker = (state, market, round) => {
@@ -128,7 +134,7 @@ export const volumeStrategy: StrategyDecisionMaker = (state, market, round) => {
         factory: Math.min(1_200_000 * r, cash * 0.05),
       },
     },
-    greenInvestments: { [fid(state)]: Math.min(300_000 * r, cash * 0.005) },
+    greenInvestments: { [fid(state)]: Math.min(400_000 * r, cash * 0.006) },
     upgradePurchases: upgrades,
     newFactories,
     materialTierChoices: {
@@ -172,34 +178,34 @@ export const volumeStrategy: StrategyDecisionMaker = (state, market, round) => {
     },
   };
 
-  // Marketing: heavy Budget + General + Active Lifestyle, light on premium segments
+  // Marketing: broad coverage, heavy Budget/General — total ~$13M/round
   const marketing = {
     advertisingBudget: {
-      Budget: Math.min((6_000_000 + round * 500_000) * r * j, cash * 0.20),
-      General: Math.min((5_000_000 + round * 400_000) * r, cash * 0.18),
-      "Active Lifestyle": Math.min((4_000_000 + round * 300_000) * r * j, cash * 0.14),
-      Enthusiast: Math.min(1_500_000 * r, cash * 0.05),
-      Professional: Math.min(1_000_000 * r, cash * 0.04),
+      Budget: Math.min(3_200_000 * j, cash * 0.10),
+      General: Math.min(3_000_000 * j, cash * 0.09),
+      "Active Lifestyle": Math.min(2_200_000 * j, cash * 0.07),
+      Enthusiast: Math.min(1_400_000 * j, cash * 0.04),
+      Professional: Math.min(1_000_000 * j, cash * 0.03),
     },
-    brandingInvestment: Math.min(2_000_000 * r * j, cash * 0.04),
+    brandingInvestment: Math.min(1_500_000 * j, cash * 0.03),
     promotions: round >= 3 ? [
       { segment: "Budget", discountPercent: 5 + (round % 3), duration: 1 },
       ...(round >= 5 ? [{ segment: "General", discountPercent: 3, duration: 1 }] : []),
     ] : [],
     sponsorships: round >= 4 ? [
-      { name: "Budget Retailer Partnership", cost: Math.min(1_500_000, cash * 0.02), brandImpact: 0.008 },
+      { name: "Budget Retailer Partnership", cost: Math.min(800_000, cash * 0.012), brandImpact: 0.005 },
     ] : [],
-    // Volume: cheapest prices across the board
+    // Volume: competitive prices — slightly below market
     productPricing: [
-      { productId: "budget-product", newPrice: 170 - round * 2 },
-      { productId: "initial-product", newPrice: 375 - round * 3 },
-      { productId: "active-product", newPrice: 495 - round * 3 },
-      { productId: "enthusiast-product", newPrice: 700 },
-      { productId: "professional-product", newPrice: 1080 },
+      { productId: "budget-product", newPrice: 185 },
+      { productId: "initial-product", newPrice: 405 },
+      { productId: "active-product", newPrice: 535 },
+      { productId: "enthusiast-product", newPrice: 750 },
+      { productId: "professional-product", newPrice: 1155 },
     ],
   };
 
-  // R&D: moderate budget, focus on budget/general products
+  // R&D: expand to 5 segments by round 5-6
   const newProducts: Array<{ name: string; segment: string; targetQuality: number; targetFeatures: number; archetypeId?: string }> = [];
   if (round >= 2) {
     if (!hasProduct(state, "Long Life Phone"))
@@ -211,20 +217,29 @@ export const volumeStrategy: StrategyDecisionMaker = (state, market, round) => {
     if (!hasProduct(state, "Outdoor Basic"))
       newProducts.push({ name: "Outdoor Basic", segment: "Active Lifestyle", targetQuality: 50, targetFeatures: 42, archetypeId: "outdoor_basic" });
   }
+  if (round >= 4) {
+    if (!hasProduct(state, "Camera Phone"))
+      newProducts.push({ name: "Camera Phone", segment: "Enthusiast", targetQuality: 58, targetFeatures: 52, archetypeId: "camera_phone" });
+  }
   if (round >= 5) {
-    if (!hasProduct(state, "Rugged Phone"))
-      newProducts.push({ name: "Rugged Phone", segment: "Active Lifestyle", targetQuality: 52, targetFeatures: 48, archetypeId: "rugged_phone" });
+    if (!hasProduct(state, "Business Phone"))
+      newProducts.push({ name: "Business Phone", segment: "Professional", targetQuality: 62, targetFeatures: 55, archetypeId: "business_phone" });
     if (!hasProduct(state, "Connected Phone"))
       newProducts.push({ name: "Connected Phone", segment: "General", targetQuality: 48, targetFeatures: 44, archetypeId: "connected_phone" });
+  }
+  if (round >= 6) {
+    if (!hasProduct(state, "Rugged Phone"))
+      newProducts.push({ name: "Rugged Phone", segment: "Active Lifestyle", targetQuality: 52, targetFeatures: 48, archetypeId: "rugged_phone" });
   }
 
   const techUpgrades: string[] = [];
   if (round >= 2 && !hasTech(state, "bat_1")) techUpgrades.push("bat_1");
   if (round >= 3 && !hasTech(state, "dur_1")) techUpgrades.push("dur_1");
+  if (round >= 4 && !hasTech(state, "cam_1")) techUpgrades.push("cam_1");
   if (round >= 5 && !hasTech(state, "con_1")) techUpgrades.push("con_1");
 
   const rd = {
-    rdBudget: Math.min((8_000_000 + round * 500_000) * r * j, cash * 0.20),
+    rdBudget: Math.min((9_000_000 + round * 600_000) * r * j, cash * 0.22),
     newProducts,
     techUpgrades,
     productImprovements: [
@@ -232,7 +247,7 @@ export const volumeStrategy: StrategyDecisionMaker = (state, market, round) => {
       { productId: "initial-product", qualityIncrease: 2, featuresIncrease: 1 },
       { productId: "active-product", qualityIncrease: 1, featuresIncrease: 1 },
       ...(round >= 4 ? [{ productId: "enthusiast-product", qualityIncrease: 1, featuresIncrease: 1 }] : []),
-      ...(round >= 4 ? [{ productId: "professional-product", qualityIncrease: 1, featuresIncrease: 0 }] : []),
+      ...(round >= 5 ? [{ productId: "professional-product", qualityIncrease: 1, featuresIncrease: 1 }] : []),
     ],
   };
 
@@ -244,7 +259,8 @@ export const volumeStrategy: StrategyDecisionMaker = (state, market, round) => {
 
 // ============================================
 // PREMIUM STRATEGY — High quality, Enthusiast+Professional focus,
-// camera/display tech tree, fewer but better products
+// camera/display tech tree, fewer but better products.
+// Expands to 4-5 segments by R5.
 // ============================================
 
 export const premiumStrategy: StrategyDecisionMaker = (state, market, round) => {
@@ -320,33 +336,36 @@ export const premiumStrategy: StrategyDecisionMaker = (state, market, round) => 
     },
   };
 
-  // Marketing: heavy Enthusiast + Professional, lighter on Budget
+  // Marketing: heavy Enthusiast + Professional focus — total ~$14M/round
   const marketing = {
     advertisingBudget: {
-      Enthusiast: Math.min((4_500_000 + round * 600_000) * r * j, cash * 0.16),
-      Professional: Math.min((4_000_000 + round * 500_000) * r, cash * 0.14),
-      General: Math.min(3_000_000 * r * j, cash * 0.10),
-      "Active Lifestyle": Math.min(2_500_000 * r, cash * 0.08),
-      Budget: Math.min(1_200_000 * r, cash * 0.04),
+      Enthusiast: Math.min(3_400_000 * j, cash * 0.10),
+      Professional: Math.min(3_000_000 * j, cash * 0.09),
+      General: Math.min(1_800_000 * j, cash * 0.06),
+      "Active Lifestyle": Math.min(1_500_000 * j, cash * 0.05),
+      Budget: Math.min(1_000_000 * j, cash * 0.03),
     },
-    brandingInvestment: Math.min((5_000_000 + round * 500_000) * r * j, cash * 0.15),
+    brandingInvestment: Math.min(2_200_000 * j, cash * 0.05),
     promotions: [] as Array<{ segment: string; discountPercent: number; duration: number }>,
     sponsorships: [
-      { name: "Luxury Tech Showcase", cost: Math.min(3_000_000 * j, cash * 0.04), brandImpact: 0.015 },
-      ...(round >= 5 ? [{ name: "Premium Design Awards", cost: Math.min(2_000_000, cash * 0.03), brandImpact: 0.010 }] : []),
+      { name: "Luxury Tech Showcase", cost: Math.min(1_200_000 * j, cash * 0.02), brandImpact: 0.008 },
     ],
-    // Premium: high prices justified by quality
+    // Premium: higher prices justified by quality
     productPricing: [
-      { productId: "budget-product", newPrice: 205 + round * 2 },
-      { productId: "initial-product", newPrice: 445 + round * 3 },
-      { productId: "active-product", newPrice: 580 + round * 2 },
-      { productId: "enthusiast-product", newPrice: 850 + round * 5 },
-      { productId: "professional-product", newPrice: 1300 + round * 8 },
+      { productId: "budget-product", newPrice: 195 },
+      { productId: "initial-product", newPrice: 420 },
+      { productId: "active-product", newPrice: 550 },
+      { productId: "enthusiast-product", newPrice: 780 },
+      { productId: "professional-product", newPrice: 1190 },
     ],
   };
 
-  // R&D: fewer products but higher quality, camera/display tech
+  // R&D: quality-focused products, expand to Budget/Active by R4-5
   const newProducts: Array<{ name: string; segment: string; targetQuality: number; targetFeatures: number; archetypeId?: string }> = [];
+  if (round >= 2) {
+    if (!hasProduct(state, "Long Life Phone"))
+      newProducts.push({ name: "Long Life Phone", segment: "Budget", targetQuality: 60, targetFeatures: 42, archetypeId: "long_life_phone" });
+  }
   if (round >= 3) {
     if (!hasProduct(state, "Camera Phone"))
       newProducts.push({ name: "Camera Phone", segment: "Enthusiast", targetQuality: 85, targetFeatures: 80, archetypeId: "camera_phone" });
@@ -354,6 +373,8 @@ export const premiumStrategy: StrategyDecisionMaker = (state, market, round) => 
   if (round >= 4) {
     if (!hasProduct(state, "Business Phone"))
       newProducts.push({ name: "Business Phone", segment: "Professional", targetQuality: 90, targetFeatures: 85, archetypeId: "business_phone" });
+    if (!hasProduct(state, "Outdoor Basic"))
+      newProducts.push({ name: "Outdoor Basic", segment: "Active Lifestyle", targetQuality: 68, targetFeatures: 60, archetypeId: "outdoor_basic" });
   }
   if (round >= 5) {
     if (!hasProduct(state, "Photo Flagship"))
@@ -391,7 +412,8 @@ export const premiumStrategy: StrategyDecisionMaker = (state, market, round) => 
 
 // ============================================
 // BRAND STRATEGY — Heavy marketing, brand investment,
-// all segments, moderate quality
+// broad segments, moderate quality.
+// NERFED: Lower branding caps, fewer sponsorships, slower expansion.
 // ============================================
 
 export const brandStrategy: StrategyDecisionMaker = (state, market, round) => {
@@ -407,20 +429,20 @@ export const brandStrategy: StrategyDecisionMaker = (state, market, round) => {
   ];
 
   const newFactories: Array<{ name: string; region: string }> = [];
-  if (round >= 3 && factoryCount(state) < 2 && cash > 80_000_000)
+  if (round >= 4 && factoryCount(state) < 2 && cash > 80_000_000)
     newFactories.push({ name: "Brand Plant Europe", region: "Europe" });
 
   const factory = {
     efficiencyInvestments: {
       [fid(state)]: {
-        workers: Math.min(2_200_000 * r * j, cash * 0.08),
-        machinery: Math.min(3_000_000 * r, cash * 0.10),
-        supervisors: Math.min(600_000 * j, cash * 0.02),
-        engineers: Math.min(2_200_000 * r, cash * 0.08),
-        factory: Math.min(800_000 * r, cash * 0.03),
+        workers: Math.min(2_000_000 * r * j, cash * 0.07),
+        machinery: Math.min(2_800_000 * r, cash * 0.09),
+        supervisors: Math.min(500_000 * j, cash * 0.02),
+        engineers: Math.min(2_000_000 * r, cash * 0.07),
+        factory: Math.min(700_000 * r, cash * 0.025),
       },
     },
-    greenInvestments: { [fid(state)]: Math.min(800_000 * r, cash * 0.015) },
+    greenInvestments: { [fid(state)]: Math.min(700_000 * r, cash * 0.012) },
     upgradePurchases: upgrades,
     newFactories,
     materialTierChoices: {
@@ -435,7 +457,7 @@ export const brandStrategy: StrategyDecisionMaker = (state, market, round) => {
       employeeWellness: true,
       diversityInclusion: true,
       ...(round >= 2 ? { transparencyReport: true } : {}),
-      ...(round >= 3 ? { communityInvestment: Math.min(2_000_000, cash * 0.03) } : {}),
+      ...(round >= 3 ? { communityInvestment: Math.min(1_500_000, cash * 0.025) } : {}),
       ...(round >= 4 ? { workplaceHealthSafety: true } : {}),
       ...(round >= 5 ? { codeOfEthics: true } : {}),
       ...(round >= 6 ? { humanRightsAudit: true } : {}),
@@ -467,35 +489,34 @@ export const brandStrategy: StrategyDecisionMaker = (state, market, round) => {
     },
   };
 
-  // Marketing: heavy EVERYWHERE — brand strategy spends big on advertising
+  // Marketing: brand-focused — lower ads, strong branding + sponsorships — total ~$14M/round
   const marketing = {
     advertisingBudget: {
-      General: Math.min((5_000_000 + round * 600_000) * r * j, cash * 0.16),
-      "Active Lifestyle": Math.min((4_500_000 + round * 500_000) * r, cash * 0.14),
-      Budget: Math.min((3_500_000 + round * 400_000) * r * j, cash * 0.12),
-      Enthusiast: Math.min((3_500_000 + round * 400_000) * r, cash * 0.12),
-      Professional: Math.min((3_000_000 + round * 300_000) * r, cash * 0.10),
+      General: Math.min(1_800_000 * j, cash * 0.06),
+      "Active Lifestyle": Math.min(1_500_000 * j, cash * 0.05),
+      Budget: Math.min(1_500_000 * j, cash * 0.05),
+      Enthusiast: Math.min(1_500_000 * j, cash * 0.05),
+      Professional: Math.min(1_200_000 * j, cash * 0.04),
     },
-    brandingInvestment: Math.min((6_000_000 + round * 800_000) * r * j, cash * 0.18),
+    brandingInvestment: Math.min(3_500_000 * j, cash * 0.07),
     promotions: round >= 4 ? [
       { segment: "General", discountPercent: 4 + (round % 2), duration: 1 },
       ...(round >= 6 ? [{ segment: "Active Lifestyle", discountPercent: 3, duration: 1 }] : []),
     ] : [],
     sponsorships: [
-      { name: "National TV Campaign", cost: Math.min(3_500_000 * j, cash * 0.06), brandImpact: 0.020 },
-      ...(round >= 3 ? [{ name: "Social Media Influencers", cost: Math.min(2_000_000, cash * 0.04), brandImpact: 0.012 }] : []),
-      ...(round >= 6 ? [{ name: "Sports League Sponsor", cost: Math.min(4_000_000, cash * 0.05), brandImpact: 0.018 }] : []),
+      ...(round >= 2 ? [{ name: "National TV Campaign", cost: Math.min(1_200_000 * j, cash * 0.02), brandImpact: 0.008 }] : []),
+      ...(round >= 4 ? [{ name: "Social Media Influencers", cost: Math.min(800_000, cash * 0.012), brandImpact: 0.005 }] : []),
     ],
     productPricing: [
-      { productId: "budget-product", newPrice: 195 },
-      { productId: "initial-product", newPrice: 420 + round },
-      { productId: "active-product", newPrice: 550 + round },
-      { productId: "enthusiast-product", newPrice: 780 + round * 2 },
-      { productId: "professional-product", newPrice: 1190 + round * 3 },
+      { productId: "budget-product", newPrice: 190 },
+      { productId: "initial-product", newPrice: 415 },
+      { productId: "active-product", newPrice: 545 },
+      { productId: "enthusiast-product", newPrice: 770 },
+      { productId: "professional-product", newPrice: 1175 },
     ],
   };
 
-  // R&D: broad product portfolio, moderate quality
+  // R&D: broad product portfolio, moderate quality — delayed Professional
   const newProducts: Array<{ name: string; segment: string; targetQuality: number; targetFeatures: number; archetypeId?: string }> = [];
   if (round >= 2) {
     if (!hasProduct(state, "Snapshot Phone"))
@@ -512,6 +533,8 @@ export const brandStrategy: StrategyDecisionMaker = (state, market, round) => {
   if (round >= 5) {
     if (!hasProduct(state, "Camera Phone"))
       newProducts.push({ name: "Camera Phone", segment: "Enthusiast", targetQuality: 65, targetFeatures: 58, archetypeId: "camera_phone" });
+  }
+  if (round >= 6) {
     if (!hasProduct(state, "Cinema Screen"))
       newProducts.push({ name: "Cinema Screen", segment: "General", targetQuality: 60, targetFeatures: 55, archetypeId: "cinema_screen" });
   }
@@ -527,7 +550,7 @@ export const brandStrategy: StrategyDecisionMaker = (state, market, round) => {
   if (round >= 6 && !hasTech(state, "ai_1")) techUpgrades.push("ai_1");
 
   const rd = {
-    rdBudget: Math.min((10_000_000 + round * 600_000) * r * j, cash * 0.22),
+    rdBudget: Math.min((9_000_000 + round * 500_000) * r * j, cash * 0.20),
     newProducts,
     techUpgrades,
     productImprovements: [
@@ -547,7 +570,8 @@ export const brandStrategy: StrategyDecisionMaker = (state, market, round) => {
 
 // ============================================
 // AUTOMATION STRATEGY — Factory upgrades, Robotic Arms,
-// reduce labor costs, efficiency focus
+// reduce labor costs, efficiency focus.
+// BUFFED: Expands to 5 segments by R5, more ad spend, more products.
 // ============================================
 
 export const automationStrategy: StrategyDecisionMaker = (state, market, round) => {
@@ -578,7 +602,7 @@ export const automationStrategy: StrategyDecisionMaker = (state, market, round) 
         workers: Math.min(1_200_000 * r * j, cash * 0.05),
         machinery: Math.min(8_000_000 * r, cash * 0.25),
         supervisors: Math.min(500_000 * j, cash * 0.02),
-        engineers: Math.min(2_500_000 * r, cash * 0.10),
+        engineers: Math.min(2_800_000 * r, cash * 0.10),
         factory: Math.min(4_000_000 * r, cash * 0.14),
       },
     },
@@ -610,6 +634,7 @@ export const automationStrategy: StrategyDecisionMaker = (state, market, round) 
       { role: "engineer", tier: "basic", factoryId: fid(state) },
       { role: "worker", tier: "basic", factoryId: fid(state) },
       ...(round >= 3 ? [{ role: "supervisor", tier: "basic", factoryId: fid(state) }] : []),
+      ...(round >= 4 ? [{ role: "worker", tier: "basic", factoryId: fid(state) }] : []),
       ...(round >= 5 ? [{ role: "engineer", tier: "premium", factoryId: fid(state) }] : []),
     ],
     trainingPrograms: [
@@ -627,34 +652,34 @@ export const automationStrategy: StrategyDecisionMaker = (state, market, round) 
     },
   };
 
-  // Marketing: even spread, slight Budget/General lean
+  // Marketing: broad coverage, heavy Budget/General — total ~$13M/round
   const marketing = {
     advertisingBudget: {
-      Budget: Math.min((3_500_000 + round * 300_000) * r * j, cash * 0.12),
-      General: Math.min((4_000_000 + round * 300_000) * r, cash * 0.14),
-      Enthusiast: Math.min((3_000_000 + round * 200_000) * r * j, cash * 0.10),
-      Professional: Math.min((2_500_000 + round * 200_000) * r, cash * 0.08),
-      "Active Lifestyle": Math.min((3_200_000 + round * 250_000) * r, cash * 0.10),
+      Budget: Math.min(3_000_000 * j, cash * 0.09),
+      General: Math.min(2_800_000 * j, cash * 0.08),
+      "Active Lifestyle": Math.min(2_000_000 * j, cash * 0.06),
+      Enthusiast: Math.min(1_500_000 * j, cash * 0.05),
+      Professional: Math.min(1_000_000 * j, cash * 0.03),
     },
-    brandingInvestment: Math.min(3_500_000 * r * j, cash * 0.08),
+    brandingInvestment: Math.min(1_500_000 * j, cash * 0.03),
     promotions: round >= 4 ? [
       { segment: "Budget", discountPercent: 4, duration: 1 },
       { segment: "General", discountPercent: 3, duration: 1 },
     ] : [],
-    sponsorships: round >= 5 ? [
-      { name: "Tech Innovation Award", cost: Math.min(2_000_000, cash * 0.03), brandImpact: 0.010 },
+    sponsorships: round >= 4 ? [
+      { name: "Tech Innovation Award", cost: Math.min(800_000, cash * 0.012), brandImpact: 0.005 },
     ] : [],
     // Automation: slightly below market — cost advantage from automation
     productPricing: [
-      { productId: "budget-product", newPrice: 182 },
-      { productId: "initial-product", newPrice: 398 },
-      { productId: "active-product", newPrice: 525 },
+      { productId: "budget-product", newPrice: 183 },
+      { productId: "initial-product", newPrice: 400 },
+      { productId: "active-product", newPrice: 530 },
       { productId: "enthusiast-product", newPrice: 745 },
-      { productId: "professional-product", newPrice: 1140 },
+      { productId: "professional-product", newPrice: 1150 },
     ],
   };
 
-  // R&D: moderate, focus on efficiency-related products
+  // R&D: expand to all 5 segments by round 5
   const newProducts: Array<{ name: string; segment: string; targetQuality: number; targetFeatures: number; archetypeId?: string }> = [];
   if (round >= 2) {
     if (!hasProduct(state, "Long Life Phone"))
@@ -666,21 +691,29 @@ export const automationStrategy: StrategyDecisionMaker = (state, market, round) 
     if (!hasProduct(state, "Outdoor Basic"))
       newProducts.push({ name: "Outdoor Basic", segment: "Active Lifestyle", targetQuality: 58, targetFeatures: 50, archetypeId: "outdoor_basic" });
   }
-  if (round >= 5) {
+  if (round >= 4) {
     if (!hasProduct(state, "Camera Phone"))
       newProducts.push({ name: "Camera Phone", segment: "Enthusiast", targetQuality: 68, targetFeatures: 62, archetypeId: "camera_phone" });
+  }
+  if (round >= 5) {
     if (!hasProduct(state, "Business Phone"))
       newProducts.push({ name: "Business Phone", segment: "Professional", targetQuality: 72, targetFeatures: 68, archetypeId: "business_phone" });
+    if (!hasProduct(state, "Connected Phone"))
+      newProducts.push({ name: "Connected Phone", segment: "General", targetQuality: 55, targetFeatures: 50, archetypeId: "connected_phone" });
+  }
+  if (round >= 6) {
+    if (!hasProduct(state, "Rugged Phone"))
+      newProducts.push({ name: "Rugged Phone", segment: "Active Lifestyle", targetQuality: 60, targetFeatures: 55, archetypeId: "rugged_phone" });
   }
 
   const techUpgrades: string[] = [];
   if (round >= 2 && !hasTech(state, "bat_1")) techUpgrades.push("bat_1");
   if (round >= 3 && !hasTech(state, "con_1")) techUpgrades.push("con_1");
-  if (round >= 5 && !hasTech(state, "cam_1")) techUpgrades.push("cam_1");
+  if (round >= 4 && !hasTech(state, "cam_1")) techUpgrades.push("cam_1");
   if (round >= 6 && !hasTech(state, "ai_1")) techUpgrades.push("ai_1");
 
   const rd = {
-    rdBudget: Math.min((9_000_000 + round * 600_000) * r * j, cash * 0.22),
+    rdBudget: Math.min((10_000_000 + round * 700_000) * r * j, cash * 0.24),
     newProducts,
     techUpgrades,
     productImprovements: [
@@ -700,7 +733,9 @@ export const automationStrategy: StrategyDecisionMaker = (state, market, round) 
 
 // ============================================
 // BALANCED STRATEGY — Mix of everything,
-// moderate investments across all areas
+// moderate investments across all areas.
+// NERFED: Only 4 segments (no Professional), lower ad caps,
+// delayed expansion, reduced branding.
 // ============================================
 
 export const balancedStrategy: StrategyDecisionMaker = (state, market, round) => {
@@ -717,20 +752,20 @@ export const balancedStrategy: StrategyDecisionMaker = (state, market, round) =>
   ];
 
   const newFactories: Array<{ name: string; region: string }> = [];
-  if (round >= 3 && factoryCount(state) < 2 && cash > 80_000_000)
+  if (round >= 4 && factoryCount(state) < 2 && cash > 80_000_000)
     newFactories.push({ name: "Balanced Plant Europe", region: "Europe" });
 
   const factory = {
     efficiencyInvestments: {
       [fid(state)]: {
-        workers: Math.min(2_500_000 * r * j, cash * 0.08),
-        machinery: Math.min(3_500_000 * r, cash * 0.12),
-        supervisors: Math.min(700_000 * j, cash * 0.03),
-        engineers: Math.min(2_500_000 * r, cash * 0.10),
-        factory: Math.min(1_200_000 * r, cash * 0.05),
+        workers: Math.min(2_200_000 * r * j, cash * 0.07),
+        machinery: Math.min(3_000_000 * r, cash * 0.10),
+        supervisors: Math.min(600_000 * j, cash * 0.025),
+        engineers: Math.min(2_200_000 * r, cash * 0.08),
+        factory: Math.min(1_000_000 * r, cash * 0.04),
       },
     },
-    greenInvestments: { [fid(state)]: Math.min(800_000 * r, cash * 0.015) },
+    greenInvestments: { [fid(state)]: Math.min(600_000 * r, cash * 0.012) },
     upgradePurchases: upgrades,
     newFactories,
     materialTierChoices: {
@@ -756,7 +791,7 @@ export const balancedStrategy: StrategyDecisionMaker = (state, market, round) =>
       { role: "engineer", tier: "basic", factoryId: fid(state) },
       ...(round >= 2 ? [{ role: "worker", tier: "basic", factoryId: fid(state) }] : []),
       ...(round >= 3 ? [{ role: "supervisor", tier: "basic", factoryId: fid(state) }] : []),
-      ...(round >= 4 ? [{ role: "engineer", tier: "basic", factoryId: fid(state) }] : []),
+      ...(round >= 5 ? [{ role: "engineer", tier: "basic", factoryId: fid(state) }] : []),
     ],
     trainingPrograms: [
       { role: "worker", programType: "efficiency" },
@@ -774,32 +809,32 @@ export const balancedStrategy: StrategyDecisionMaker = (state, market, round) =>
     },
   };
 
-  // Marketing: fairly even spread, slight General/Active lean
+  // Marketing: even spread across all segments — total ~$13M/round
   const marketing = {
     advertisingBudget: {
-      General: Math.min((3_800_000 + round * 350_000) * r * j, cash * 0.12),
-      "Active Lifestyle": Math.min((3_500_000 + round * 300_000) * r, cash * 0.10),
-      Budget: Math.min((3_200_000 + round * 300_000) * r * j, cash * 0.10),
-      Enthusiast: Math.min((3_000_000 + round * 250_000) * r, cash * 0.10),
-      Professional: Math.min((2_800_000 + round * 250_000) * r, cash * 0.08),
+      General: Math.min(2_400_000 * j, cash * 0.07),
+      "Active Lifestyle": Math.min(2_200_000 * j, cash * 0.07),
+      Budget: Math.min(2_200_000 * j, cash * 0.07),
+      Enthusiast: Math.min(2_000_000 * j, cash * 0.06),
+      Professional: Math.min(1_200_000 * j, cash * 0.04),
     },
-    brandingInvestment: Math.min((3_500_000 + round * 400_000) * r * j, cash * 0.10),
+    brandingInvestment: Math.min(2_000_000 * j, cash * 0.04),
     promotions: round >= 5 ? [
       { segment: "General", discountPercent: 3 + (round % 2), duration: 1 },
     ] : [],
-    sponsorships: round >= 4 ? [
-      { name: "Community Sponsorship", cost: Math.min(1_500_000, cash * 0.02), brandImpact: 0.008 },
+    sponsorships: round >= 5 ? [
+      { name: "Community Sponsorship", cost: Math.min(800_000, cash * 0.012), brandImpact: 0.005 },
     ] : [],
     productPricing: [
-      { productId: "budget-product", newPrice: 192 },
-      { productId: "initial-product", newPrice: 415 },
-      { productId: "active-product", newPrice: 545 },
-      { productId: "enthusiast-product", newPrice: 765 },
-      { productId: "professional-product", newPrice: 1175 },
+      { productId: "budget-product", newPrice: 190 },
+      { productId: "initial-product", newPrice: 412 },
+      { productId: "active-product", newPrice: 540 },
+      { productId: "enthusiast-product", newPrice: 760 },
+      { productId: "professional-product", newPrice: 1170 },
     ],
   };
 
-  // R&D: moderate, broad portfolio
+  // R&D: 4 segments (Budget, General, Active, Enthusiast), skip Professional
   const newProducts: Array<{ name: string; segment: string; targetQuality: number; targetFeatures: number; archetypeId?: string }> = [];
   if (round >= 2) {
     if (!hasProduct(state, "Long Life Phone"))
@@ -815,7 +850,7 @@ export const balancedStrategy: StrategyDecisionMaker = (state, market, round) =>
     if (!hasProduct(state, "Camera Phone"))
       newProducts.push({ name: "Camera Phone", segment: "Enthusiast", targetQuality: 65, targetFeatures: 58, archetypeId: "camera_phone" });
   }
-  if (round >= 6) {
+  if (round >= 7) {
     if (!hasProduct(state, "AI Assistant Phone"))
       newProducts.push({ name: "AI Assistant Phone", segment: "General", targetQuality: 62, targetFeatures: 56, archetypeId: "ai_assistant_phone" });
   }
@@ -827,7 +862,7 @@ export const balancedStrategy: StrategyDecisionMaker = (state, market, round) =>
   if (round >= 6 && !hasTech(state, "dsp_1")) techUpgrades.push("dsp_1");
 
   const rd = {
-    rdBudget: Math.min((10_000_000 + round * 500_000) * r * j, cash * 0.24),
+    rdBudget: Math.min((8_500_000 + round * 400_000) * r * j, cash * 0.20),
     newProducts,
     techUpgrades,
     productImprovements: [
@@ -835,7 +870,7 @@ export const balancedStrategy: StrategyDecisionMaker = (state, market, round) =>
       { productId: "active-product", qualityIncrease: 2, featuresIncrease: 1 },
       { productId: "budget-product", qualityIncrease: 1, featuresIncrease: 1 },
       { productId: "enthusiast-product", qualityIncrease: 1, featuresIncrease: 1 },
-      { productId: "professional-product", qualityIncrease: 1, featuresIncrease: 1 },
+      { productId: "professional-product", qualityIncrease: 1, featuresIncrease: 0 },
     ],
   };
 
@@ -847,7 +882,8 @@ export const balancedStrategy: StrategyDecisionMaker = (state, market, round) =>
 
 // ============================================
 // R&D FOCUSED STRATEGY — Heavy R&D budget ($20M+),
-// tech tree rushing, many products, quality improvements
+// tech tree rushing, many products, quality improvements.
+// Slight nerf: lower ad budgets in low segments, higher R&D cost.
 // ============================================
 
 export const rdFocusedStrategy: StrategyDecisionMaker = (state, market, round) => {
@@ -924,27 +960,27 @@ export const rdFocusedStrategy: StrategyDecisionMaker = (state, market, round) =
     },
   };
 
-  // Marketing: focus on tech-oriented segments
+  // Marketing: focus on Enthusiast/Professional — total ~$14M/round
   const marketing = {
     advertisingBudget: {
-      Enthusiast: Math.min((4_500_000 + round * 500_000) * r * j, cash * 0.14),
-      Professional: Math.min((4_000_000 + round * 400_000) * r, cash * 0.12),
-      General: Math.min((3_000_000 + round * 300_000) * r * j, cash * 0.10),
-      "Active Lifestyle": Math.min((2_500_000 + round * 200_000) * r, cash * 0.08),
-      Budget: Math.min(1_800_000 * r, cash * 0.05),
+      Enthusiast: Math.min(3_200_000 * j, cash * 0.10),
+      Professional: Math.min(2_800_000 * j, cash * 0.08),
+      General: Math.min(1_800_000 * j, cash * 0.06),
+      "Active Lifestyle": Math.min(1_500_000 * j, cash * 0.05),
+      Budget: Math.min(1_000_000 * j, cash * 0.03),
     },
-    brandingInvestment: Math.min((4_000_000 + round * 400_000) * r * j, cash * 0.10),
+    brandingInvestment: Math.min(2_000_000 * j, cash * 0.04),
     promotions: [] as Array<{ segment: string; discountPercent: number; duration: number }>,
     sponsorships: round >= 4 ? [
-      { name: "Tech Innovation Expo", cost: Math.min(2_500_000 * j, cash * 0.04), brandImpact: 0.012 },
+      { name: "Tech Innovation Expo", cost: Math.min(1_000_000 * j, cash * 0.015), brandImpact: 0.006 },
     ] : [],
-    // R&D-focused: premium prices for tech-heavy products
+    // R&D-focused: slightly higher prices for tech-heavy products
     productPricing: [
-      { productId: "budget-product", newPrice: 195 },
-      { productId: "initial-product", newPrice: 425 + round * 2 },
-      { productId: "active-product", newPrice: 560 + round * 2 },
-      { productId: "enthusiast-product", newPrice: 830 + round * 5 },
-      { productId: "professional-product", newPrice: 1260 + round * 8 },
+      { productId: "budget-product", newPrice: 192 },
+      { productId: "initial-product", newPrice: 418 },
+      { productId: "active-product", newPrice: 548 },
+      { productId: "enthusiast-product", newPrice: 775 },
+      { productId: "professional-product", newPrice: 1185 },
     ],
   };
 
@@ -1010,8 +1046,10 @@ export const rdFocusedStrategy: StrategyDecisionMaker = (state, market, round) =
 };
 
 // ============================================
-// COST CUTTER STRATEGY — Minimum spending, low prices,
-// Budget only, maximize margins
+// COST CUTTER STRATEGY — Efficiency-focused, low prices,
+// maximize margins through cost reduction.
+// BUFFED: Expands to 5 segments by R5-6, higher ad spend,
+// more products, but still lowest-cost identity.
 // ============================================
 
 export const costCutterStrategy: StrategyDecisionMaker = (state, market, round) => {
@@ -1037,11 +1075,11 @@ export const costCutterStrategy: StrategyDecisionMaker = (state, market, round) 
   const factory = {
     efficiencyInvestments: {
       [fid(state)]: {
-        workers: Math.min(1_000_000 * r * j, cash * 0.04),
-        machinery: Math.min(5_000_000 * r, cash * 0.18),
-        supervisors: Math.min(300_000 * j, cash * 0.015),
-        engineers: Math.min(1_200_000 * r, cash * 0.05),
-        factory: Math.min(1_800_000 * r, cash * 0.08),
+        workers: Math.min(1_200_000 * r * j, cash * 0.05),
+        machinery: Math.min(5_500_000 * r, cash * 0.18),
+        supervisors: Math.min(350_000 * j, cash * 0.015),
+        engineers: Math.min(1_500_000 * r, cash * 0.06),
+        factory: Math.min(2_200_000 * r, cash * 0.09),
       },
     },
     greenInvestments: {} as Record<string, number>,  // cost cutter skips green
@@ -1064,11 +1102,12 @@ export const costCutterStrategy: StrategyDecisionMaker = (state, market, round) 
     } as Record<string, unknown>,
   };
 
-  // HR: minimal hiring, bare-bones benefits
+  // HR: minimal hiring, bare-bones benefits — but enough to produce
   const hr: Record<string, unknown> = {
     recruitmentSearches: [
       { role: "worker", tier: "basic", factoryId: fid(state) },
       { role: "worker", tier: "basic", factoryId: fid(state) },
+      ...(round >= 2 ? [{ role: "worker", tier: "basic", factoryId: fid(state) }] : []),
       ...(round >= 3 ? [{ role: "engineer", tier: "basic", factoryId: fid(state) }] : []),
       ...(round >= 4 ? [{ role: "supervisor", tier: "basic", factoryId: fid(state) }] : []),
     ],
@@ -1086,34 +1125,34 @@ export const costCutterStrategy: StrategyDecisionMaker = (state, market, round) 
     },
   };
 
-  // Marketing: heavy Budget/General (where volume is), minimal premium
+  // Marketing: lowest total spend — cost cutter identity — total ~$10M/round
   const marketing = {
     advertisingBudget: {
-      Budget: Math.min((5_500_000 + round * 400_000) * r * j, cash * 0.18),
-      General: Math.min((4_500_000 + round * 350_000) * r, cash * 0.15),
-      "Active Lifestyle": Math.min((3_500_000 + round * 250_000) * r * j, cash * 0.12),
-      Enthusiast: Math.min(1_500_000 * r, cash * 0.05),
-      Professional: Math.min(1_000_000 * r, cash * 0.03),
+      Budget: Math.min(2_400_000 * j, cash * 0.07),
+      General: Math.min(2_200_000 * j, cash * 0.06),
+      "Active Lifestyle": Math.min(1_500_000 * j, cash * 0.04),
+      Enthusiast: Math.min(1_000_000 * j, cash * 0.03),
+      Professional: Math.min(800_000 * j, cash * 0.02),
     },
-    brandingInvestment: Math.min(2_000_000 * r * j, cash * 0.05),
-    promotions: round >= 2 ? [
-      { segment: "Budget", discountPercent: 6 + (round % 3), duration: 1 },
-      ...(round >= 4 ? [{ segment: "General", discountPercent: 4, duration: 1 }] : []),
+    brandingInvestment: Math.min(1_000_000 * j, cash * 0.02),
+    promotions: round >= 3 ? [
+      { segment: "Budget", discountPercent: 5 + (round % 3), duration: 1 },
+      ...(round >= 5 ? [{ segment: "General", discountPercent: 3, duration: 1 }] : []),
     ] : [],
     sponsorships: round >= 6 ? [
-      { name: "Budget Retailer Partnership", cost: Math.min(1_000_000, cash * 0.015), brandImpact: 0.006 },
+      { name: "Budget Retailer Partnership", cost: Math.min(600_000, cash * 0.009), brandImpact: 0.004 },
     ] : [],
-    // Cost cutter: lowest prices in market
+    // Cost cutter: lowest prices — efficiency is the edge
     productPricing: [
-      { productId: "budget-product", newPrice: 165 - round },
-      { productId: "initial-product", newPrice: 365 - round * 2 },
-      { productId: "active-product", newPrice: 490 - round * 2 },
-      { productId: "enthusiast-product", newPrice: 690 },
-      { productId: "professional-product", newPrice: 1050 },
+      { productId: "budget-product", newPrice: 180 },
+      { productId: "initial-product", newPrice: 395 },
+      { productId: "active-product", newPrice: 525 },
+      { productId: "enthusiast-product", newPrice: 740 },
+      { productId: "professional-product", newPrice: 1140 },
     ],
   };
 
-  // R&D: minimal budget, only Budget/General products
+  // R&D: expand to 5 segments by round 5-6
   const newProducts: Array<{ name: string; segment: string; targetQuality: number; targetFeatures: number; archetypeId?: string }> = [];
   if (round >= 2) {
     if (!hasProduct(state, "Long Life Phone"))
@@ -1122,12 +1161,18 @@ export const costCutterStrategy: StrategyDecisionMaker = (state, market, round) 
   if (round >= 3) {
     if (!hasProduct(state, "Snapshot Phone"))
       newProducts.push({ name: "Snapshot Phone", segment: "General", targetQuality: 52, targetFeatures: 45, archetypeId: "snapshot_phone" });
-  }
-  if (round >= 4) {
     if (!hasProduct(state, "Outdoor Basic"))
       newProducts.push({ name: "Outdoor Basic", segment: "Active Lifestyle", targetQuality: 52, targetFeatures: 44, archetypeId: "outdoor_basic" });
+  }
+  if (round >= 4) {
     if (!hasProduct(state, "Connected Phone"))
       newProducts.push({ name: "Connected Phone", segment: "General", targetQuality: 48, targetFeatures: 42, archetypeId: "connected_phone" });
+  }
+  if (round >= 5) {
+    if (!hasProduct(state, "Camera Phone"))
+      newProducts.push({ name: "Camera Phone", segment: "Enthusiast", targetQuality: 58, targetFeatures: 50, archetypeId: "camera_phone" });
+    if (!hasProduct(state, "Business Phone"))
+      newProducts.push({ name: "Business Phone", segment: "Professional", targetQuality: 62, targetFeatures: 55, archetypeId: "business_phone" });
   }
   if (round >= 6) {
     if (!hasProduct(state, "Rugged Phone"))
@@ -1137,17 +1182,19 @@ export const costCutterStrategy: StrategyDecisionMaker = (state, market, round) 
   const techUpgrades: string[] = [];
   if (round >= 3 && !hasTech(state, "bat_1")) techUpgrades.push("bat_1");
   if (round >= 4 && !hasTech(state, "dur_1")) techUpgrades.push("dur_1");
+  if (round >= 5 && !hasTech(state, "cam_1")) techUpgrades.push("cam_1");
   if (round >= 6 && !hasTech(state, "con_1")) techUpgrades.push("con_1");
 
   const rd = {
-    rdBudget: Math.min((6_000_000 + round * 300_000) * r * j, cash * 0.15),
+    rdBudget: Math.min((7_500_000 + round * 400_000) * r * j, cash * 0.18),
     newProducts,
     techUpgrades,
     productImprovements: [
       { productId: "budget-product", qualityIncrease: 2, featuresIncrease: 1 },
       { productId: "initial-product", qualityIncrease: 1, featuresIncrease: 1 },
       { productId: "active-product", qualityIncrease: 1, featuresIncrease: 1 },
-      ...(round >= 5 ? [{ productId: "enthusiast-product", qualityIncrease: 1, featuresIncrease: 0 }] : []),
+      ...(round >= 5 ? [{ productId: "enthusiast-product", qualityIncrease: 1, featuresIncrease: 1 }] : []),
+      ...(round >= 5 ? [{ productId: "professional-product", qualityIncrease: 1, featuresIncrease: 0 }] : []),
     ],
   };
 
