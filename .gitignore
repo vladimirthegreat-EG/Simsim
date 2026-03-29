@@ -51,3 +51,11 @@ prisma/*.db-journal
 # Misc
 *.pem
 .vercel
+
+# Generated files
+monte-carlo-report.txt
+monte-carlo-results.json
+reports/
+SESSION_LOG_*.md
+SIMSIM-29march-latest/
+*.tar.gz
