@@ -209,6 +209,23 @@ export interface RDDecisions {
 }
 
 // ============================================
+// SUPPLY CHAIN DECISIONS
+// ============================================
+
+export interface SupplyChainDecisions {
+  orders?: MaterialOrderInput[];
+}
+
+export interface MaterialOrderInput {
+  materialType: string;
+  spec: string;
+  supplierId: string;
+  sourceRegion: string;
+  quantity: number;
+  shippingMethod: string;
+}
+
+// ============================================
 // COMBINED DECISIONS
 // ============================================
 
@@ -218,6 +235,7 @@ export interface AllDecisions {
   finance?: FinanceDecisions;
   marketing?: MarketingDecisions;
   rd?: RDDecisions;
+  supplyChain?: SupplyChainDecisions;
 }
 
 // Re-export MachineryDecisions for convenience

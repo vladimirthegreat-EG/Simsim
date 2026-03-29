@@ -212,14 +212,17 @@ export class SimulationEngine {
         currentState.materials.inventory = updatedInventory;
 
         // Auto-procurement: replenish materials below production threshold
-        // This simulates a basic purchasing department that maintains minimum stock levels
+        // Only active on easy difficulty or when complexity is "simple"
+        // On normal/hard: players must manage their own supply chain
+        const autoReplenishEnabled = currentState.complexityLevel === "simple"
+          || !(config?.difficulty?.complexity?.supplyChain ?? false);
         const AUTO_REORDER_THRESHOLD = 50_000; // reorder when below 50K units
         const AUTO_ORDER_QTY = 100_000; // order 100K units
         const materialTypes = ["display", "processor", "memory", "storage", "camera", "battery", "chassis", "other"] as const;
         for (const matType of materialTypes) {
           const existing = currentState.materials.inventory.find(inv => inv.materialType === matType);
           const currentQty = existing?.quantity ?? 0;
-          if (currentQty < AUTO_REORDER_THRESHOLD) {
+          if (autoReplenishEnabled && currentQty < AUTO_REORDER_THRESHOLD) {
             const orderCost = AUTO_ORDER_QTY * 15; // ~$15/unit average
             if (currentState.cash > orderCost * 2) { // only order if can afford 2x (safety margin)
               if (existing) {
@@ -723,6 +726,37 @@ export class SimulationEngine {
               ));
             } catch {
               // Skip if quality calculation fails
+            }
+          }
+        }
+      }
+
+      // Step 6 FIX: Update product unitCost with actual material costs from inventory
+      // Instead of using hardcoded RAW_MATERIAL_COST_PER_UNIT, use the weighted average
+      // cost of materials actually consumed from inventory
+      if (team.state.materials && team.state.materials.inventory.length > 0) {
+        for (const product of team.state.products || []) {
+          if (product.developmentStatus === "launched" && product.segment) {
+            const unitsSold = ((product as unknown as Record<string, unknown>).unitsSold as number) || 0;
+            if (unitsSold > 0) {
+              // Calculate actual material cost per unit from inventory average costs
+              const segmentMats = MaterialEngine.SEGMENT_MATERIAL_REQUIREMENTS[
+                product.segment as keyof typeof MaterialEngine.SEGMENT_MATERIAL_REQUIREMENTS
+              ];
+              if (segmentMats) {
+                let actualMaterialCostPerUnit = 0;
+                for (const mat of segmentMats.materials) {
+                  const inv = team.state.materials.inventory.find(
+                    (i: any) => i.materialType === mat.type
+                  );
+                  // Use actual average cost from inventory, or base cost as fallback
+                  actualMaterialCostPerUnit += inv?.averageCost ?? mat.costPerUnit;
+                }
+                // Update unitCost: actual materials + labor + overhead
+                const laborCost = CONSTANTS.LABOR_COST_PER_UNIT || 15;
+                const overheadCost = CONSTANTS.OVERHEAD_COST_PER_UNIT || 10;
+                product.unitCost = actualMaterialCostPerUnit + laborCost + overheadCost;
+              }
             }
           }
         }

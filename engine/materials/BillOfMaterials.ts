@@ -99,6 +99,72 @@ const QUALITY_ABOVE_BONUS_CAP = 0.15;
 const DAYS_PER_ROUND = 90;
 
 // ============================================
+// TECH FAMILY → MATERIAL TYPE MAPPING
+// ============================================
+
+/** Maps tech families to the material types they affect quality requirements for */
+const TECH_FAMILY_TO_MATERIAL: Record<string, MaterialType> = {
+  battery: "battery",
+  camera: "camera",
+  ai: "processor",         // AI techs require better processors
+  durability: "chassis",   // Durability techs require better chassis
+  display: "display",
+  connectivity: "processor", // Connectivity also needs processor quality
+};
+
+/** Quality grade minimum material quality requirements */
+const QUALITY_GRADE_MIN_QUALITY: Record<string, number> = {
+  standard: 65,
+  premium: 82,
+  artisan: 93,
+};
+
+/**
+ * Calculate required material quality for a specific material type,
+ * considering the product's segment, quality grade, and applied technologies.
+ *
+ * Higher tech tiers on relevant families → higher material quality needed.
+ * Premium/artisan quality grades → enforce minimum material tiers.
+ */
+function getRequiredMaterialQuality(
+  materialType: MaterialType,
+  product: Product,
+  segment: string,
+): number {
+  // Start with segment baseline
+  const baseThreshold = SEGMENT_QUALITY_THRESHOLDS[segment] || 70;
+  let requiredQuality = baseThreshold;
+
+  // Quality grade enforcement (standard/premium/artisan)
+  if (product.qualityGrade) {
+    const gradeMin = QUALITY_GRADE_MIN_QUALITY[product.qualityGrade] || 65;
+    requiredQuality = Math.max(requiredQuality, gradeMin);
+  }
+
+  // Tech-based quality boost: higher tier techs on relevant families
+  // require higher quality materials
+  if (product.appliedTechs && product.appliedTechs.length > 0) {
+    try {
+      const { RDExpansions } = require("../modules/RDExpansions");
+      const relevantTechs = product.appliedTechs
+        .map((id: string) => RDExpansions.getTechNode(id))
+        .filter((node: any) => node && TECH_FAMILY_TO_MATERIAL[node.family] === materialType);
+
+      if (relevantTechs.length > 0) {
+        const maxTier = Math.max(...relevantTechs.map((t: any) => t.tier));
+        // Tier 1: +0, Tier 2: +5, Tier 3: +10, Tier 4: +15, Tier 5: +20
+        const techQualityBoost = (maxTier - 1) * 5;
+        requiredQuality = Math.max(requiredQuality, baseThreshold + techQualityBoost);
+      }
+    } catch {
+      // RDExpansions not available — use base threshold
+    }
+  }
+
+  return Math.min(requiredQuality, 100); // cap at 100
+}
+
+// ============================================
 // BOM GENERATOR
 // ============================================
 
@@ -130,7 +196,6 @@ export function generateBOM(
     };
   }
 
-  const qualityThreshold = SEGMENT_QUALITY_THRESHOLDS[segment] || 70;
   const teamRegion = (state.materials?.region || "North America") as Region;
 
   const entries: BOMEntry[] = segmentMaterials.materials.map(mat => {
@@ -140,7 +205,10 @@ export function generateBOM(
     )?.quantity || 0;
     const shortfall = Math.max(0, totalNeeded - currentInv);
 
-    // Find eligible suppliers (quality >= segment threshold)
+    // Calculate per-material quality threshold (accounts for tech unlocks + quality grade)
+    const qualityThreshold = getRequiredMaterialQuality(mat.type, product, segment);
+
+    // Find eligible suppliers (quality >= material-specific threshold)
     const eligible = DEFAULT_SUPPLIERS
       .filter(s => s.materials.includes(mat.type) && s.qualityRating >= qualityThreshold)
       .map(supplier => {

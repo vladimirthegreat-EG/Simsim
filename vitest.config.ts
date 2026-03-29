@@ -6,7 +6,7 @@ export default defineConfig({
     globals: true,
     environment: "node",
     // Exclude Playwright tests in /e2e/ — Vitest integration tests are in /__tests__/integration/
-    exclude: ["**/node_modules/**", "e2e/**", "SIMSIM-29march-latest/**"],
+    exclude: ["**/node_modules/**", "e2e/**", "SIMSIM-*/**"],
   },
   resolve: {
     alias: {
