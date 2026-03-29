@@ -416,6 +416,39 @@ export default function SupplyChainPage({ params }: PageProps) {
                         </div>
                       ))}
                     </div>
+                    {/* Quick Order All — one-click sourcing for all shortfalls */}
+                    <div className="mt-3 flex items-center justify-between border-t border-slate-700 pt-3">
+                      <div className="text-sm text-slate-400">
+                        {shortfalls.length} material{shortfalls.length > 1 ? 's' : ''} need ordering — cheapest supplier, sea shipping
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
+                        onClick={() => {
+                          // Auto-order all shortfalls from cheapest eligible supplier via sea
+                          for (const entry of shortfalls) {
+                            const cheapest = entry.eligibleSuppliers?.[0];
+                            if (cheapest && entry.shortfall > 0) {
+                              const qty = Math.max(entry.shortfall, cheapest.supplier.minimumOrder);
+                              placeOrderMutation.mutate({
+                                materialType: entry.materialType,
+                                spec: entry.spec,
+                                supplierId: cheapest.supplier.id,
+                                region: cheapest.supplier.region,
+                                quantity: qty,
+                                shippingMethod: "sea",
+                              });
+                            }
+                          }
+                          toast.success(`Ordering ${shortfalls.length} materials from cheapest suppliers`);
+                        }}
+                        disabled={placeOrderMutation.isPending}
+                      >
+                        <ShoppingCart className="h-4 w-4 mr-1" />
+                        Quick Order All ({formatCurrency(bom.totalEstimatedCost)})
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               );
