@@ -215,6 +215,24 @@ export class SimulationEngine {
         );
         currentState.materials.holdingCosts = MaterialEngine.calculateHoldingCosts(updatedInventory);
 
+        // 1A FIX: Deduct holding costs from cash (was calculated but never deducted)
+        if (currentState.materials.holdingCosts > 0) {
+          currentState.cash = safeNumber(currentState.cash - currentState.materials.holdingCosts);
+        }
+
+        // 1C FIX: Safety net — retroactively apply shipping/tariff costs for legacy orders
+        for (const order of arrivedOrders) {
+          if ((order.shippingCost === 0 || !order.shippingCost) && order.materialCost > 0) {
+            // Estimate shipping at 5% of material cost and tariff at 3%
+            const estimatedShipping = order.materialCost * 0.05;
+            const estimatedTariff = order.materialCost * 0.03;
+            order.shippingCost = estimatedShipping;
+            order.tariffCost = estimatedTariff;
+            order.totalCost = order.materialCost + estimatedShipping + estimatedTariff;
+            currentState.cash = safeNumber(currentState.cash - estimatedShipping - estimatedTariff);
+          }
+        }
+
         // Update accounts payable (remove delivered orders)
         const deliveredCost = arrivedOrders.reduce((sum, order) => sum + order.totalCost, 0);
         currentState.accountsPayable = Math.max(0, currentState.accountsPayable - deliveredCost);
@@ -596,6 +614,45 @@ export class SimulationEngine {
         const segmentSales = teamSales[product.segment as keyof typeof teamSales];
         if (segmentSales !== undefined) {
           (product as unknown as Record<string, unknown>).unitsSold = segmentSales;
+        }
+      }
+
+      // 2B FIX: Consume materials from inventory based on actual units sold
+      if (team.state.materials && team.state.materials.inventory.length > 0) {
+        for (const product of team.state.products || []) {
+          const unitsSold = ((product as unknown as Record<string, unknown>).unitsSold as number) || 0;
+          if (unitsSold > 0 && product.segment) {
+            try {
+              team.state.materials.inventory = MaterialEngine.consumeMaterials(
+                product.segment as any, unitsSold, team.state.materials.inventory
+              );
+            } catch {
+              // consumeMaterials may fail if inventory structure mismatches — continue gracefully
+            }
+          }
+        }
+        // Update inventory value after consumption
+        team.state.materials.totalInventoryValue = team.state.materials.inventory.reduce(
+          (sum, inv) => sum + inv.quantity * inv.averageCost, 0
+        );
+      }
+
+      // 2C FIX: Material quality affects product quality (20% weight)
+      if (team.state.materials && team.state.materials.inventory.length > 0) {
+        for (const product of team.state.products || []) {
+          if (product.segment && product.developmentStatus === "launched") {
+            try {
+              const qualityImpact = MaterialEngine.calculateMaterialQualityImpact(
+                product.segment as any, team.state.materials.inventory
+              );
+              // Blend: 80% R&D quality + 20% material quality
+              product.quality = Math.min(100, Math.round(
+                product.quality * 0.8 + qualityImpact.overallQuality * 0.2
+              ));
+            } catch {
+              // Skip if quality calculation fails
+            }
+          }
         }
       }
 
@@ -1409,11 +1466,19 @@ export class SimulationEngine {
       cogs: 0,
       accountsReceivable: 0,
       accountsPayable: 0,
-      // Initialize materials & supply chain state
+      // 2D FIX: Initialize materials with starting inventory so teams can produce round 1
       materials: {
-        inventory: [],
+        inventory: (["display", "processor", "memory", "storage", "camera", "battery", "chassis", "other"] as const).map(type => ({
+          materialType: type,
+          spec: `Starting ${type}`,
+          quantity: 100_000,
+          averageCost: 15, // ~$15/unit average starting material cost
+          sourceRegion: "North America" as const,
+        })),
         activeOrders: [],
-        totalInventoryValue: 0,
+        suppliers: [],
+        contracts: [],
+        totalInventoryValue: 100_000 * 8 * 15, // 8 types × 100K × $15
         holdingCosts: 0,
         region: "North America" as const,
       },

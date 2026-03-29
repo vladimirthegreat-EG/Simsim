@@ -626,7 +626,7 @@ export function getUnderstaffingRatio(assigned: number, required: number): numbe
 }
 
 export interface BottleneckResult {
-  bottleneck: "machines" | "workers" | "engineers" | "shared_machines" | "target" | "none";
+  bottleneck: "machines" | "workers" | "engineers" | "shared_machines" | "materials" | "target" | "none";
   details: string;
   projectedOutput: number;
   machineCapacity: number;
@@ -721,8 +721,26 @@ export function calculateLineOutput(
     line.targetOutput
   );
 
+  // 2A FIX: Material availability constraint — production limited by inventory
+  let materialCapacity = Infinity;
+  const lineSegment = (line as any).segment as string | undefined;
+  if (state.materials?.inventory?.length > 0 && lineSegment) {
+    try {
+      const { MaterialEngine } = require("../materials/MaterialEngine");
+      const avail = MaterialEngine.checkMaterialAvailability(
+        lineSegment, Math.floor(rawCapacity), state.materials.inventory
+      );
+      if (!avail.available && avail.missing.length > 0) {
+        materialCapacity = Math.min(...avail.missing.map((m: any) => m.have as number));
+      }
+    } catch {
+      // MaterialEngine not available — skip constraint
+    }
+  }
+  const constrainedCapacity = Math.min(rawCapacity, materialCapacity);
+
   // ── Final output ──
-  let projectedOutput = rawCapacity * staffingRatio * efficiency * sharedScale * qualityYield;
+  let projectedOutput = constrainedCapacity * staffingRatio * efficiency * sharedScale * qualityYield;
 
   if (staffingRatio === 0) {
     projectedOutput = 0;
@@ -738,6 +756,9 @@ export function calculateLineOutput(
   } else if (staffingRatio < 1.0) {
     bottleneck = "workers";
     details = `Understaffed: ${line.assignedWorkers}/${requirements.requiredWorkers} workers (${Math.floor(staffingRatio * 100)}% — output reduced by ${Math.floor((1 - staffingRatio) * 100)}%)`;
+  } else if (materialCapacity < rawCapacity && materialCapacity < Infinity) {
+    bottleneck = "materials";
+    details = `Material shortage: only ${materialCapacity.toLocaleString()} units of materials available — order more on Supply Chain page`;
   } else if (machineCapacity > 0 && machineCapacity <= line.targetOutput) {
     bottleneck = "machines";
     details = `Machine capacity (${machineCapacity.toLocaleString()}) is the limiting factor — buy more machines`;

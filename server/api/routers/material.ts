@@ -168,6 +168,43 @@ export const materialRouter = createTRPCRouter({
         teamRegion
       );
 
+      // 1B FIX: Calculate real shipping + tariff costs using LogisticsEngine and TariffEngine
+      try {
+        const weight = input.quantity * 0.0002; // tons (phone components)
+        const volume = input.quantity * 0.001;  // cubic meters
+        const logistics = LogisticsEngine.calculateLogistics(
+          input.region,
+          teamRegion,
+          input.shippingMethod,
+          Math.max(weight, 0.1),
+          Math.max(volume, 0.1),
+          0 // production time
+        );
+        order.shippingCost = logistics.totalLogisticsCost;
+
+        // Calculate tariffs if tariff state exists
+        if (state.tariffs) {
+          const tariffCalc = TariffEngine.calculateTariff(
+            input.region,
+            teamRegion,
+            input.materialType,
+            order.materialCost,
+            currentRound,
+            state.tariffs
+          );
+          order.tariffCost = tariffCalc.tariffAmount;
+        }
+
+        // Recalculate total with real costs
+        order.totalCost = order.materialCost + (order.shippingCost || 0) + (order.tariffCost || 0);
+
+        // Update ETA based on logistics lead time
+        const roundsInTransit = Math.ceil(logistics.totalLeadTime / 90); // 90 days per round
+        order.estimatedArrivalRound = currentRound + Math.max(1, roundsInTransit);
+      } catch {
+        // If logistics/tariff calc fails, order still proceeds with material cost only
+      }
+
       // Check if team has enough cash
       const totalCost = order.totalCost;
       if (state.cash < totalCost) {

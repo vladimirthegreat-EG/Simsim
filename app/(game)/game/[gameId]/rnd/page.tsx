@@ -1108,13 +1108,13 @@ export default function RDPage({ params }: PageProps) {
                         <div>
                           <span className="text-slate-400">Est. Unit Cost</span>
                           <div className="text-white font-medium">
-                            ${Math.round(priceTarget * 0.4 + qualityTarget * 2 + featuresTarget * 1.5)}
+                            ${Math.round(({"Budget":60,"General":150,"Enthusiast":350,"Professional":600,"Active Lifestyle":250}[selectedSegment || "General"] || 150) + qualityTarget * 2 + featuresTarget * 1.5)}
                           </div>
                         </div>
                         <div>
                           <span className="text-slate-400">Est. Margin</span>
-                          <div className="text-green-400 font-medium">
-                            {Math.round((1 - (priceTarget * 0.4 + qualityTarget * 2 + featuresTarget * 1.5) / priceTarget) * 100)}%
+                          <div className={`font-medium ${priceTarget > (({"Budget":60,"General":150,"Enthusiast":350,"Professional":600,"Active Lifestyle":250}[selectedSegment || "General"] || 150) + qualityTarget * 2 + featuresTarget * 1.5) ? "text-green-400" : "text-red-400"}`}>
+                            {Math.round((1 - (({"Budget":60,"General":150,"Enthusiast":350,"Professional":600,"Active Lifestyle":250}[selectedSegment || "General"] || 150) + qualityTarget * 2 + featuresTarget * 1.5) / priceTarget) * 100)}%
                           </div>
                         </div>
                       </div>
