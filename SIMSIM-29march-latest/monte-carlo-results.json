@@ -1,0 +1,694 @@
+{
+  "timestamp": "2026-03-17T13:05:59.857Z",
+  "config": {
+    "SIMULATIONS_PER_MATCHUP": 200,
+    "ROUNDS_PER_GAME": 8,
+    "SENSITIVITY_SIMULATIONS": 100,
+    "ALL_STRATEGIES": [
+      "volume",
+      "premium",
+      "brand",
+      "automation",
+      "balanced",
+      "rd-focused",
+      "cost-cutter"
+    ],
+    "MATCHUPS": [
+      [
+        "volume",
+        "premium",
+        "brand",
+        "balanced"
+      ],
+      [
+        "volume",
+        "premium",
+        "automation",
+        "rd-focused"
+      ],
+      [
+        "brand",
+        "automation",
+        "balanced",
+        "cost-cutter"
+      ],
+      [
+        "volume",
+        "brand",
+        "rd-focused",
+        "cost-cutter"
+      ],
+      [
+        "premium",
+        "automation",
+        "balanced",
+        "rd-focused"
+      ],
+      [
+        "volume",
+        "premium",
+        "brand",
+        "automation"
+      ],
+      [
+        "balanced",
+        "rd-focused",
+        "cost-cutter",
+        "volume"
+      ],
+      [
+        "volume",
+        "premium",
+        "brand",
+        "automation",
+        "balanced",
+        "rd-focused",
+        "cost-cutter"
+      ],
+      [
+        "balanced",
+        "balanced",
+        "balanced",
+        "balanced"
+      ],
+      [
+        "premium",
+        "premium",
+        "premium",
+        "premium"
+      ]
+    ],
+    "VARIABLE_RANGES": {
+      "startingCash": [
+        100000000,
+        150000000,
+        200000000,
+        300000000,
+        500000000
+      ],
+      "brandDecayRate": [
+        0.03,
+        0.05,
+        0.065,
+        0.08,
+        0.1
+      ],
+      "brandMaxGrowth": [
+        0.01,
+        0.015,
+        0.02,
+        0.03,
+        0.05
+      ],
+      "softmaxTemperature": [
+        5,
+        8,
+        10,
+        15,
+        20
+      ],
+      "rubberBandBoost": [
+        1,
+        1.1,
+        1.15,
+        1.25,
+        1.4
+      ],
+      "rubberBandPenalty": [
+        1,
+        0.95,
+        0.92,
+        0.85,
+        0.75
+      ],
+      "baseDemandBudget": [
+        300000,
+        400000,
+        500000,
+        700000,
+        1000000
+      ],
+      "baseDefectRate": [
+        0.02,
+        0.03,
+        0.05,
+        0.08,
+        0.1
+      ],
+      "trainingFatigueThreshold": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "esgPenaltyThreshold": [
+        200,
+        300,
+        400,
+        500
+      ]
+    }
+  },
+  "matchupAnalyses": [
+    {
+      "matchup": [
+        "volume",
+        "premium",
+        "brand",
+        "balanced"
+      ],
+      "totalGames": 200,
+      "winsByStrategy": {
+        "volume": 29,
+        "premium": 79,
+        "brand": 41,
+        "balanced": 51
+      },
+      "winRates": {
+        "volume": 0.145,
+        "premium": 0.395,
+        "brand": 0.205,
+        "balanced": 0.255
+      },
+      "avgRevenue": {
+        "volume": 56013101.954249986,
+        "premium": 58963565.1675,
+        "brand": 57819575.562,
+        "balanced": 58032277.61625
+      },
+      "avgEPS": {
+        "volume": -9.976281459505966,
+        "premium": -8.328652391468594,
+        "brand": -8.71455494194722,
+        "balanced": -10.271356945293306
+      },
+      "avgCash": {
+        "volume": 62185825.63671571,
+        "premium": 63989436.232473075,
+        "brand": 65491758.042699814,
+        "balanced": 63125082.73953118
+      },
+      "bankruptcyRate": {
+        "volume": 0,
+        "premium": 0,
+        "brand": 0,
+        "balanced": 0
+      },
+      "closeGameRate": 1,
+      "snowballRate": 0.145
+    },
+    {
+      "matchup": [
+        "volume",
+        "premium",
+        "automation",
+        "rd-focused"
+      ],
+      "totalGames": 200,
+      "winsByStrategy": {
+        "volume": 37,
+        "premium": 128,
+        "automation": 33,
+        "rd-focused": 2
+      },
+      "winRates": {
+        "volume": 0.185,
+        "premium": 0.64,
+        "automation": 0.165,
+        "rd-focused": 0.01
+      },
+      "avgRevenue": {
+        "volume": 55607304.081,
+        "premium": 59876613.64125,
+        "automation": 57723505.98,
+        "rd-focused": 58070738.0925
+      },
+      "avgEPS": {
+        "volume": -10.155817774706287,
+        "premium": -8.36015807298854,
+        "automation": -9.528702754109876,
+        "rd-focused": -9.656632233019875
+      },
+      "avgCash": {
+        "volume": 60995199.61876532,
+        "premium": 63692872.15007288,
+        "automation": 66979991.095347606,
+        "rd-focused": 63988222.252167165
+      },
+      "bankruptcyRate": {
+        "volume": 0,
+        "premium": 0,
+        "automation": 0,
+        "rd-focused": 0
+      },
+      "closeGameRate": 0.995,
+      "snowballRate": 0.185
+    },
+    {
+      "matchup": [
+        "brand",
+        "automation",
+        "balanced",
+        "cost-cutter"
+      ],
+      "totalGames": 200,
+      "winsByStrategy": {
+        "brand": 79,
+        "automation": 16,
+        "balanced": 67,
+        "cost-cutter": 38
+      },
+      "winRates": {
+        "brand": 0.395,
+        "automation": 0.08,
+        "balanced": 0.335,
+        "cost-cutter": 0.19
+      },
+      "avgRevenue": {
+        "brand": 58391313.282749996,
+        "automation": 57791351.7825,
+        "balanced": 58203490.35375,
+        "cost-cutter": 57145763.28825001
+      },
+      "avgEPS": {
+        "brand": -8.750028119446391,
+        "automation": -9.364029424543283,
+        "balanced": -10.341555036165728,
+        "cost-cutter": -9.34099595716971
+      },
+      "avgCash": {
+        "brand": 64893618.3382988,
+        "automation": 67420288.62264393,
+        "balanced": 63267153.3093826,
+        "cost-cutter": 64446855.17889019
+      },
+      "bankruptcyRate": {
+        "brand": 0,
+        "automation": 0,
+        "balanced": 0,
+        "cost-cutter": 0
+      },
+      "closeGameRate": 0.995,
+      "snowballRate": 0.395
+    },
+    {
+      "matchup": [
+        "volume",
+        "brand",
+        "rd-focused",
+        "cost-cutter"
+      ],
+      "totalGames": 200,
+      "winsByStrategy": {
+        "volume": 29,
+        "brand": 69,
+        "rd-focused": 90,
+        "cost-cutter": 12
+      },
+      "winRates": {
+        "volume": 0.145,
+        "brand": 0.345,
+        "rd-focused": 0.45,
+        "cost-cutter": 0.06
+      },
+      "avgRevenue": {
+        "volume": 55540496.187750004,
+        "brand": 59050295.20950001,
+        "rd-focused": 58499985.915,
+        "cost-cutter": 57585689.915249996
+      },
+      "avgEPS": {
+        "volume": -10.07323569748633,
+        "brand": -8.75371924722413,
+        "rd-focused": -9.575369472520139,
+        "cost-cutter": -9.335789029585678
+      },
+      "avgCash": {
+        "volume": 61501277.79815659,
+        "brand": 65816977.738709986,
+        "rd-focused": 65605167.63822584,
+        "cost-cutter": 64994784.21389003
+      },
+      "bankruptcyRate": {
+        "volume": 0,
+        "brand": 0,
+        "rd-focused": 0,
+        "cost-cutter": 0
+      },
+      "closeGameRate": 1,
+      "snowballRate": 0.145
+    },
+    {
+      "matchup": [
+        "premium",
+        "automation",
+        "balanced",
+        "rd-focused"
+      ],
+      "totalGames": 200,
+      "winsByStrategy": {
+        "premium": 96,
+        "automation": 24,
+        "balanced": 80,
+        "rd-focused": 0
+      },
+      "winRates": {
+        "premium": 0.48,
+        "automation": 0.12,
+        "balanced": 0.4,
+        "rd-focused": 0
+      },
+      "avgRevenue": {
+        "premium": 58365876.03,
+        "automation": 56540941.2225,
+        "balanced": 58112432.67375,
+        "rd-focused": 56476586.85375
+      },
+      "avgEPS": {
+        "premium": -8.398878484335627,
+        "automation": -9.446716004615729,
+        "balanced": -10.248815636134214,
+        "rd-focused": -9.621636423556325
+      },
+      "avgCash": {
+        "premium": 63219867.704452544,
+        "automation": 66295368.41398579,
+        "balanced": 64036715.48705019,
+        "rd-focused": 63253364.72233015
+      },
+      "bankruptcyRate": {
+        "premium": 0,
+        "automation": 0,
+        "balanced": 0,
+        "rd-focused": 0
+      },
+      "closeGameRate": 1,
+      "snowballRate": 0.48
+    },
+    {
+      "matchup": [
+        "volume",
+        "premium",
+        "brand",
+        "automation"
+      ],
+      "totalGames": 200,
+      "winsByStrategy": {
+        "volume": 23,
+        "premium": 117,
+        "brand": 45,
+        "automation": 15
+      },
+      "winRates": {
+        "volume": 0.115,
+        "premium": 0.585,
+        "brand": 0.225,
+        "automation": 0.075
+      },
+      "avgRevenue": {
+        "volume": 55529941.508999996,
+        "premium": 59708113.08,
+        "brand": 58483615.65375001,
+        "automation": 57918815.2725
+      },
+      "avgEPS": {
+        "volume": -10.100122274531932,
+        "premium": -8.350325251392277,
+        "brand": -8.819252320878752,
+        "automation": -9.421490566134967
+      },
+      "avgCash": {
+        "volume": 60851511.73954845,
+        "premium": 63907445.28101561,
+        "brand": 64758975.30778366,
+        "automation": 67279995.27007042
+      },
+      "bankruptcyRate": {
+        "volume": 0,
+        "premium": 0,
+        "brand": 0,
+        "automation": 0
+      },
+      "closeGameRate": 1,
+      "snowballRate": 0.115
+    },
+    {
+      "matchup": [
+        "balanced",
+        "rd-focused",
+        "cost-cutter",
+        "volume"
+      ],
+      "totalGames": 200,
+      "winsByStrategy": {
+        "balanced": 94,
+        "rd-focused": 59,
+        "cost-cutter": 14,
+        "volume": 33
+      },
+      "winRates": {
+        "balanced": 0.47,
+        "rd-focused": 0.295,
+        "cost-cutter": 0.07,
+        "volume": 0.165
+      },
+      "avgRevenue": {
+        "balanced": 58174251.5025,
+        "rd-focused": 57669751.88625,
+        "cost-cutter": 56806918.32900002,
+        "volume": 56492525.81174998
+      },
+      "avgEPS": {
+        "balanced": -10.280664873843882,
+        "rd-focused": -9.58857927010618,
+        "cost-cutter": -9.369769877711626,
+        "volume": -9.955974152414107
+      },
+      "avgCash": {
+        "balanced": 63835211.912918955,
+        "rd-focused": 65228202.25280837,
+        "cost-cutter": 64480952.379665874,
+        "volume": 63064197.11749595
+      },
+      "bankruptcyRate": {
+        "balanced": 0,
+        "rd-focused": 0,
+        "cost-cutter": 0,
+        "volume": 0
+      },
+      "closeGameRate": 0.995,
+      "snowballRate": 0.47
+    },
+    {
+      "matchup": [
+        "volume",
+        "premium",
+        "brand",
+        "automation",
+        "balanced",
+        "rd-focused",
+        "cost-cutter"
+      ],
+      "totalGames": 200,
+      "winsByStrategy": {
+        "volume": 1,
+        "premium": 61,
+        "brand": 2,
+        "automation": 1,
+        "balanced": 131,
+        "rd-focused": 1,
+        "cost-cutter": 3
+      },
+      "winRates": {
+        "volume": 0.005,
+        "premium": 0.305,
+        "brand": 0.01,
+        "automation": 0.005,
+        "balanced": 0.655,
+        "rd-focused": 0.005,
+        "cost-cutter": 0.015
+      },
+      "avgRevenue": {
+        "volume": 46440453.99,
+        "premium": 55489518.07875,
+        "brand": 50743569.497250006,
+        "automation": 50541774.8325,
+        "balanced": 59055477.62625,
+        "rd-focused": 52100828.9025,
+        "cost-cutter": 48655588.348500006
+      },
+      "avgEPS": {
+        "volume": -9.960132486021353,
+        "premium": -8.569489357677357,
+        "brand": -9.24323983839574,
+        "automation": -9.145230861472424,
+        "balanced": -10.113547499972148,
+        "rd-focused": -10.049443351357796,
+        "cost-cutter": -8.755670336955482
+      },
+      "avgCash": {
+        "volume": 45521926.462686494,
+        "premium": 60959341.14507597,
+        "brand": 56249736.39152578,
+        "automation": 55206473.89434049,
+        "balanced": 65329593.43154275,
+        "rd-focused": 54267576.32462723,
+        "cost-cutter": 52558357.99226196
+      },
+      "bankruptcyRate": {
+        "volume": 0,
+        "premium": 0,
+        "brand": 0,
+        "automation": 0,
+        "balanced": 0,
+        "rd-focused": 0,
+        "cost-cutter": 0
+      },
+      "closeGameRate": 0.87,
+      "snowballRate": 0.005
+    },
+    {
+      "matchup": [
+        "balanced",
+        "balanced",
+        "balanced",
+        "balanced"
+      ],
+      "totalGames": 200,
+      "winsByStrategy": {
+        "balanced": 200
+      },
+      "winRates": {
+        "balanced": 1
+      },
+      "avgRevenue": {
+        "balanced": 57222647.44875
+      },
+      "avgEPS": {
+        "balanced": -10.514233099930308
+      },
+      "avgCash": {
+        "balanced": 61616290.64996788
+      },
+      "bankruptcyRate": {
+        "balanced": 0
+      },
+      "closeGameRate": 1,
+      "snowballRate": 1
+    },
+    {
+      "matchup": [
+        "premium",
+        "premium",
+        "premium",
+        "premium"
+      ],
+      "totalGames": 200,
+      "winsByStrategy": {
+        "premium": 200
+      },
+      "winRates": {
+        "premium": 1
+      },
+      "avgRevenue": {
+        "premium": 58436650.51875
+      },
+      "avgEPS": {
+        "premium": -8.386127525107204
+      },
+      "avgCash": {
+        "premium": 63553759.800404586
+      },
+      "bankruptcyRate": {
+        "premium": 0
+      },
+      "closeGameRate": 1,
+      "snowballRate": 1
+    }
+  ],
+  "aggregateWinRates": {
+    "volume": 0.12666666666666668,
+    "premium": 0.5675,
+    "brand": 0.236,
+    "automation": 0.089,
+    "balanced": 0.5191666666666667,
+    "rd-focused": 0.152,
+    "cost-cutter": 0.08375
+  },
+  "aggregateAvgRevenue": {
+    "volume": 54270637.255625,
+    "premium": 58473389.419375,
+    "brand": 56897673.84105001,
+    "automation": 56103277.817999996,
+    "balanced": 58133429.53687501,
+    "rd-focused": 56563578.33,
+    "cost-cutter": 55048489.97025001
+  },
+  "aggregateBankruptcyRate": {
+    "volume": 0,
+    "premium": 0,
+    "brand": 0,
+    "automation": 0,
+    "balanced": 0,
+    "rd-focused": 0,
+    "cost-cutter": 0
+  },
+  "sensitivityResults": [
+    {
+      "variable": "startingCash",
+      "values": [
+        100000000,
+        150000000,
+        200000000,
+        300000000,
+        500000000
+      ],
+      "winRates": {
+        "volume": [
+          0.37,
+          0.3,
+          0.11,
+          0.18,
+          0.14
+        ],
+        "premium": [
+          0.49,
+          0.47,
+          0.49,
+          0.36,
+          0.39
+        ],
+        "brand": [
+          0,
+          0.05,
+          0.18,
+          0.21,
+          0.22
+        ],
+        "balanced": [
+          0.14,
+          0.18,
+          0.22,
+          0.25,
+          0.25
+        ]
+      },
+      "dominantAt": [],
+      "nonViableAt": [
+        {
+          "value": 100000000,
+          "strategy": "brand"
+        }
+      ]
+    }
+  ],
+  "overallBalance": {
+    "passed": true,
+    "issues": [
+      "WARNING: premium wins 56.8% of games (approaching dominance)",
+      "WARNING: balanced wins 51.9% of games (approaching dominance)"
+    ],
+    "score": 90
+  }
+}

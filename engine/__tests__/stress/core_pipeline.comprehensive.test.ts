@@ -804,11 +804,11 @@ describe("Core Pipeline — Comprehensive Stress Tests", () => {
         expect(state.factories.length).toBeGreaterThanOrEqual(1);
         expect(state.factories[0].efficiency).toBe(0.7);
 
-        // Products — 5 segments
-        expect(state.products.length).toBe(5);
+        // Products — 2 segments (default startingSegments=2: General + Budget)
+        expect(state.products.length).toBe(2);
         const segments = state.products.map((p) => p.segment).sort();
         expect(segments).toEqual(
-          ["Active Lifestyle", "Budget", "Enthusiast", "General", "Professional"],
+          ["Budget", "General"],
         );
       });
 

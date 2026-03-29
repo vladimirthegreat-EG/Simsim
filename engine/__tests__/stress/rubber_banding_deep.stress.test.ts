@@ -426,7 +426,7 @@ describe("§4.3 — Mechanism B: Perception Boost", () => {
   });
 
   it("TEST 2 — Perception boost scales with segment quality weight", () => {
-    // Budget quality weight = 22, Professional quality weight = 30 // POST-FIX: updated from 15/40 to 22/30
+    // Budget quality weight = 20, Professional quality weight = 27 // v5.1: Budget 45/20/10/7/18, Professional 25/27/10/17/21
     // Same perception bonus should have larger impact in Professional
     const budgetWeight = CONSTANTS.SEGMENT_WEIGHTS["Budget"].quality;
     const proWeight = CONSTANTS.SEGMENT_WEIGHTS["Professional"].quality;
@@ -436,8 +436,8 @@ describe("§4.3 — Mechanism B: Perception Boost", () => {
     const proBoost = perceptionBonus * proWeight;
 
     expect(proBoost).toBeGreaterThan(budgetBoost);
-    expect(budgetBoost).toBeCloseTo(2.64, 1); // 0.12 × 22 // POST-FIX: updated from 1.8 (0.12×15) to 2.64 (0.12×22)
-    expect(proBoost).toBeCloseTo(3.6, 1);     // 0.12 × 30 // POST-FIX: updated from 4.2 (0.12×35) to 3.6 (0.12×30)
+    expect(budgetBoost).toBeCloseTo(2.4, 1);  // 0.12 × 20
+    expect(proBoost).toBeCloseTo(3.24, 1);    // 0.12 × 27
   });
 
   it("TEST 3 — Perception boost factor never exceeds MAX_PERCEPTION_BONUS", () => {

@@ -106,22 +106,22 @@ describe("F3 — Segment Drift", () => {
 // ============================================
 describe("Constants (F4-F10 + T5-T6)", () => {
   // POST-FIX: All values updated from playbook spec
-  it("F4: QUALITY_FEATURE_BONUS_CAP = 1.15", () => {
-    expect(CONSTANTS.QUALITY_FEATURE_BONUS_CAP).toBe(1.15);
+  it("F4: QUALITY_FEATURE_BONUS_CAP = 1.50", () => {
+    expect(CONSTANTS.QUALITY_FEATURE_BONUS_CAP).toBe(1.50);
   });
 
   it("F5: Budget weights sum to 100", () => {
     const b = CONSTANTS.SEGMENT_WEIGHTS.Budget;
     expect(b.price + b.quality + b.brand + b.esg + b.features).toBe(100);
-    expect(b.price).toBe(40);
-    expect(b.quality).toBe(22);
+    expect(b.price).toBe(45);
+    expect(b.quality).toBe(20);
     expect(b.brand).toBe(10);
-    expect(b.esg).toBe(8);
-    expect(b.features).toBe(20);
+    expect(b.esg).toBe(7);
+    expect(b.features).toBe(18);
   });
 
   it("F6: SOFTMAX_TEMPERATURE = 1.8", () => {
-    expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(2.5);
+    expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(1.8);
   });
 
   it("F7: RB_MAX_COST_RELIEF = 0.10", () => {
@@ -141,7 +141,7 @@ describe("Constants (F4-F10 + T5-T6)", () => {
   });
 
   it("F9: BRAND_DECAY_RATE = 0.08", () => {
-    expect(CONSTANTS.BRAND_DECAY_RATE).toBe(0.04);
+    expect(CONSTANTS.BRAND_DECAY_RATE).toBe(0.08);
   });
 
   it("F10: ESG_CODE_OF_ETHICS_POINTS = 100", () => {
@@ -185,12 +185,12 @@ describe("M1 — ESG Social Bonus", () => {
 // M2-M3: Professional Weights
 // ============================================
 describe("M2-M3 — Professional Weights", () => {
-  it("Professional quality = 30", () => {
-    expect(CONSTANTS.SEGMENT_WEIGHTS.Professional.quality).toBe(30);
+  it("Professional quality = 27", () => {
+    expect(CONSTANTS.SEGMENT_WEIGHTS.Professional.quality).toBe(27);
   });
 
-  it("Professional price = 23", () => {
-    expect(CONSTANTS.SEGMENT_WEIGHTS.Professional.price).toBe(23);
+  it("Professional price = 25", () => {
+    expect(CONSTANTS.SEGMENT_WEIGHTS.Professional.price).toBe(25);
   });
 
   it("Professional weights sum to 100", () => {

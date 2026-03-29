@@ -220,7 +220,7 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
       });
 
       it("softmax temperature = 1.8 is used (from CONSTANTS)", () => { // POST-FIX: updated from 3 to 1.8
-        expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(2.5); // POST-FIX: updated from 3 to 1.8
+        expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(1.8); // POST-FIX: updated from 3 to 1.8
       });
 
       it("rubber-banding constants are correct (v6.0.0 revised system)", () => {
@@ -1376,11 +1376,11 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
       it("BAL-02 — Professional segment weights match spec and sum to 100", () => {
         const proWeights = CONSTANTS.SEGMENT_WEIGHTS["Professional"];
 
-        expect(proWeights.price).toBe(23); // POST-FIX: updated from 18 to 23
-        expect(proWeights.quality).toBe(30); // POST-FIX: updated from 35 to 30
+        expect(proWeights.price).toBe(25); // v5.1: updated to 25
+        expect(proWeights.quality).toBe(27); // v5.1: updated to 27
         expect(proWeights.brand).toBe(10);
         expect(proWeights.esg).toBe(17);
-        expect(proWeights.features).toBe(20);
+        expect(proWeights.features).toBe(21); // v5.1: updated to 21
 
         const sum = proWeights.price + proWeights.quality + proWeights.brand
           + proWeights.esg + proWeights.features;

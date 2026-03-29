@@ -16,8 +16,15 @@ describe("Worker Requirements", () => {
     line.targetOutput = 8000;
     line.assignedMachines = ["m1", "m2", "m3", "m4", "m5", "m6"];
 
+    // getLineWorkerRequirements(line, efficiency, machineCapacity, laborReduction)
+    // With no machineCapacity passed, falls back to targetOutput
     const reqs = getLineWorkerRequirements(line, 80);
-    expect(reqs.requiredWorkers).toBe(Math.ceil(8000 / (100 * 0.8))); // 100
+    // Component 1: machine operators = ceil(6 machines * 2 * (1 - 0)) = 12
+    // Component 2: capacity workers = ceil(8000 / (5000 * 0.8)) = ceil(2) = 2
+    // requiredWorkers = max(1, max(12, 2)) = 12
+    const operatorsNeeded = Math.ceil(6 * 2 * 1); // 12
+    const capacityWorkers = Math.ceil(8000 / (5000 * 0.8)); // 2
+    expect(reqs.requiredWorkers).toBe(Math.max(1, Math.max(operatorsNeeded, capacityWorkers)));
     expect(reqs.requiredEngineers).toBe(Math.ceil(6 / 3)); // 2
   });
 
@@ -172,15 +179,17 @@ describe("Output Formula", () => {
     line.status = "active";
     line.productId = "prod-1";
     line.segment = "General";
-    line.targetOutput = 10000;
-    line.assignedWorkers = 10; // Way too few
+    // Need machineCapacity high enough that 10 workers < 50% of required
+    // requiredWorkers = ceil(500000 / (5000 * 0.8)) = 125. 10/125 = 8% → shutdown
+    line.targetOutput = 500000;
+    line.assignedWorkers = 10; // Way too few — 10/125 = 8%
     line.assignedEngineers = 1;
     line.assignedSupervisors = 1;
 
-    const m1 = createTestMachine("assembly_line", "factory-1", "m1", 20000);
+    const m1 = createTestMachine("assembly_line", "factory-1", "m1", 500000);
     m1.assignedLineId = line.id;
     state.machineryStates = {
-      "factory-1": { machines: [m1], totalCapacity: 20000, totalMaintenanceCost: 0, totalOperatingCost: 0, averageHealth: 100 },
+      "factory-1": { machines: [m1], totalCapacity: 500000, totalMaintenanceCost: 0, totalOperatingCost: 0, averageHealth: 100 },
     };
     line.assignedMachines = ["m1"];
 

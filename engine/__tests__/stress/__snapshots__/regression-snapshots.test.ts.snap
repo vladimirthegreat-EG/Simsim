@@ -1,0 +1,91 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Regression Snapshots > L3-REGR-01: 4-team 8-round state hash matrix is stable 1`] = `
+{
+  "balanced": [
+    "5918524e",
+    "051b4f62",
+    "35f2b39a",
+    "425640f4",
+    "5890a618",
+    "403b9a20",
+    "b405787f",
+    "b6df919f",
+  ],
+  "brand": [
+    "5918524e",
+    "051b4f62",
+    "35f2b39a",
+    "425640f4",
+    "5890a618",
+    "403b9a20",
+    "b405787f",
+    "b6df919f",
+  ],
+  "costLeader": [
+    "5918524e",
+    "051b4f62",
+    "35f2b39a",
+    "425640f4",
+    "5890a618",
+    "403b9a20",
+    "b405787f",
+    "b6df919f",
+  ],
+  "premium": [
+    "cf292752",
+    "03e538de",
+    "4ac659a6",
+    "4f914e48",
+    "7e0aecca",
+    "27e892b2",
+    "c96a206d",
+    "06bbfe56",
+  ],
+}
+`;
+
+exports[`Regression Snapshots > L3-REGR-02: market demand progression is stable across 5 rounds 1`] = `
+[
+  {
+    "Active Lifestyle": 206000,
+    "Budget": 714000,
+    "Enthusiast": 154500,
+    "General": 459000,
+    "Professional": 80800,
+    "round": 1,
+  },
+  {
+    "Active Lifestyle": 212180,
+    "Budget": 728280,
+    "Enthusiast": 159135,
+    "General": 468180,
+    "Professional": 81608,
+    "round": 2,
+  },
+  {
+    "Active Lifestyle": 218545.4,
+    "Budget": 742845.6,
+    "Enthusiast": 163909.05000000002,
+    "General": 477543.60000000003,
+    "Professional": 82424.08,
+    "round": 3,
+  },
+  {
+    "Active Lifestyle": 225101.762,
+    "Budget": 757702.512,
+    "Enthusiast": 168826.32150000002,
+    "General": 487094.47200000007,
+    "Professional": 83248.3208,
+    "round": 4,
+  },
+  {
+    "Active Lifestyle": 231854.81485999998,
+    "Budget": 772856.56224,
+    "Enthusiast": 173891.11114500003,
+    "General": 496836.36144000007,
+    "Professional": 84080.804008,
+    "round": 5,
+  },
+]
+`;

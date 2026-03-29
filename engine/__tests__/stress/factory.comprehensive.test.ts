@@ -445,11 +445,17 @@ describe("Factory Module — Comprehensive Stress Tests", () => {
 
         const result = FactoryModule.calculateProduction(factory, workers, avgEfficiency, avgSpeed);
 
-        // Expected: 500 × 100 × 1.0 × (100/100) × (100/100) × 1 = 50,000
-        // minus defects: floor(50000 × 0.06) = 3000
-        // net: 50000 - 3000 = 47000
+        // Expected: 500 × 5000 × 1.0 × 1.0 × 1.0 × 1 = 2,500,000 gross
+        // Defect rate adjusted by worker accuracy: factory.avgWorkerAccuracy defaults to 75
+        // accuracyModifier = 1.3 - (75/100) * 0.5 = 0.925
+        // effectiveDefectRate = 0.06 * 0.925 = 0.0555
+        // defects: floor(2500000 × 0.0555) = 138750
+        // net: 2500000 - 138750 = 2361250
         const expectedGross = 500 * CONSTANTS.BASE_WORKER_OUTPUT * 1.0 * 1.0 * 1.0;
-        const expectedDefects = Math.floor(expectedGross * CONSTANTS.BASE_DEFECT_RATE);
+        const workerAccuracy = 75; // default when not set on factory
+        const accuracyModifier = 1.3 - (workerAccuracy / 100) * 0.5;
+        const effectiveDefectRate = CONSTANTS.BASE_DEFECT_RATE * accuracyModifier;
+        const expectedDefects = Math.floor(expectedGross * effectiveDefectRate);
         const expectedNet = expectedGross - expectedDefects;
 
         expect(result.unitsProduced).toBe(expectedNet);

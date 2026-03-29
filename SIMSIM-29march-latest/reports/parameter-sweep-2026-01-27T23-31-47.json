@@ -1,0 +1,5727 @@
+[
+  {
+    "parameter": {
+      "name": "BRAND_DECAY_RATE",
+      "category": "Brand",
+      "baseline": 0.065,
+      "values": [
+        0.02,
+        0.03,
+        0.04,
+        0.05,
+        0.065,
+        0.08,
+        0.1,
+        0.12,
+        0.15
+      ],
+      "unit": "%",
+      "description": "Brand value decay per round"
+    },
+    "results": [
+      {
+        "parameterName": "BRAND_DECAY_RATE",
+        "parameterValue": 0.02,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1416178154.4700003,
+          "premium": 1433310957.4899998,
+          "brand": 1456253477.8866668,
+          "balanced": 1456214142.7029998
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0282982217245573,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_DECAY_RATE",
+        "parameterValue": 0.03,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1426101690.0266676,
+          "premium": 1443378453.7316668,
+          "brand": 1466518017.1233332,
+          "balanced": 1466479929.382417
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283404243745828,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_DECAY_RATE",
+        "parameterValue": 0.04,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1425723217.6183338,
+          "premium": 1442997348.9516668,
+          "brand": 1466140963.9600003,
+          "balanced": 1466103305.8048
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283489430782955,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_DECAY_RATE",
+        "parameterValue": 0.05,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1428362473.7316658,
+          "premium": 1445677757.0383332,
+          "brand": 1468879987.9500003,
+          "balanced": 1468843751.4465668
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283664090617561,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_DECAY_RATE",
+        "parameterValue": 0.065,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1420073190.5383332,
+          "premium": 1437271840.5833337,
+          "brand": 1460317402.2233331,
+          "balanced": 1460280090.2155163
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283395334502046,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_DECAY_RATE",
+        "parameterValue": 0.08,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1428445543.193333,
+          "premium": 1445748504.6799994,
+          "brand": 1468919022.1399994,
+          "balanced": 1468880242.2924662
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283339320420901,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_DECAY_RATE",
+        "parameterValue": 0.1,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1429008004.2783332,
+          "premium": 1446331969.5533335,
+          "brand": 1469534939.0950003,
+          "balanced": 1469497830.3378997
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283601874134594,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_DECAY_RATE",
+        "parameterValue": 0.12,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1425198865.785,
+          "premium": 1442467457.3933327,
+          "brand": 1465599041.1283333,
+          "balanced": 1465562038.8373334
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283470442709628,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_DECAY_RATE",
+        "parameterValue": 0.15,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1422756746.0566666,
+          "premium": 1439988984.4283338,
+          "brand": 1463074662.2616665,
+          "balanced": 1463036912.6663666
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028337884404165,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 0.02,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "BRAND_MAX_GROWTH",
+      "category": "Brand",
+      "baseline": 0.02,
+      "values": [
+        0.01,
+        0.015,
+        0.02,
+        0.025,
+        0.03,
+        0.04,
+        0.05
+      ],
+      "unit": "%",
+      "description": "Maximum brand growth per round"
+    },
+    "results": [
+      {
+        "parameterName": "BRAND_MAX_GROWTH",
+        "parameterValue": 0.01,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1424996896.2316666,
+          "premium": 1442248380.0183332,
+          "brand": 1465364798.2549996,
+          "balanced": 1465326873.2258332
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283284139987139,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_MAX_GROWTH",
+        "parameterValue": 0.015,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1420743946.289999,
+          "premium": 1437943803.8016665,
+          "brand": 1460977951.1083333,
+          "balanced": 1460939041.3641837
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283189697365227,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_MAX_GROWTH",
+        "parameterValue": 0.02,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1417804796.02,
+          "premium": 1434950553.3649998,
+          "brand": 1457917281.11,
+          "balanced": 1457878248.6696835
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0282919660044894,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_MAX_GROWTH",
+        "parameterValue": 0.025,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1429460267.9933333,
+          "premium": 1446784442.688333,
+          "brand": 1469987368.8366663,
+          "balanced": 1469950230.6095665
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028351330744033,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_MAX_GROWTH",
+        "parameterValue": 0.03,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1440904979.9616668,
+          "premium": 1458397774.5466666,
+          "brand": 1481843842.5033338,
+          "balanced": 1481809035.9172666
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0284119099531157,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_MAX_GROWTH",
+        "parameterValue": 0.04,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1429702083.0033338,
+          "premium": 1447029436.7316668,
+          "brand": 1470236330.54,
+          "balanced": 1470199118.0318832
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028351534224191,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_MAX_GROWTH",
+        "parameterValue": 0.05,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1423593391.2200005,
+          "premium": 1440825526.2966669,
+          "brand": 1463905603.5599997,
+          "balanced": 1463866318.475583
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283172235756532,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 0.01,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "BRAND_WEIGHT_BUDGET",
+      "category": "Segment Weights",
+      "baseline": 8,
+      "values": [
+        4,
+        6,
+        8,
+        10,
+        12,
+        15,
+        20,
+        25
+      ],
+      "unit": "pts",
+      "description": "Brand weight in Budget segment"
+    },
+    "results": [
+      {
+        "parameterName": "BRAND_WEIGHT_BUDGET",
+        "parameterValue": 4,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1422637364.3933334,
+          "premium": 1439854577.3516665,
+          "brand": 1462917779.7966666,
+          "balanced": 1462878883.868683
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283139023418735,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_BUDGET",
+        "parameterValue": 6,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1427512035.1483335,
+          "premium": 1444804166.696667,
+          "brand": 1467967295.0266669,
+          "balanced": 1467930383.8868005
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283396979375585,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_BUDGET",
+        "parameterValue": 8,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1422717322.7416668,
+          "premium": 1439941503.6316667,
+          "brand": 1463014128.561667,
+          "balanced": 1462976131.8344998
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283238315692578,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_BUDGET",
+        "parameterValue": 10,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1422838673.6133327,
+          "premium": 1440080458.0466669,
+          "brand": 1463178912.3866665,
+          "balanced": 1463141886.2133172
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283519414543947,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_BUDGET",
+        "parameterValue": 12,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1430570827.9133334,
+          "premium": 1447913862.6716666,
+          "brand": 1471138488.7883334,
+          "balanced": 1471102028.3917997
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028357673792477,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_BUDGET",
+        "parameterValue": 15,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1426482641.9866662,
+          "premium": 1443757318.566667,
+          "brand": 1466890880.4716675,
+          "balanced": 1466853002.1923003
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283271855511151,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_BUDGET",
+        "parameterValue": 20,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1417820369.9816663,
+          "premium": 1434966893.313334,
+          "brand": 1457919186.1716669,
+          "balanced": 1457879033.1374166
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0282820144490652,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_BUDGET",
+        "parameterValue": 25,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1431905633.7316668,
+          "premium": 1449255350.591667,
+          "brand": 1472491953.7400007,
+          "balanced": 1472454314.971867
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283442700777443,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 4,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "BRAND_WEIGHT_GENERAL",
+      "category": "Segment Weights",
+      "baseline": 10,
+      "values": [
+        5,
+        8,
+        10,
+        12,
+        15,
+        18,
+        22,
+        25
+      ],
+      "unit": "pts",
+      "description": "Brand weight in General segment"
+    },
+    "results": [
+      {
+        "parameterName": "BRAND_WEIGHT_GENERAL",
+        "parameterValue": 5,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1435209339.4133334,
+          "premium": 1452613022.9583335,
+          "brand": 1475933119.5966666,
+          "balanced": 1475896425.8636162
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028374801546358,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_GENERAL",
+        "parameterValue": 8,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1425072437.4216669,
+          "premium": 1442319270.1033323,
+          "brand": 1465417759.8183331,
+          "balanced": 1465379449.512
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283110678006386,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_GENERAL",
+        "parameterValue": 10,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1425581114.3566658,
+          "premium": 1442843082.3499994,
+          "brand": 1465967293.9350004,
+          "balanced": 1465929845.5675004
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283296258428338,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_GENERAL",
+        "parameterValue": 12,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1428001635.525,
+          "premium": 1445306636.4983335,
+          "brand": 1468480045.746667,
+          "balanced": 1468442854.1353
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283461931798035,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_GENERAL",
+        "parameterValue": 15,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1433301098.713334,
+          "premium": 1450683288.4083328,
+          "brand": 1473966330.9133334,
+          "balanced": 1473930123.1750834
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283717302920539,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_GENERAL",
+        "parameterValue": 18,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1423852175.381666,
+          "premium": 1441097052.5333338,
+          "brand": 1464195538.003333,
+          "balanced": 1464157578.910834
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283339544084715,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_GENERAL",
+        "parameterValue": 22,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1425884683.7399998,
+          "premium": 1443157733.07,
+          "brand": 1466282397.9266672,
+          "balanced": 1466244013.4295502
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283316839344308,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_GENERAL",
+        "parameterValue": 25,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1426958529.5983334,
+          "premium": 1444243497.9449995,
+          "brand": 1467409118.09,
+          "balanced": 1467371904.1943831
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028347417008014,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 5,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "BRAND_WEIGHT_ENTHUSIAST",
+      "category": "Segment Weights",
+      "baseline": 10,
+      "values": [
+        5,
+        8,
+        10,
+        12,
+        15,
+        18,
+        22,
+        25
+      ],
+      "unit": "pts",
+      "description": "Brand weight in Enthusiast segment"
+    },
+    "results": [
+      {
+        "parameterName": "BRAND_WEIGHT_ENTHUSIAST",
+        "parameterValue": 5,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1421940774.9866667,
+          "premium": 1439161271.688333,
+          "brand": 1462228769.13,
+          "balanced": 1462191045.0158997
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028333102793055,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_ENTHUSIAST",
+        "parameterValue": 8,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1421339370.2716665,
+          "premium": 1438538984.4033327,
+          "brand": 1461577673.8600006,
+          "balanced": 1461539483.0116003
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283101308737006,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_ENTHUSIAST",
+        "parameterValue": 10,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1421776432.1699996,
+          "premium": 1439003844.92,
+          "brand": 1462079992.256667,
+          "balanced": 1462042039.8249998
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028347326045596,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_ENTHUSIAST",
+        "parameterValue": 12,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1424580231.0866663,
+          "premium": 1441837652.2133343,
+          "brand": 1464957029.2149997,
+          "balanced": 1464919692.6993835
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.02834294429141,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_ENTHUSIAST",
+        "parameterValue": 15,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1425411822.3416665,
+          "premium": 1442675816.6150002,
+          "brand": 1465802885.5566666,
+          "balanced": 1465765180.5818505
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283364165933784,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_ENTHUSIAST",
+        "parameterValue": 18,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1425396572.4149997,
+          "premium": 1442654107.685,
+          "brand": 1465780590.345,
+          "balanced": 1465742989.7775168
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283317770728038,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_ENTHUSIAST",
+        "parameterValue": 22,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1430630995.6000004,
+          "premium": 1447972252.175,
+          "brand": 1471204539.101667,
+          "balanced": 1471167982.2771833
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028360593071486,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_ENTHUSIAST",
+        "parameterValue": 25,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1427989009.0083327,
+          "premium": 1445288445.2583332,
+          "brand": 1468458148.1499996,
+          "balanced": 1468420583.3234665
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283399514186533,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 5,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "BRAND_WEIGHT_PROFESSIONAL",
+      "category": "Segment Weights",
+      "baseline": 10,
+      "values": [
+        5,
+        8,
+        10,
+        12,
+        15,
+        18,
+        22,
+        25
+      ],
+      "unit": "pts",
+      "description": "Brand weight in Professional segment"
+    },
+    "results": [
+      {
+        "parameterName": "BRAND_WEIGHT_PROFESSIONAL",
+        "parameterValue": 5,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1428082723.5150006,
+          "premium": 1445380063.6783338,
+          "brand": 1468546829.030001,
+          "balanced": 1468508378.95025
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283345669327926,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_PROFESSIONAL",
+        "parameterValue": 8,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1428559757.2766662,
+          "premium": 1445858293.5866668,
+          "brand": 1469036834.5683343,
+          "balanced": 1468999273.7195497
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.02833418559181,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_PROFESSIONAL",
+        "parameterValue": 10,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1420709675.4616668,
+          "premium": 1437900179.8233335,
+          "brand": 1460931497.6016665,
+          "balanced": 1460892859.6503005
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028311077790703,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_PROFESSIONAL",
+        "parameterValue": 12,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1417441156.5850005,
+          "premium": 1434583247.1933334,
+          "brand": 1457537064.0066662,
+          "balanced": 1457497491.2785501
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0282875287170774,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_PROFESSIONAL",
+        "parameterValue": 15,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1427394863.2433329,
+          "premium": 1444688379.605,
+          "brand": 1467856863.2383337,
+          "balanced": 1467819556.7573166
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283467462556668,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_PROFESSIONAL",
+        "parameterValue": 18,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1423494133.2149997,
+          "premium": 1440724561.801667,
+          "brand": 1463813752.1366665,
+          "balanced": 1463776674.8223329
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283244011906139,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_PROFESSIONAL",
+        "parameterValue": 22,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1427452380.6350002,
+          "premium": 1444745853.6033325,
+          "brand": 1467897483.1716666,
+          "balanced": 1467859125.028583
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283337665657712,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_PROFESSIONAL",
+        "parameterValue": 25,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1425098858.3016665,
+          "premium": 1442359075.4683332,
+          "brand": 1465472467.0200002,
+          "balanced": 1465434573.311817
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283303915957438,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 5,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "BRAND_WEIGHT_ACTIVE",
+      "category": "Segment Weights",
+      "baseline": 12,
+      "values": [
+        6,
+        9,
+        12,
+        15,
+        18,
+        22,
+        25,
+        30
+      ],
+      "unit": "pts",
+      "description": "Brand weight in Active Lifestyle segment"
+    },
+    "results": [
+      {
+        "parameterName": "BRAND_WEIGHT_ACTIVE",
+        "parameterValue": 6,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1425600137.1449997,
+          "premium": 1442868278.783333,
+          "brand": 1465984524.8616674,
+          "balanced": 1465946475.138017
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283279909032164,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_ACTIVE",
+        "parameterValue": 9,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1422376543.1033337,
+          "premium": 1439600510.3283331,
+          "brand": 1462669923.208334,
+          "balanced": 1462632165.3947837
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283282090810415,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_ACTIVE",
+        "parameterValue": 12,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1425756608.7883337,
+          "premium": 1443015868,
+          "brand": 1466136743.9583337,
+          "balanced": 1466097710.3349497
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283218993488072,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_ACTIVE",
+        "parameterValue": 15,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1430873355.3849998,
+          "premium": 1448212688.5033329,
+          "brand": 1471433496.006667,
+          "balanced": 1471396042.4986002
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283464224622128,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_ACTIVE",
+        "parameterValue": 18,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1429201789.4716666,
+          "premium": 1446513389.5333338,
+          "brand": 1469697007.5349996,
+          "balanced": 1469658803.13345
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283341501260665,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_ACTIVE",
+        "parameterValue": 22,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1416257059.1150002,
+          "premium": 1433385813.3483338,
+          "brand": 1456318459.4033334,
+          "balanced": 1456279176.3478656
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028286814198382,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_ACTIVE",
+        "parameterValue": 25,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1428520819.7783327,
+          "premium": 1445832399.5583332,
+          "brand": 1469029305.3533335,
+          "balanced": 1468992242.4370008
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283569444800158,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRAND_WEIGHT_ACTIVE",
+        "parameterValue": 30,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1426456722.4883335,
+          "premium": 1443730677.4183335,
+          "brand": 1466874185.83,
+          "balanced": 1466836504.3111167
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028334167244248,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 6,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "QUALITY_WEIGHT_BUDGET",
+      "category": "Segment Weights",
+      "baseline": 22,
+      "values": [
+        15,
+        18,
+        22,
+        26,
+        30,
+        35,
+        40
+      ],
+      "unit": "pts",
+      "description": "Quality weight in Budget segment"
+    },
+    "results": [
+      {
+        "parameterName": "QUALITY_WEIGHT_BUDGET",
+        "parameterValue": 15,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1418743926.331667,
+          "premium": 1435913224.0883334,
+          "brand": 1458911651.1349998,
+          "balanced": 1458873265.908233
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283121739292242,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_BUDGET",
+        "parameterValue": 18,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1425087427.4600005,
+          "premium": 1442347010.706667,
+          "brand": 1465469438.4483328,
+          "balanced": 1465431682.4222672
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283365148061878,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_BUDGET",
+        "parameterValue": 22,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1424198407.486667,
+          "premium": 1441445412.3266668,
+          "brand": 1464551775.101666,
+          "balanced": 1464514299.4036505
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283340912353722,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_BUDGET",
+        "parameterValue": 26,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1416341674.7,
+          "premium": 1433475398.885,
+          "brand": 1456426545.1216667,
+          "balanced": 1456387355.3638165
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283016952319484,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_BUDGET",
+        "parameterValue": 30,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1419324888.541666,
+          "premium": 1436495082.465,
+          "brand": 1459479548.65,
+          "balanced": 1459439744.4243498
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0282913802417657,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_BUDGET",
+        "parameterValue": 35,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1415895600.195,
+          "premium": 1433023996.433333,
+          "brand": 1455964014.1666665,
+          "balanced": 1455925170.1497834
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028298988969348,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_BUDGET",
+        "parameterValue": 40,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1424132677.4350007,
+          "premium": 1441391327.2533329,
+          "brand": 1464516080.783333,
+          "balanced": 1464479461.8091166
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283564895239021,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 15,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "QUALITY_WEIGHT_GENERAL",
+      "category": "Segment Weights",
+      "baseline": 28,
+      "values": [
+        20,
+        24,
+        28,
+        32,
+        36,
+        40,
+        45
+      ],
+      "unit": "pts",
+      "description": "Quality weight in General segment"
+    },
+    "results": [
+      {
+        "parameterName": "QUALITY_WEIGHT_GENERAL",
+        "parameterValue": 20,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1427108534.2199998,
+          "premium": 1444376271.64,
+          "brand": 1467494494.0016663,
+          "balanced": 1467454490.0457664
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028299150914783,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_GENERAL",
+        "parameterValue": 24,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1429475592.915,
+          "premium": 1446796552.2583334,
+          "brand": 1470005887.4133334,
+          "balanced": 1469968765.2152164
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028353260943535,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_GENERAL",
+        "parameterValue": 28,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1431041386.1633332,
+          "premium": 1448379090.145,
+          "brand": 1471611102.09,
+          "balanced": 1471574489.848867
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283497852116181,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_GENERAL",
+        "parameterValue": 32,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1425432277.5816662,
+          "premium": 1442695170.9849997,
+          "brand": 1465830634.6499994,
+          "balanced": 1465793405.6334326
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283411269014278,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_GENERAL",
+        "parameterValue": 36,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1424222394.095,
+          "premium": 1441470977.1316662,
+          "brand": 1464573269.8950002,
+          "balanced": 1464535260.4742336
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283318644386579,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_GENERAL",
+        "parameterValue": 40,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1420965340.4916663,
+          "premium": 1438164772.0883334,
+          "brand": 1461200611.2633333,
+          "balanced": 1461162078.9759328
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283154483963313,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_GENERAL",
+        "parameterValue": 45,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1427794056.4400005,
+          "premium": 1445080284.6083333,
+          "brand": 1468223197.7766666,
+          "balanced": 1468184343.6936996
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283158072792868,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 20,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "QUALITY_WEIGHT_ENTHUSIAST",
+      "category": "Segment Weights",
+      "baseline": 40,
+      "values": [
+        30,
+        35,
+        40,
+        45,
+        50,
+        55,
+        60
+      ],
+      "unit": "pts",
+      "description": "Quality weight in Enthusiast segment"
+    },
+    "results": [
+      {
+        "parameterName": "QUALITY_WEIGHT_ENTHUSIAST",
+        "parameterValue": 30,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1423988708.26,
+          "premium": 1441225197.291667,
+          "brand": 1464317092.6350002,
+          "balanced": 1464279234.3033662
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283207192171335,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_ENTHUSIAST",
+        "parameterValue": 35,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1420088591.8700004,
+          "premium": 1437276198.7833343,
+          "brand": 1460280243.3800004,
+          "balanced": 1460241164.6548166
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028302214199943,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_ENTHUSIAST",
+        "parameterValue": 40,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1425950340.2116668,
+          "premium": 1443218008.7683334,
+          "brand": 1466349577.8816662,
+          "balanced": 1466311613.3585837
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028331447828683,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_ENTHUSIAST",
+        "parameterValue": 45,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1428343338.6866665,
+          "premium": 1445651047.97,
+          "brand": 1468836254.545,
+          "balanced": 1468799458.7897663
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283495674755385,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_ENTHUSIAST",
+        "parameterValue": 50,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1422160539.108333,
+          "premium": 1439367311.7249997,
+          "brand": 1462413519.076667,
+          "balanced": 1462374961.080583
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283041041158207,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_ENTHUSIAST",
+        "parameterValue": 55,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1426070278.9133332,
+          "premium": 1443348059.0600004,
+          "brand": 1466489770.8933337,
+          "balanced": 1466452604.4327836
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283432679143978,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_ENTHUSIAST",
+        "parameterValue": 60,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1425578721.591666,
+          "premium": 1442835403.1449995,
+          "brand": 1465935033.3500004,
+          "balanced": 1465895290.589533
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283087220278346,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 30,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "QUALITY_WEIGHT_PROFESSIONAL",
+      "category": "Segment Weights",
+      "baseline": 42,
+      "values": [
+        32,
+        37,
+        42,
+        47,
+        52,
+        57,
+        62
+      ],
+      "unit": "pts",
+      "description": "Quality weight in Professional segment"
+    },
+    "results": [
+      {
+        "parameterName": "QUALITY_WEIGHT_PROFESSIONAL",
+        "parameterValue": 32,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1426455798.4933329,
+          "premium": 1443741708.2866662,
+          "brand": 1466899032.286667,
+          "balanced": 1466862472.6822338
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283522516688226,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_PROFESSIONAL",
+        "parameterValue": 37,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1417338553.0483332,
+          "premium": 1434497452.4416666,
+          "brand": 1457483656.7183328,
+          "balanced": 1457446368.787033
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283242868005373,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_PROFESSIONAL",
+        "parameterValue": 42,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1429417925.5333326,
+          "premium": 1446745145.7799995,
+          "brand": 1469962951.5966663,
+          "balanced": 1469926263.5110505
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283647107952743,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_PROFESSIONAL",
+        "parameterValue": 47,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1427177671.5916672,
+          "premium": 1444465803.4066672,
+          "brand": 1467630791.99,
+          "balanced": 1467594026.8894165
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283448383502365,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_PROFESSIONAL",
+        "parameterValue": 52,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1426021254.351667,
+          "premium": 1443286248.0866668,
+          "brand": 1466412760.4616659,
+          "balanced": 1466374427.6397004
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283246171729485,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_PROFESSIONAL",
+        "parameterValue": 57,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1428075511.26,
+          "premium": 1445378591.1350007,
+          "brand": 1468560496.5149996,
+          "balanced": 1468523402.832283
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283493309252811,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_WEIGHT_PROFESSIONAL",
+        "parameterValue": 62,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1423022606.1616662,
+          "premium": 1440245856.9249997,
+          "brand": 1463310539.9316669,
+          "balanced": 1463271951.615867
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283115205588123,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 32,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "PRICE_WEIGHT_BUDGET",
+      "category": "Segment Weights",
+      "baseline": 50,
+      "values": [
+        35,
+        40,
+        45,
+        50,
+        55,
+        60,
+        65
+      ],
+      "unit": "pts",
+      "description": "Price weight in Budget segment"
+    },
+    "results": [
+      {
+        "parameterName": "PRICE_WEIGHT_BUDGET",
+        "parameterValue": 35,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1427945492.098333,
+          "premium": 1445238170.78,
+          "brand": 1468403515.4716663,
+          "balanced": 1468366080.3734999
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028333030635421,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "PRICE_WEIGHT_BUDGET",
+        "parameterValue": 40,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1424255469.72,
+          "premium": 1441500404.4150002,
+          "brand": 1464600774.1933331,
+          "balanced": 1464562685.9281664
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028327294738257,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "PRICE_WEIGHT_BUDGET",
+        "parameterValue": 45,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1424349390.816666,
+          "premium": 1441594258.0633335,
+          "brand": 1464680682.0733335,
+          "balanced": 1464641852.8681002
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283155885183082,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "PRICE_WEIGHT_BUDGET",
+        "parameterValue": 50,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1424930201.621667,
+          "premium": 1442178586.5583334,
+          "brand": 1465282461.2916665,
+          "balanced": 1465244181.5930004
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283187622973224,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "PRICE_WEIGHT_BUDGET",
+        "parameterValue": 55,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1426384489.5683336,
+          "premium": 1443658573.2633328,
+          "brand": 1466790500.8433335,
+          "balanced": 1466752298.9172003
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283275733650383,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "PRICE_WEIGHT_BUDGET",
+        "parameterValue": 60,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1422403560.17,
+          "premium": 1439613557.0999997,
+          "brand": 1462669839.7233338,
+          "balanced": 1462630883.0077
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283086183702475,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "PRICE_WEIGHT_BUDGET",
+        "parameterValue": 65,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1424094987.4949994,
+          "premium": 1441343917.2066672,
+          "brand": 1464447059.4416664,
+          "balanced": 1464408936.9848495
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028335239082364,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 35,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "PRICE_WEIGHT_GENERAL",
+      "category": "Segment Weights",
+      "baseline": 32,
+      "values": [
+        20,
+        25,
+        32,
+        38,
+        44,
+        50
+      ],
+      "unit": "pts",
+      "description": "Price weight in General segment"
+    },
+    "results": [
+      {
+        "parameterName": "PRICE_WEIGHT_GENERAL",
+        "parameterValue": 20,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1421038285.6283329,
+          "premium": 1438241023.1366673,
+          "brand": 1461291430.68,
+          "balanced": 1461253499.2832673
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283265732237952,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "PRICE_WEIGHT_GENERAL",
+        "parameterValue": 25,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1428677905.5316663,
+          "premium": 1445992682.7400002,
+          "brand": 1469175358.823333,
+          "balanced": 1469138205.4165998
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028346104559233,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "PRICE_WEIGHT_GENERAL",
+        "parameterValue": 32,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1424083290.1616666,
+          "premium": 1441323671.3866668,
+          "brand": 1464422442.6866665,
+          "balanced": 1464384386.1661825
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283263997293448,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "PRICE_WEIGHT_GENERAL",
+        "parameterValue": 38,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1421719395.4066665,
+          "premium": 1438929134.8066669,
+          "brand": 1461971409.8733332,
+          "balanced": 1461933113.0895333
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283122074557849,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "PRICE_WEIGHT_GENERAL",
+        "parameterValue": 44,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1426195210.2066665,
+          "premium": 1443470201.86,
+          "brand": 1466612800.4266665,
+          "balanced": 1466574446.5505
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283394516618403,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "PRICE_WEIGHT_GENERAL",
+        "parameterValue": 50,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1431406218.915,
+          "premium": 1448754555.2066662,
+          "brand": 1472004150.885,
+          "balanced": 1471967126.8310173
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028362271613416,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 20,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "FEATURE_WEIGHT_GENERAL",
+      "category": "Segment Weights",
+      "baseline": 20,
+      "values": [
+        10,
+        15,
+        20,
+        25,
+        30,
+        35,
+        40
+      ],
+      "unit": "pts",
+      "description": "Feature weight in General segment"
+    },
+    "results": [
+      {
+        "parameterName": "FEATURE_WEIGHT_GENERAL",
+        "parameterValue": 10,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1420031605.575,
+          "premium": 1437220643.9966671,
+          "brand": 1460248360.5999994,
+          "balanced": 1460210189.5707178
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028321028114522,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "FEATURE_WEIGHT_GENERAL",
+        "parameterValue": 15,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1433443984.941666,
+          "premium": 1450829623.463334,
+          "brand": 1474135140.8849998,
+          "balanced": 1474099803.4365842
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283869871238742,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "FEATURE_WEIGHT_GENERAL",
+        "parameterValue": 20,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1427531644.2183332,
+          "premium": 1444825623.285,
+          "brand": 1467989138.3816671,
+          "balanced": 1467952280.5033002
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283408737923194,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "FEATURE_WEIGHT_GENERAL",
+        "parameterValue": 25,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1428310117.7883337,
+          "premium": 1445609901.1850007,
+          "brand": 1468774818.5466661,
+          "balanced": 1468736653.3019834
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283304726714322,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "FEATURE_WEIGHT_GENERAL",
+        "parameterValue": 30,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1432302241.2516665,
+          "premium": 1449660281.6133335,
+          "brand": 1472909666.4566672,
+          "balanced": 1472872154.0837498
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283511566452026,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "FEATURE_WEIGHT_GENERAL",
+        "parameterValue": 35,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1426018507.8366666,
+          "premium": 1443299763.6950004,
+          "brand": 1466453498.311667,
+          "balanced": 1466416911.2819834
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028355165275058,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "FEATURE_WEIGHT_GENERAL",
+        "parameterValue": 40,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1428996129.1266663,
+          "premium": 1446313380.2266665,
+          "brand": 1469515571.046667,
+          "balanced": 1469478455.986484
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283551796216301,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 10,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "FEATURE_WEIGHT_ENTHUSIAST",
+      "category": "Segment Weights",
+      "baseline": 20,
+      "values": [
+        10,
+        15,
+        20,
+        25,
+        30,
+        35,
+        40
+      ],
+      "unit": "pts",
+      "description": "Feature weight in Enthusiast segment"
+    },
+    "results": [
+      {
+        "parameterName": "FEATURE_WEIGHT_ENTHUSIAST",
+        "parameterValue": 10,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1421383302.2483335,
+          "premium": 1438594703.3299997,
+          "brand": 1461646194.2916672,
+          "balanced": 1461607830.1854
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028326554828417,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "FEATURE_WEIGHT_ENTHUSIAST",
+        "parameterValue": 15,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1419296073.9533331,
+          "premium": 1436468458.7683334,
+          "brand": 1459471402.4950004,
+          "balanced": 1459431875.913933
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283065170678323,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "FEATURE_WEIGHT_ENTHUSIAST",
+        "parameterValue": 20,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1421828179.1916668,
+          "premium": 1439027227.3233335,
+          "brand": 1462049368.3549998,
+          "balanced": 1462009711.219966
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0282883612464337,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "FEATURE_WEIGHT_ENTHUSIAST",
+        "parameterValue": 25,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1431075585.77,
+          "premium": 1448417184.7749994,
+          "brand": 1471655407.1549997,
+          "balanced": 1471618556.330066
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283561691559189,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "FEATURE_WEIGHT_ENTHUSIAST",
+        "parameterValue": 30,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1420817556.4766672,
+          "premium": 1438010320.5933335,
+          "brand": 1461034981.2683332,
+          "balanced": 1460995958.6520166
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283058332214003,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "FEATURE_WEIGHT_ENTHUSIAST",
+        "parameterValue": 35,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1426182260.1266663,
+          "premium": 1443459658.223333,
+          "brand": 1466603751.9733324,
+          "balanced": 1466565768.9211836
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283424447048417,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "FEATURE_WEIGHT_ENTHUSIAST",
+        "parameterValue": 40,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1424179827.5933332,
+          "premium": 1441435469.1216667,
+          "brand": 1464549531.8550003,
+          "balanced": 1464511639.9801168
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283459317984347,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 10,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "AD_BASE_IMPACT",
+      "category": "Advertising",
+      "baseline": 0.0015,
+      "values": [
+        0.0005,
+        0.001,
+        0.0015,
+        0.002,
+        0.0025,
+        0.003,
+        0.004
+      ],
+      "unit": "%/$1M",
+      "description": "Base advertising impact per $1M"
+    },
+    "results": [
+      {
+        "parameterName": "AD_BASE_IMPACT",
+        "parameterValue": 0.0005,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1422493023.5450003,
+          "premium": 1439713230.6433327,
+          "brand": 1462787658.2833328,
+          "balanced": 1462749854.6796665
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283267714297213,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "AD_BASE_IMPACT",
+        "parameterValue": 0.001,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1416665613.9516664,
+          "premium": 1433800672.4816673,
+          "brand": 1456741038.3049996,
+          "balanced": 1456701150.0303833
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0282885558586732,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "AD_BASE_IMPACT",
+        "parameterValue": 0.0015,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1432512162.161667,
+          "premium": 1449868356.4200003,
+          "brand": 1473111517.6216667,
+          "balanced": 1473073030.592117
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028341368773257,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "AD_BASE_IMPACT",
+        "parameterValue": 0.002,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1418986428.5600004,
+          "premium": 1436162727.2650006,
+          "brand": 1459162648.0800004,
+          "balanced": 1459123782.3112998
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283133218974978,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "AD_BASE_IMPACT",
+        "parameterValue": 0.0025,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1427052098.831667,
+          "premium": 1444335746.9833329,
+          "brand": 1467488068.0149994,
+          "balanced": 1467449930.1998332
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283353139079068,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "AD_BASE_IMPACT",
+        "parameterValue": 0.003,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1426016403.7316673,
+          "premium": 1443293968.3266668,
+          "brand": 1466430145.1516666,
+          "balanced": 1466392760.362834
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283403061242793,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "AD_BASE_IMPACT",
+        "parameterValue": 0.004,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1422151285.0083337,
+          "premium": 1439370020.9783337,
+          "brand": 1462433946.9599998,
+          "balanced": 1462395634.0428662
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283251594793799,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 0.0005,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "AD_DIMINISH_THRESHOLD",
+      "category": "Advertising",
+      "baseline": 3000000,
+      "values": [
+        1000000,
+        2000000,
+        3000000,
+        4000000,
+        5000000,
+        7000000,
+        10000000
+      ],
+      "unit": "$",
+      "description": "Threshold for diminishing returns"
+    },
+    "results": [
+      {
+        "parameterName": "AD_DIMINISH_THRESHOLD",
+        "parameterValue": 1000000,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1418767122.4266665,
+          "premium": 1435937795.091666,
+          "brand": 1458925954.8983338,
+          "balanced": 1458886914.492917
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283054433929788,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "AD_DIMINISH_THRESHOLD",
+        "parameterValue": 2000000,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1426531941.058333,
+          "premium": 1443803768.7716668,
+          "brand": 1466933246.9866667,
+          "balanced": 1466893685.7998667
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028321346873145,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "AD_DIMINISH_THRESHOLD",
+        "parameterValue": 3000000,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1422311751.1966665,
+          "premium": 1439528028.8399997,
+          "brand": 1462584716.6250007,
+          "balanced": 1462546531.7547503
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283151463766298,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "AD_DIMINISH_THRESHOLD",
+        "parameterValue": 4000000,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1425721130.0216665,
+          "premium": 1442980315.6533327,
+          "brand": 1466091490.8433335,
+          "balanced": 1466053603.739234
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283157484108083,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "AD_DIMINISH_THRESHOLD",
+        "parameterValue": 5000000,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1424551284.4316664,
+          "premium": 1441803325.2566667,
+          "brand": 1464911258.2099998,
+          "balanced": 1464873617.095433
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283317099351992,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "AD_DIMINISH_THRESHOLD",
+        "parameterValue": 7000000,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1428305124.2533329,
+          "premium": 1445602787.5083327,
+          "brand": 1468776535.413333,
+          "balanced": 1468738849.9732332
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283352698753057,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "AD_DIMINISH_THRESHOLD",
+        "parameterValue": 10000000,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1430525030.495,
+          "premium": 1447862745.7966669,
+          "brand": 1471100072.4816673,
+          "balanced": 1471063319.7161832
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283637413688786,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 1000000,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "AD_EFFECTIVENESS_DECAY",
+      "category": "Advertising",
+      "baseline": 0.4,
+      "values": [
+        0.2,
+        0.3,
+        0.4,
+        0.5,
+        0.6,
+        0.7,
+        0.8
+      ],
+      "unit": "%",
+      "description": "Effectiveness decay per chunk"
+    },
+    "results": [
+      {
+        "parameterName": "AD_EFFECTIVENESS_DECAY",
+        "parameterValue": 0.2,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 0.99,
+          "balanced": 0.01
+        },
+        "avgRevenues": {
+          "volume": 1434189878.6083329,
+          "premium": 1451575611.4633324,
+          "brand": 1474861800.4566662,
+          "balanced": 1474824822.4666834
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283588124940606,
+        "diversityScore": 0.04039656794795559
+      },
+      {
+        "parameterName": "AD_EFFECTIVENESS_DECAY",
+        "parameterValue": 0.3,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1424668802.0683336,
+          "premium": 1441915338.5433328,
+          "brand": 1465014122.1066668,
+          "balanced": 1464975701.2387335
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028319087201011,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "AD_EFFECTIVENESS_DECAY",
+        "parameterValue": 0.4,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1425434796.2816675,
+          "premium": 1442691060.8816667,
+          "brand": 1465796922.7466667,
+          "balanced": 1465758318.5216002
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283156595940315,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "AD_EFFECTIVENESS_DECAY",
+        "parameterValue": 0.5,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1416553159.1850007,
+          "premium": 1433679796.1066675,
+          "brand": 1456627992.0683334,
+          "balanced": 1456589142.7592337
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0282903840378212,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "AD_EFFECTIVENESS_DECAY",
+        "parameterValue": 0.6,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1418599583.1250002,
+          "premium": 1435758470.726666,
+          "brand": 1458724390.9783337,
+          "balanced": 1458684626.2478335
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0282848016668265,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "AD_EFFECTIVENESS_DECAY",
+        "parameterValue": 0.7,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1417653429.2249994,
+          "premium": 1434803290.07,
+          "brand": 1457767890.1266663,
+          "balanced": 1457728629.9396994
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0282963805361065,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "AD_EFFECTIVENESS_DECAY",
+        "parameterValue": 0.8,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1427521760.4433331,
+          "premium": 1444817114.4183335,
+          "brand": 1467984098.6233335,
+          "balanced": 1467946594.4093497
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.02834446332183,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 0.2,
+    "sensitivityScore": 0.0024743582965269686
+  },
+  {
+    "parameter": {
+      "name": "BRANDING_BASE_IMPACT",
+      "category": "Branding",
+      "baseline": 0.0025,
+      "values": [
+        0.001,
+        0.0015,
+        0.002,
+        0.0025,
+        0.003,
+        0.004,
+        0.005
+      ],
+      "unit": "%/$1M",
+      "description": "Base branding impact per $1M"
+    },
+    "results": [
+      {
+        "parameterName": "BRANDING_BASE_IMPACT",
+        "parameterValue": 0.001,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1423085134.5400002,
+          "premium": 1440312402.9599998,
+          "brand": 1463395779.0600004,
+          "balanced": 1463357579.3974671
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283262354033587,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRANDING_BASE_IMPACT",
+        "parameterValue": 0.0015,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1423775942.7283332,
+          "premium": 1441011881.3249998,
+          "brand": 1464095327.7033339,
+          "balanced": 1464057187.0766332
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028318630596987,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRANDING_BASE_IMPACT",
+        "parameterValue": 0.002,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1417286045.2283328,
+          "premium": 1434413527.3766663,
+          "brand": 1457334352.05,
+          "balanced": 1457292804.541433
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0282570388359502,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRANDING_BASE_IMPACT",
+        "parameterValue": 0.0025,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1431583744.3433337,
+          "premium": 1448935088.4533339,
+          "brand": 1472184717.62,
+          "balanced": 1472147423.904467
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028360878947595,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRANDING_BASE_IMPACT",
+        "parameterValue": 0.003,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1417660176.888333,
+          "premium": 1434817304.2299998,
+          "brand": 1457796133.0549996,
+          "balanced": 1457756949.01835
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283114083480585,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRANDING_BASE_IMPACT",
+        "parameterValue": 0.004,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1427286395.0033333,
+          "premium": 1444574127.7883332,
+          "brand": 1467740243.655,
+          "balanced": 1467702310.6184168
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283431894210497,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRANDING_BASE_IMPACT",
+        "parameterValue": 0.005,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1430744241.3516665,
+          "premium": 1448078839.4083335,
+          "brand": 1471294859.0233335,
+          "balanced": 1471256715.5594997
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283423245746268,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 0.001,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "BRANDING_LINEAR_THRESHOLD",
+      "category": "Branding",
+      "baseline": 5000000,
+      "values": [
+        2000000,
+        3000000,
+        5000000,
+        7000000,
+        10000000,
+        15000000
+      ],
+      "unit": "$",
+      "description": "Linear returns threshold"
+    },
+    "results": [
+      {
+        "parameterName": "BRANDING_LINEAR_THRESHOLD",
+        "parameterValue": 2000000,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1421501512.2916663,
+          "premium": 1438707784.9416664,
+          "brand": 1461753531.4750004,
+          "balanced": 1461715022.8965664
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283165503766802,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRANDING_LINEAR_THRESHOLD",
+        "parameterValue": 3000000,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1429709408.93,
+          "premium": 1447034150.5683336,
+          "brand": 1470247156.7050006,
+          "balanced": 1470210447.4808495
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028353837165651,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRANDING_LINEAR_THRESHOLD",
+        "parameterValue": 5000000,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1431317072.9716659,
+          "premium": 1448667603.9283328,
+          "brand": 1471916574.176667,
+          "balanced": 1471879989.7670333
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283651344427196,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRANDING_LINEAR_THRESHOLD",
+        "parameterValue": 7000000,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1422073237.381666,
+          "premium": 1439297749.8533332,
+          "brand": 1462370115.8383334,
+          "balanced": 1462332350.9830005
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.02833671107605,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRANDING_LINEAR_THRESHOLD",
+        "parameterValue": 10000000,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1435559671.2449994,
+          "premium": 1452972088.1700003,
+          "brand": 1476305491.94,
+          "balanced": 1476269700.3358164
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283832302558789,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "BRANDING_LINEAR_THRESHOLD",
+        "parameterValue": 15000000,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1428141030.476667,
+          "premium": 1445454383.7233338,
+          "brand": 1468654755.3250003,
+          "balanced": 1468618839.6480503
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028368154113471,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 2000000,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "ESG_HIGH_THRESHOLD",
+      "category": "ESG",
+      "baseline": 700,
+      "values": [
+        500,
+        600,
+        700,
+        800,
+        850,
+        900
+      ],
+      "unit": "pts",
+      "description": "Threshold for high ESG bonus"
+    },
+    "results": [
+      {
+        "parameterName": "ESG_HIGH_THRESHOLD",
+        "parameterValue": 500,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1433457344.8999994,
+          "premium": 1450838800.2100003,
+          "brand": 1474134742.3266666,
+          "balanced": 1474098594.23925
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283771244197748,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "ESG_HIGH_THRESHOLD",
+        "parameterValue": 600,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1423208431.5083332,
+          "premium": 1440441337.2883334,
+          "brand": 1463530437.0633328,
+          "balanced": 1463492620.2801
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283317641058842,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "ESG_HIGH_THRESHOLD",
+        "parameterValue": 700,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1431054950.8250003,
+          "premium": 1448397547.4050002,
+          "brand": 1471626848.6816669,
+          "balanced": 1471589609.275117
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283510411904706,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "ESG_HIGH_THRESHOLD",
+        "parameterValue": 800,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1433348185.668333,
+          "premium": 1450721209.465,
+          "brand": 1473997814.6633337,
+          "balanced": 1473960601.4422498
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283599124074982,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "ESG_HIGH_THRESHOLD",
+        "parameterValue": 850,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1427510155.085,
+          "premium": 1444810591.2683332,
+          "brand": 1467982484.5799997,
+          "balanced": 1467945441.9367335
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283516928764613,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "ESG_HIGH_THRESHOLD",
+        "parameterValue": 900,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1419926434.7566667,
+          "premium": 1437113251.628333,
+          "brand": 1460134254.0566664,
+          "balanced": 1460095814.2105505
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283168327004844,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 500,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "ESG_HIGH_BONUS",
+      "category": "ESG",
+      "baseline": 0.05,
+      "values": [
+        0.02,
+        0.03,
+        0.05,
+        0.07,
+        0.1,
+        0.15
+      ],
+      "unit": "%",
+      "description": "Revenue bonus for high ESG"
+    },
+    "results": [
+      {
+        "parameterName": "ESG_HIGH_BONUS",
+        "parameterValue": 0.02,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1426394792.6549997,
+          "premium": 1443682596.6616666,
+          "brand": 1466847955.0316675,
+          "balanced": 1466811015.1318336
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283604248872578,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "ESG_HIGH_BONUS",
+        "parameterValue": 0.03,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1421085676.8083336,
+          "premium": 1438296190.685,
+          "brand": 1461345477.5483336,
+          "balanced": 1461307549.2385328
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283303120966083,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "ESG_HIGH_BONUS",
+        "parameterValue": 0.05,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1421000044.3099997,
+          "premium": 1438195554.9416666,
+          "brand": 1461230243.7216666,
+          "balanced": 1461191658.0805502
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028311188006473,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "ESG_HIGH_BONUS",
+        "parameterValue": 0.07,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1421494406.161667,
+          "premium": 1438699793.0216663,
+          "brand": 1461745407.0166662,
+          "balanced": 1461707198.0844662
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283159755539841,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "ESG_HIGH_BONUS",
+        "parameterValue": 0.1,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1421788511.553333,
+          "premium": 1439002889.7950003,
+          "brand": 1462061701.023333,
+          "balanced": 1462022857.1636164
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283257243554462,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "ESG_HIGH_BONUS",
+        "parameterValue": 0.15,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1420792837.37,
+          "premium": 1437993919.8,
+          "brand": 1461040023.8566663,
+          "balanced": 1461002262.9869165
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283272729338693,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 0.02,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "ESG_MID_BONUS",
+      "category": "ESG",
+      "baseline": 0.02,
+      "values": [
+        0.01,
+        0.02,
+        0.03,
+        0.04,
+        0.05
+      ],
+      "unit": "%",
+      "description": "Revenue bonus for mid ESG"
+    },
+    "results": [
+      {
+        "parameterName": "ESG_MID_BONUS",
+        "parameterValue": 0.01,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1427346965.965,
+          "premium": 1444644020.7700002,
+          "brand": 1467812567.1349998,
+          "balanced": 1467775160.2672164
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283502204683932,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "ESG_MID_BONUS",
+        "parameterValue": 0.02,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1429002898.4866667,
+          "premium": 1446327603.335,
+          "brand": 1469557874.3583333,
+          "balanced": 1469522611.6727335
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283799115555434,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "ESG_MID_BONUS",
+        "parameterValue": 0.03,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1421426695.581667,
+          "premium": 1438635666.6366668,
+          "brand": 1461676992.2383335,
+          "balanced": 1461638029.5245333
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028316828987228,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "ESG_MID_BONUS",
+        "parameterValue": 0.04,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1427549144.4666672,
+          "premium": 1444844603.6233325,
+          "brand": 1468011064.7499998,
+          "balanced": 1467973784.482383
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283436268657842,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "ESG_MID_BONUS",
+        "parameterValue": 0.05,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1426117179.0883331,
+          "premium": 1443393427.2616665,
+          "brand": 1466523574.7716665,
+          "balanced": 1466485522.2524328
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028333152615947,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 0.01,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "PRICE_FLOOR_THRESHOLD",
+      "category": "Pricing",
+      "baseline": 0.15,
+      "values": [
+        0.05,
+        0.1,
+        0.15,
+        0.2,
+        0.25,
+        0.3
+      ],
+      "unit": "%",
+      "description": "Price floor penalty threshold"
+    },
+    "results": [
+      {
+        "parameterName": "PRICE_FLOOR_THRESHOLD",
+        "parameterValue": 0.05,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1424458906.1566668,
+          "premium": 1441707531.6433334,
+          "brand": 1464798006.326667,
+          "balanced": 1464759265.8028665
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283188935782215,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "PRICE_FLOOR_THRESHOLD",
+        "parameterValue": 0.1,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1420892147.73,
+          "premium": 1438088971.953333,
+          "brand": 1461109897.5,
+          "balanced": 1461071315.9659166
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028304575990691,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "PRICE_FLOOR_THRESHOLD",
+        "parameterValue": 0.15,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1420614856.311667,
+          "premium": 1437807073.7666667,
+          "brand": 1460836656.755,
+          "balanced": 1460797488.2612832
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283129521450738,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "PRICE_FLOOR_THRESHOLD",
+        "parameterValue": 0.2,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1423194003.225,
+          "premium": 1440414837.6399994,
+          "brand": 1463468903.9016676,
+          "balanced": 1463429627.7893496
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028298953329907,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "PRICE_FLOOR_THRESHOLD",
+        "parameterValue": 0.25,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1430714590.0266669,
+          "premium": 1448053470.345,
+          "brand": 1471291520.5666666,
+          "balanced": 1471254948.8528998
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283613033814407,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "PRICE_FLOOR_THRESHOLD",
+        "parameterValue": 0.3,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1418937297.8733327,
+          "premium": 1436105714.5566666,
+          "brand": 1459091295.7616668,
+          "balanced": 1459051800.1927836
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0282986414893145,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 0.05,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "PRICE_FLOOR_MAX_PENALTY",
+      "category": "Pricing",
+      "baseline": 0.3,
+      "values": [
+        0.1,
+        0.2,
+        0.3,
+        0.4,
+        0.5,
+        0.6
+      ],
+      "unit": "%",
+      "description": "Maximum price floor penalty"
+    },
+    "results": [
+      {
+        "parameterName": "PRICE_FLOOR_MAX_PENALTY",
+        "parameterValue": 0.1,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1431459207.3633335,
+          "premium": 1448817057.1716666,
+          "brand": 1472068522.065,
+          "balanced": 1472031870.4754663
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283691735627358,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "PRICE_FLOOR_MAX_PENALTY",
+        "parameterValue": 0.2,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1428057833.193333,
+          "premium": 1445351232.1099997,
+          "brand": 1468502908.8450003,
+          "balanced": 1468463450.7082672
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283217350947382,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "PRICE_FLOOR_MAX_PENALTY",
+        "parameterValue": 0.3,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1425495113.4866662,
+          "premium": 1442779367.2583332,
+          "brand": 1465953337.79,
+          "balanced": 1465918261.3020663
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283818751257419,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "PRICE_FLOOR_MAX_PENALTY",
+        "parameterValue": 0.4,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1421406323.8266668,
+          "premium": 1438607358.6183333,
+          "brand": 1461629237.4033332,
+          "balanced": 1461590099.51535
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0282979700472834,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "PRICE_FLOOR_MAX_PENALTY",
+        "parameterValue": 0.5,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1418133684.47,
+          "premium": 1435291654.6800003,
+          "brand": 1458274928.4916663,
+          "balanced": 1458235607.4427838
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283056840559206,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "PRICE_FLOOR_MAX_PENALTY",
+        "parameterValue": 0.6,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1424304575.4083335,
+          "premium": 1441554386.665,
+          "brand": 1464651885.8800004,
+          "balanced": 1464612887.8415
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028327726504775,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 0.1,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "RUBBER_BAND_TRAILING_BOOST",
+      "category": "Rubber Banding",
+      "baseline": 1.15,
+      "values": [
+        1,
+        1.05,
+        1.1,
+        1.15,
+        1.2,
+        1.25,
+        1.3
+      ],
+      "unit": "x",
+      "description": "Boost for trailing teams"
+    },
+    "results": [
+      {
+        "parameterName": "RUBBER_BAND_TRAILING_BOOST",
+        "parameterValue": 1,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1420196872.858333,
+          "premium": 1437370366.5616663,
+          "brand": 1460356348.211667,
+          "balanced": 1460315171.243767
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0282774002117803,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "RUBBER_BAND_TRAILING_BOOST",
+        "parameterValue": 1.05,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1425792357.3483331,
+          "premium": 1443058186.8766665,
+          "brand": 1466187918.848334,
+          "balanced": 1466149749.0177503
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283320087190873,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "RUBBER_BAND_TRAILING_BOOST",
+        "parameterValue": 1.1,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1422430682.8899996,
+          "premium": 1439654439.28,
+          "brand": 1462723350.3066664,
+          "balanced": 1462685554.1629498
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283266298325362,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "RUBBER_BAND_TRAILING_BOOST",
+        "parameterValue": 1.15,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1428893153.4450004,
+          "premium": 1446199978.8249998,
+          "brand": 1469385226.435,
+          "balanced": 1469347369.3216505
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283380691497996,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "RUBBER_BAND_TRAILING_BOOST",
+        "parameterValue": 1.2,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1415306038.5583334,
+          "premium": 1432419612.2,
+          "brand": 1455325518.9999998,
+          "balanced": 1455285280.4033506
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0282762027090842,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "RUBBER_BAND_TRAILING_BOOST",
+        "parameterValue": 1.25,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1424365122.315,
+          "premium": 1441621242.1133335,
+          "brand": 1464742739.2566667,
+          "balanced": 1464705033.098817
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283477995277233,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "RUBBER_BAND_TRAILING_BOOST",
+        "parameterValue": 1.3,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1427392916.2033339,
+          "premium": 1444683587,
+          "brand": 1467830402.2666662,
+          "balanced": 1467792302.0072
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028329611002197,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 1,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "RUBBER_BAND_LEADING_PENALTY",
+      "category": "Rubber Banding",
+      "baseline": 0.92,
+      "values": [
+        1,
+        0.95,
+        0.92,
+        0.88,
+        0.85,
+        0.8
+      ],
+      "unit": "x",
+      "description": "Penalty for leading teams"
+    },
+    "results": [
+      {
+        "parameterName": "RUBBER_BAND_LEADING_PENALTY",
+        "parameterValue": 1,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1429574827.3366666,
+          "premium": 1446895596.1266665,
+          "brand": 1470106498.6299996,
+          "balanced": 1470069294.1571336
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283522558723592,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "RUBBER_BAND_LEADING_PENALTY",
+        "parameterValue": 0.95,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1420683493.7166665,
+          "premium": 1437879947.2099993,
+          "brand": 1460916338.7066665,
+          "balanced": 1460878301.6342335
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283193583707702,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "RUBBER_BAND_LEADING_PENALTY",
+        "parameterValue": 0.92,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1422465792.8133337,
+          "premium": 1439690835.9100003,
+          "brand": 1462763072.6583335,
+          "balanced": 1462724889.5127335
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028329173220609,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "RUBBER_BAND_LEADING_PENALTY",
+        "parameterValue": 0.88,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1423489636.8166666,
+          "premium": 1440735438.9066665,
+          "brand": 1463834802.148333,
+          "balanced": 1463797414.1851335
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283424369859762,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "RUBBER_BAND_LEADING_PENALTY",
+        "parameterValue": 0.85,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1423971033.0233338,
+          "premium": 1441208346.9999998,
+          "brand": 1464298362.28,
+          "balanced": 1464260040.8579004
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283203297830044,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "RUBBER_BAND_LEADING_PENALTY",
+        "parameterValue": 0.8,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1424036495.64,
+          "premium": 1441279953.5466661,
+          "brand": 1464380373.321667,
+          "balanced": 1464342720.8931339
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283306486913704,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 1,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "SOFTMAX_TEMPERATURE",
+      "category": "Market Share",
+      "baseline": 10,
+      "values": [
+        3,
+        5,
+        8,
+        10,
+        12,
+        15,
+        20,
+        30
+      ],
+      "unit": "",
+      "description": "Softmax temperature (higher = more equal)"
+    },
+    "results": [
+      {
+        "parameterName": "SOFTMAX_TEMPERATURE",
+        "parameterValue": 3,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1418634010.0750003,
+          "premium": 1435799838.2516665,
+          "brand": 1458773510.345,
+          "balanced": 1458734155.9879498
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0282944719955485,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "SOFTMAX_TEMPERATURE",
+        "parameterValue": 5,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1422765636.9733334,
+          "premium": 1439999769.5583336,
+          "brand": 1463077619.6116667,
+          "balanced": 1463039494.1689334
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283335368740627,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "SOFTMAX_TEMPERATURE",
+        "parameterValue": 8,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1425997183.3149996,
+          "premium": 1443277431.693334,
+          "brand": 1466426737.36,
+          "balanced": 1466389259.2940161
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283517769305928,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "SOFTMAX_TEMPERATURE",
+        "parameterValue": 10,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1428353459.2383332,
+          "premium": 1445668230.315,
+          "brand": 1468865920.4916666,
+          "balanced": 1468828874.9174497
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283630504699701,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "SOFTMAX_TEMPERATURE",
+        "parameterValue": 12,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1420686671.8066669,
+          "premium": 1437874322.5849993,
+          "brand": 1460898676.6766665,
+          "balanced": 1460859697.9426165
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283046259727788,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "SOFTMAX_TEMPERATURE",
+        "parameterValue": 15,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1427634697.2533333,
+          "premium": 1444929714.9300003,
+          "brand": 1468086378.1250002,
+          "balanced": 1468048822.8644
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028334756047533,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "SOFTMAX_TEMPERATURE",
+        "parameterValue": 20,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1434238073.9799998,
+          "premium": 1451632365.226667,
+          "brand": 1474933764.5266666,
+          "balanced": 1474897544.914367
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283744318917267,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "SOFTMAX_TEMPERATURE",
+        "parameterValue": 30,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1419692170.658333,
+          "premium": 1436870073.0300002,
+          "brand": 1459862790.5516665,
+          "balanced": 1459822875.4641666
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0282953028294195,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 3,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "QUALITY_BONUS_CAP",
+      "category": "Scoring",
+      "baseline": 1.3,
+      "values": [
+        1,
+        1.1,
+        1.2,
+        1.3,
+        1.4,
+        1.5,
+        1.75,
+        2
+      ],
+      "unit": "x",
+      "description": "Maximum quality score multiplier"
+    },
+    "results": [
+      {
+        "parameterName": "QUALITY_BONUS_CAP",
+        "parameterValue": 1,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1422574318.5966668,
+          "premium": 1439789704.3183331,
+          "brand": 1462848376.405,
+          "balanced": 1462809633.1434832
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283106880827586,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_BONUS_CAP",
+        "parameterValue": 1.1,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1422276942.1966665,
+          "premium": 1439498826.541666,
+          "brand": 1462577512.3883333,
+          "balanced": 1462540165.3545666
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283352482178498,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_BONUS_CAP",
+        "parameterValue": 1.2,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1424338982.548333,
+          "premium": 1441589549.415,
+          "brand": 1464695127.3366663,
+          "balanced": 1464657613.2458162
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283332446017386,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_BONUS_CAP",
+        "parameterValue": 1.3,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1430600151.9016669,
+          "premium": 1447934274.9900002,
+          "brand": 1471154243.8700008,
+          "balanced": 1471116707.6995673
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283476077605795,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_BONUS_CAP",
+        "parameterValue": 1.4,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1417489303.8466668,
+          "premium": 1434637640.7366667,
+          "brand": 1457606785.7733338,
+          "balanced": 1457567791.7681003
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283017881107106,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_BONUS_CAP",
+        "parameterValue": 1.5,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1422239424.8866665,
+          "premium": 1439454128.1066663,
+          "brand": 1462514732.14,
+          "balanced": 1462476905.5488663
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283182328858187,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_BONUS_CAP",
+        "parameterValue": 1.75,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1420332066.6750002,
+          "premium": 1437526600.4850004,
+          "brand": 1460557514.9883335,
+          "balanced": 1460519743.3724837
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028321157606123,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "QUALITY_BONUS_CAP",
+        "parameterValue": 2,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1422793495.0216668,
+          "premium": 1440010111.321667,
+          "brand": 1463057293.608333,
+          "balanced": 1463018187.6328003
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0282991163001158,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 1,
+    "sensitivityScore": 0
+  },
+  {
+    "parameter": {
+      "name": "FEATURE_BONUS_CAP",
+      "category": "Scoring",
+      "baseline": 1.3,
+      "values": [
+        1,
+        1.1,
+        1.2,
+        1.3,
+        1.4,
+        1.5,
+        1.75,
+        2
+      ],
+      "unit": "x",
+      "description": "Maximum feature score multiplier"
+    },
+    "results": [
+      {
+        "parameterName": "FEATURE_BONUS_CAP",
+        "parameterValue": 1,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1426306324.9683332,
+          "premium": 1443585299.3750007,
+          "brand": 1466729203.0433335,
+          "balanced": 1466691289.3871667
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283409512861115,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "FEATURE_BONUS_CAP",
+        "parameterValue": 1.1,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1427414174.691667,
+          "premium": 1444702821.566667,
+          "brand": 1467870958.525,
+          "balanced": 1467833529.874116
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028342708479879,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "FEATURE_BONUS_CAP",
+        "parameterValue": 1.2,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1420203898.8049996,
+          "premium": 1437381929.9416668,
+          "brand": 1460393911.745,
+          "balanced": 1460354763.8776495
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0282987625747382,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "FEATURE_BONUS_CAP",
+        "parameterValue": 1.3,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1423478089.0016663,
+          "premium": 1440716840.6183333,
+          "brand": 1463798558.338333,
+          "balanced": 1463760134.1963835
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283253178592617,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "FEATURE_BONUS_CAP",
+        "parameterValue": 1.4,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1421129014.9566665,
+          "premium": 1438329114.9050002,
+          "brand": 1461351909.6666665,
+          "balanced": 1461313005.5857337
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028303478633308,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "FEATURE_BONUS_CAP",
+        "parameterValue": 1.5,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1423627127.6499996,
+          "premium": 1440874649.4366665,
+          "brand": 1463977608.1933331,
+          "balanced": 1463939229.0886009
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.028343433304717,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "FEATURE_BONUS_CAP",
+        "parameterValue": 1.75,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1425843229.4283338,
+          "premium": 1443117589.5199997,
+          "brand": 1466256137.413333,
+          "balanced": 1466218749.0765665
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283431636458393,
+        "diversityScore": 0
+      },
+      {
+        "parameterName": "FEATURE_BONUS_CAP",
+        "parameterValue": 2,
+        "winRates": {
+          "volume": 0,
+          "premium": 0,
+          "brand": 1,
+          "balanced": 0
+        },
+        "avgRevenues": {
+          "volume": 1418863376.3866668,
+          "premium": 1436033361.8333335,
+          "brand": 1459022627.2266662,
+          "balanced": 1458982802.82565
+        },
+        "avgBrandValues": {
+          "volume": 0.3545704397445679,
+          "premium": 0.3724884542514507,
+          "brand": 0.4117028528647024,
+          "balanced": 0.4068421109107654
+        },
+        "revenueSpread": 1.0283038180478452,
+        "diversityScore": 0
+      }
+    ],
+    "bestValueForBalance": 1,
+    "sensitivityScore": 0
+  }
+]
