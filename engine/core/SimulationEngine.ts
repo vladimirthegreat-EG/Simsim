@@ -43,6 +43,7 @@ import {
 } from "./EngineContext";
 import { MaterialEngine } from "../materials/MaterialEngine";
 import { TariffEngine } from "../tariffs/TariffEngine";
+import { checkDisruptions, type ActiveDisruption } from "../logistics/disruptions";
 import { FinancialStatementsEngine } from "../finance";
 import { FXEngine } from "../fx/FXEngine";
 import { updateESGSubscores, calculateESGBonuses } from "../modules/ESGSubscoreCalculator";
@@ -282,6 +283,47 @@ export class SimulationEngine {
 
           if (tariffResult.messages.length > 0) {
             summaryMessages.push(...tariffResult.messages.map(msg => `  ${team.id}: ${msg}`));
+          }
+        }
+
+        // Process logistics disruptions (uses SeededRNG, never Math.random)
+        const stateAny = currentState as any;
+        if (!stateAny.activeDisruptions) stateAny.activeDisruptions = [];
+        // Clean expired disruptions
+        stateAny.activeDisruptions = (stateAny.activeDisruptions as ActiveDisruption[]).filter(
+          (d: ActiveDisruption) => d.expiresRound > roundNumber
+        );
+        // Check for new disruptions using deterministic RNG
+        const newDisruptions = checkDisruptions(
+          ctx.rng.general,
+          roundNumber,
+          stateAny.activeDisruptions as ActiveDisruption[]
+        );
+        stateAny.activeDisruptions.push(...newDisruptions);
+        for (const d of newDisruptions) {
+          summaryMessages.push(`  ${team.id}: ⚠️ ${d.name}: ${d.description}`);
+        }
+        // Apply active disruptions to in-transit orders
+        for (const order of currentState.materials.activeOrders) {
+          if (order.status === "pending" || order.status === "shipping") {
+            for (const disruption of stateAny.activeDisruptions as ActiveDisruption[]) {
+              const orderAny = order as any;
+              if (
+                disruption.affectedMethods.includes(order.shippingMethod) &&
+                !(orderAny.appliedDisruptions || []).includes(disruption.id)
+              ) {
+                order.estimatedArrivalRound = Math.ceil(
+                  order.estimatedArrivalRound + (disruption.timeMultiplier - 1)
+                );
+                orderAny.appliedDisruptions = [
+                  ...(orderAny.appliedDisruptions || []),
+                  disruption.id,
+                ];
+                summaryMessages.push(
+                  `  ${team.id}: 📦 ${order.materialType} shipment delayed by ${disruption.name}`
+                );
+              }
+            }
           }
         }
       }

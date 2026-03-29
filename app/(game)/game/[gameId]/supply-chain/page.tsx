@@ -35,6 +35,8 @@ import {
   Anchor,
 } from "lucide-react";
 import type { Segment } from "@/engine/types";
+import { aggregateProductionRequirements } from "@/engine/materials/BillOfMaterials";
+import type { TeamState } from "@/engine/types/state";
 import {
   MaterialEngine,
   DEFAULT_SUPPLIERS,
@@ -367,6 +369,60 @@ export default function SupplyChainPage({ params }: PageProps) {
         {/* TAB 1: Source & Order                                        */}
         {/* ============================================================ */}
         <TabsContent value="source-order" className="space-y-4">
+          {/* Production Needs — Auto-generated from factory BOM */}
+          {teamState && (() => {
+            try {
+              const state = (typeof teamState === 'string' ? JSON.parse(teamState) : teamState) as TeamState;
+              const bom = aggregateProductionRequirements(state);
+              const shortfalls = bom.entries.filter(e => e.shortfall > 0);
+              if (shortfalls.length === 0 && bom.entries.length > 0) return (
+                <Card className="border-green-500/30 bg-green-500/5">
+                  <CardContent className="py-4">
+                    <div className="flex items-center gap-2 text-green-400">
+                      <CheckCircle2 className="h-5 w-5" />
+                      <span className="font-medium">All materials in stock for current production plan</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+              if (shortfalls.length > 0) return (
+                <Card className="border-amber-500/30 bg-amber-500/5">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-amber-400" />
+                      Production Needs — {shortfalls.length} material{shortfalls.length > 1 ? 's' : ''} to order
+                    </CardTitle>
+                    <CardDescription>
+                      Based on your factory production targets. Est. cost: {formatCurrency(bom.totalEstimatedCost)}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {bom.entries.map(entry => (
+                        <div key={entry.materialType} className={`rounded-lg p-2 text-sm ${
+                          entry.shortfall > 0
+                            ? entry.currentInventory === 0 ? 'bg-red-500/10 border border-red-500/30' : 'bg-amber-500/10 border border-amber-500/30'
+                            : 'bg-slate-800/50 border border-slate-700'
+                        }`}>
+                          <div className="font-medium capitalize">{entry.materialType}</div>
+                          <div className="text-xs text-slate-400">
+                            Need: {formatNumber(entry.totalQuantityNeeded)} | Have: {formatNumber(entry.currentInventory)}
+                          </div>
+                          {entry.shortfall > 0 && (
+                            <div className="text-xs font-medium text-amber-400 mt-1">
+                              Order {formatNumber(entry.shortfall)}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            } catch { /* BOM generation failed silently */ }
+            return null;
+          })()}
+
           {/* Step 1 — Segment Selector */}
           <Card>
             <CardHeader>

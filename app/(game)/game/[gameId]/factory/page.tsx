@@ -32,10 +32,14 @@ import {
   Boxes,
   ShieldAlert,
   Wrench,
+  AlertTriangle,
 } from "lucide-react";
 import type { TeamState, Factory as FactoryType } from "@/engine/types";
+import type { MarketState } from "@/engine/types/market";
 import { CONSTANTS } from "@/engine/types";
 import { getActiveSegments } from "@/lib/utils/stateHelpers";
+import { aggregateProductionRequirements } from "@/engine/materials/BillOfMaterials";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { getArchetype } from "@/engine/types/archetypes";
 import { getMachineryRequirements } from "@/engine/types/machineryRequirements";
@@ -553,6 +557,100 @@ export default function FactoryPage({ params }: PageProps) {
           />
         </TabsContent>
       </Tabs>
+
+      {/* Material Requirements Summary */}
+      {state && (() => {
+        const bom = aggregateProductionRequirements(state, selectedFactory.id, marketState as MarketState | undefined);
+        if (bom.entries.length === 0) return null;
+        return (
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Package className="w-5 h-5 text-orange-400" />
+                Materials Required for Production
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-700 text-slate-400">
+                      <th className="text-left py-2 pr-4">Material</th>
+                      <th className="text-right py-2 px-4">Needed</th>
+                      <th className="text-right py-2 px-4">In Stock</th>
+                      <th className="text-right py-2 px-4">Shortfall</th>
+                      <th className="text-right py-2 pl-4">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bom.entries.map((entry) => {
+                      const ratio = entry.totalQuantityNeeded > 0
+                        ? entry.currentInventory / entry.totalQuantityNeeded
+                        : 1;
+                      const statusColor = entry.currentInventory === 0 && entry.totalQuantityNeeded > 0
+                        ? "text-red-400"
+                        : ratio < 2
+                          ? "text-amber-400"
+                          : "text-green-400";
+                      const statusLabel = entry.currentInventory === 0 && entry.totalQuantityNeeded > 0
+                        ? "Out of Stock"
+                        : ratio < 2
+                          ? "Low Stock"
+                          : "OK";
+                      return (
+                        <tr key={entry.materialType} className="border-b border-slate-700/50">
+                          <td className="py-2 pr-4 capitalize font-medium text-slate-200">
+                            {entry.materialType}
+                          </td>
+                          <td className="text-right py-2 px-4 text-slate-300">
+                            {entry.totalQuantityNeeded.toLocaleString()}
+                          </td>
+                          <td className="text-right py-2 px-4 text-slate-300">
+                            {entry.currentInventory.toLocaleString()}
+                          </td>
+                          <td className="text-right py-2 px-4 text-slate-300">
+                            {entry.shortfall > 0 ? entry.shortfall.toLocaleString() : "-"}
+                          </td>
+                          <td className={`text-right py-2 pl-4 font-medium ${statusColor}`}>
+                            <span className="flex items-center justify-end gap-1">
+                              {statusLabel === "Out of Stock" && <AlertTriangle className="w-3.5 h-3.5" />}
+                              {statusLabel}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {bom.totalEstimatedCost > 0 && (
+                <div className="flex items-center justify-between pt-2 border-t border-slate-700">
+                  <span className="text-sm text-slate-400">
+                    Estimated cost to fill all shortfalls
+                  </span>
+                  <span className="text-base font-semibold text-orange-400">
+                    ${(bom.totalEstimatedCost / 1_000_000).toFixed(1)}M
+                  </span>
+                </div>
+              )}
+
+              {bom.shortfallCount > 0 && (
+                <Button
+                  variant="outline"
+                  className="w-full border-orange-500/50 text-orange-400 hover:bg-orange-600/20"
+                  onClick={() => {
+                    const basePath = gameId === "demo" ? "/demo" : `/game/${gameId}`;
+                    router.push(`${basePath}/supply-chain`);
+                  }}
+                >
+                  Go to Supply Chain to Source Materials &rarr;
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Decision Impact Preview */}
       <DecisionImpactPanel
