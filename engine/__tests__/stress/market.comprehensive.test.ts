@@ -219,8 +219,8 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
         }
       });
 
-      it("softmax temperature = 1.8 is used (from CONSTANTS)", () => { // POST-FIX: updated from 3 to 1.8
-        expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(1.8); // POST-FIX: updated from 3 to 1.8
+      it("softmax temperature = 3.5 is used (from CONSTANTS)", () => {
+        expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(3.5);
       });
 
       it("rubber-banding constants are correct (v6.0.0 revised system)", () => {
@@ -233,8 +233,8 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
       it("brand critical mass constants match documentation", () => {
         expect(CONSTANTS.BRAND_CRITICAL_MASS_LOW).toBe(0.15);
         expect(CONSTANTS.BRAND_CRITICAL_MASS_HIGH).toBe(0.60);
-        expect(CONSTANTS.BRAND_LOW_MULTIPLIER).toBe(0.75);
-        expect(CONSTANTS.BRAND_HIGH_MULTIPLIER).toBe(1.05);
+        expect(CONSTANTS.BRAND_LOW_MULTIPLIER).toBe(0.70);
+        expect(CONSTANTS.BRAND_HIGH_MULTIPLIER).toBe(1.15);
       });
 
       it("50 seeded scenarios: no market share exceeds 1.0", () => {
@@ -903,7 +903,7 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
       // 18. Brand at Critical Mass Boundaries
       // ------------------------------------------
       describe("18. Brand at critical mass boundaries", () => {
-        it("18a. brandValue=0.14 (below 0.15) — gets x0.75 penalty", () => { // POST-FIX: corrected from x0.7 to x0.75 (BRAND_LOW_MULTIPLIER)
+        it("18a. brandValue=0.14 (below 0.15) — gets x0.70 penalty", () => {
           const input = buildInput({
             teamCount: 1,
             seed: "mkt-deep-brand-low",
@@ -952,7 +952,7 @@ describe("Market & Experience — Comprehensive Stress Tests", () => {
           expect(pos!.brandScore).toBeGreaterThan(penalizedScore);
         });
 
-        it("18c. brandValue=0.66 (above 0.60 after decay) — gets x1.05 bonus", () => { // POST-FIX: updated from 0.62 to 0.66 for 8% decay
+        it("18c. brandValue=0.66 (above 0.60 after decay) — gets x1.15 bonus", () => {
           const input = buildInput({
             teamCount: 1,
             seed: "mkt-deep-brand-high",

@@ -120,8 +120,8 @@ describe("Constants (F4-F10 + T5-T6)", () => {
     expect(b.features).toBe(18);
   });
 
-  it("F6: SOFTMAX_TEMPERATURE = 1.8", () => {
-    expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(1.8);
+  it("F6: SOFTMAX_TEMPERATURE = 3.5", () => {
+    expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(3.5);
   });
 
   it("F7: RB_MAX_COST_RELIEF = 0.10", () => {

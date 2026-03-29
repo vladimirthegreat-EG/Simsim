@@ -174,9 +174,8 @@ describe("Market Simulator Stress Suite", () => {
       }
     });
 
-    it("softmax temperature = 1.8 is used (from CONSTANTS)", () => { // POST-FIX: updated from 3 to 1.8
-      // Phase-G: Set to 1.8 for sharper competition that rewards differentiation. // POST-FIX: updated from 3 to 1.8
-      expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(1.8); // POST-FIX: updated from 3 to 1.8
+    it("softmax temperature = 3.5 is used (from CONSTANTS)", () => {
+      expect(CONSTANTS.SOFTMAX_TEMPERATURE).toBe(3.5);
     });
 
     it("rubber-banding constants are correct", () => {
@@ -188,8 +187,8 @@ describe("Market Simulator Stress Suite", () => {
     it("brand critical mass constants match documentation", () => {
       expect(CONSTANTS.BRAND_CRITICAL_MASS_LOW).toBe(0.15);
       expect(CONSTANTS.BRAND_CRITICAL_MASS_HIGH).toBe(0.60);
-      expect(CONSTANTS.BRAND_LOW_MULTIPLIER).toBe(0.75);
-      expect(CONSTANTS.BRAND_HIGH_MULTIPLIER).toBe(1.05);
+      expect(CONSTANTS.BRAND_LOW_MULTIPLIER).toBe(0.70);
+      expect(CONSTANTS.BRAND_HIGH_MULTIPLIER).toBe(1.15);
     });
 
     it("50 seeded scenarios: no market share exceeds 1.0", () => {

@@ -42,12 +42,13 @@ import {
   type SeedBundle,
 } from "./EngineContext";
 import { MaterialEngine } from "../materials/MaterialEngine";
+import { MaterialIntegration } from "../materials/MaterialIntegration";
 import { TariffEngine } from "../tariffs/TariffEngine";
-import { checkDisruptions, type ActiveDisruption } from "../logistics/disruptions";
 import { FinancialStatementsEngine } from "../finance";
 import { FXEngine } from "../fx/FXEngine";
 import { updateESGSubscores, calculateESGBonuses } from "../modules/ESGSubscoreCalculator";
 import { calculateStorageCosts, ensureWarehouseState } from "../modules/WarehouseManager";
+import { checkDisruptions, type ActiveDisruption } from "../logistics/disruptions";
 import { normalizeProductionLines, autoAssignMachinesToLines } from "../modules/ProductionLineManager";
 import { EconomyEngine } from "../economy/EconomyEngine";
 import { CashEnforcement } from "../finance/CashEnforcement";
@@ -210,60 +211,46 @@ export class SimulationEngine {
         );
 
         currentState.materials.inventory = updatedInventory;
-
-        // Auto-procurement: replenish materials below production threshold
-        // Only active on easy difficulty or when complexity is "simple"
-        // On normal/hard: players must manage their own supply chain
-        const autoReplenishEnabled = currentState.complexityLevel === "simple"
-          || !(config?.difficulty?.complexity?.supplyChain ?? false);
-        const AUTO_REORDER_THRESHOLD = 50_000; // reorder when below 50K units
-        const AUTO_ORDER_QTY = 100_000; // order 100K units
-        const materialTypes = ["display", "processor", "memory", "storage", "camera", "battery", "chassis", "other"] as const;
-        for (const matType of materialTypes) {
-          const existing = currentState.materials.inventory.find(inv => inv.materialType === matType);
-          const currentQty = existing?.quantity ?? 0;
-          if (autoReplenishEnabled && currentQty < AUTO_REORDER_THRESHOLD) {
-            const orderCost = AUTO_ORDER_QTY * 15; // ~$15/unit average
-            if (currentState.cash > orderCost * 2) { // only order if can afford 2x (safety margin)
-              if (existing) {
-                existing.quantity += AUTO_ORDER_QTY;
-                existing.averageCost = ((existing.averageCost * currentQty) + (15 * AUTO_ORDER_QTY)) / (currentQty + AUTO_ORDER_QTY);
-              } else {
-                currentState.materials.inventory.push({
-                  materialType: matType,
-                  spec: `Auto-ordered ${matType}`,
-                  quantity: AUTO_ORDER_QTY,
-                  averageCost: 15,
-                  sourceRegion: "North America" as any,
-                });
-              }
-              currentState.cash = safeNumber(currentState.cash - orderCost);
-              currentState.accountsPayable += orderCost;
-            }
-          }
-        }
-
-        currentState.materials.totalInventoryValue = currentState.materials.inventory.reduce(
+        currentState.materials.totalInventoryValue = updatedInventory.reduce(
           (sum, inv) => sum + inv.quantity * inv.averageCost,
           0
         );
-        currentState.materials.holdingCosts = MaterialEngine.calculateHoldingCosts(currentState.materials.inventory);
+        currentState.materials.holdingCosts = MaterialEngine.calculateHoldingCosts(updatedInventory);
 
-        // 1A FIX: Deduct holding costs from cash (was calculated but never deducted)
+        // Deduct holding costs from cash
         if (currentState.materials.holdingCosts > 0) {
           currentState.cash = safeNumber(currentState.cash - currentState.materials.holdingCosts);
         }
 
-        // 1C FIX: Safety net — retroactively apply shipping/tariff costs for legacy orders
-        for (const order of arrivedOrders) {
-          if ((order.shippingCost === 0 || !order.shippingCost) && order.materialCost > 0) {
-            // Estimate shipping at 5% of material cost and tariff at 3%
-            const estimatedShipping = order.materialCost * 0.05;
-            const estimatedTariff = order.materialCost * 0.03;
-            order.shippingCost = estimatedShipping;
-            order.tariffCost = estimatedTariff;
-            order.totalCost = order.materialCost + estimatedShipping + estimatedTariff;
-            currentState.cash = safeNumber(currentState.cash - estimatedShipping - estimatedTariff);
+        // Auto-procurement: replenish materials below threshold (disabled on advanced complexity)
+        const autoReplenishEnabled = currentState.complexityLevel === "simple"
+          || !(config?.difficulty?.complexity?.supplyChain ?? false);
+        if (autoReplenishEnabled) {
+          const AUTO_REORDER_THRESHOLD = 50_000;
+          const AUTO_ORDER_QTY = 100_000;
+          const materialTypes = ["display", "processor", "memory", "storage", "camera", "battery", "chassis", "other"] as const;
+          for (const matType of materialTypes) {
+            const existing = currentState.materials.inventory.find(inv => inv.materialType === matType);
+            const currentQty = existing?.quantity ?? 0;
+            if (currentQty < AUTO_REORDER_THRESHOLD) {
+              const orderCost = AUTO_ORDER_QTY * 15;
+              if (currentState.cash > orderCost * 2) {
+                if (existing) {
+                  existing.quantity += AUTO_ORDER_QTY;
+                  existing.averageCost = ((existing.averageCost * currentQty) + (15 * AUTO_ORDER_QTY)) / (currentQty + AUTO_ORDER_QTY);
+                } else {
+                  currentState.materials.inventory.push({
+                    materialType: matType,
+                    spec: `Auto-ordered ${matType}`,
+                    quantity: AUTO_ORDER_QTY,
+                    averageCost: 15,
+                    sourceRegion: "North America" as any,
+                  });
+                }
+                currentState.cash = safeNumber(currentState.cash - orderCost);
+                currentState.accountsPayable += orderCost;
+              }
+            }
           }
         }
 
@@ -289,42 +276,29 @@ export class SimulationEngine {
           }
         }
 
-        // Process logistics disruptions (uses SeededRNG, never Math.random)
-        const stateAny = currentState as any;
-        if (!stateAny.activeDisruptions) stateAny.activeDisruptions = [];
-        // Clean expired disruptions
-        stateAny.activeDisruptions = (stateAny.activeDisruptions as ActiveDisruption[]).filter(
+        // Process logistics disruptions (SeededRNG for determinism)
+        if (!((currentState as any).activeDisruptions)) (currentState as any).activeDisruptions = [];
+        (currentState as any).activeDisruptions = ((currentState as any).activeDisruptions as ActiveDisruption[]).filter(
           (d: ActiveDisruption) => d.expiresRound > roundNumber
         );
-        // Check for new disruptions using deterministic RNG
-        const newDisruptions = checkDisruptions(
-          ctx.rng.general,
-          roundNumber,
-          stateAny.activeDisruptions as ActiveDisruption[]
-        );
-        stateAny.activeDisruptions.push(...newDisruptions);
-        for (const d of newDisruptions) {
-          summaryMessages.push(`  ${team.id}: ⚠️ ${d.name}: ${d.description}`);
-        }
-        // Apply active disruptions to in-transit orders
-        for (const order of currentState.materials.activeOrders) {
-          if (order.status === "pending" || order.status === "shipping") {
-            for (const disruption of stateAny.activeDisruptions as ActiveDisruption[]) {
-              const orderAny = order as any;
-              if (
-                disruption.affectedMethods.includes(order.shippingMethod) &&
-                !(orderAny.appliedDisruptions || []).includes(disruption.id)
-              ) {
-                order.estimatedArrivalRound = Math.ceil(
-                  order.estimatedArrivalRound + (disruption.timeMultiplier - 1)
-                );
-                orderAny.appliedDisruptions = [
-                  ...(orderAny.appliedDisruptions || []),
-                  disruption.id,
-                ];
-                summaryMessages.push(
-                  `  ${team.id}: 📦 ${order.materialType} shipment delayed by ${disruption.name}`
-                );
+        if (ctx) {
+          const newDisruptions = checkDisruptions(ctx.rng.general, roundNumber, (currentState as any).activeDisruptions);
+          ((currentState as any).activeDisruptions as ActiveDisruption[]).push(...newDisruptions);
+          for (const d of newDisruptions) {
+            summaryMessages.push(`  ${team.id}: ⚠️ ${d.name}: ${d.description}`);
+          }
+          // Apply disruptions to in-transit orders
+          for (const order of currentState.materials?.activeOrders || []) {
+            if ((order as any).status === 'pending' || (order as any).status === 'shipping') {
+              for (const disruption of (currentState as any).activeDisruptions as ActiveDisruption[]) {
+                if (disruption.affectedMethods.includes((order as any).shippingMethod) &&
+                    !((order as any).appliedDisruptions || []).includes(disruption.id)) {
+                  (order as any).estimatedArrivalRound = Math.ceil(
+                    ((order as any).estimatedArrivalRound || roundNumber + 1) + (disruption.timeMultiplier - 1)
+                  );
+                  (order as any).appliedDisruptions = [...((order as any).appliedDisruptions || []), disruption.id];
+                  summaryMessages.push(`  ${team.id}: 📦 ${(order as any).materialType} shipment delayed by ${disruption.name}`);
+                }
               }
             }
           }
@@ -372,6 +346,34 @@ export class SimulationEngine {
       for (const product of currentState.products) {
         if (product.developmentStatus === "launched") {
           product.unitCost = EconomyEngine.calculateUnitCost(product, currentState, config);
+        }
+      }
+
+      // Material constraints: cap production line targetOutput by material availability
+      // If materials are initialized, each line's output is limited by what's in inventory
+      if (currentState.materials && currentState.materials.inventory.length > 0) {
+        for (const factory of currentState.factories) {
+          for (const line of factory.productionLines || []) {
+            if (line.status !== "active" || !line.productId || !line.segment) continue;
+
+            const constraints = MaterialIntegration.checkProductionConstraints(
+              line.segment as import("../types/factory").Segment,
+              line.targetOutput,
+              currentState.materials.inventory
+            );
+
+            if (!constraints.canProduce) {
+              // No materials at all — line can't produce
+              line.targetOutput = 0;
+              summaryMessages.push(`  ${team.id}: Line ${line.id} halted — no materials for ${line.segment}`);
+            } else if (constraints.maxProduction < line.targetOutput) {
+              const original = line.targetOutput;
+              line.targetOutput = constraints.maxProduction;
+              summaryMessages.push(
+                `  ${team.id}: Line ${line.id} capped ${original.toLocaleString()} → ${constraints.maxProduction.toLocaleString()} (material shortage)`
+              );
+            }
+          }
         }
       }
 
@@ -638,6 +640,21 @@ export class SimulationEngine {
       });
     }
 
+    // Step 1.5: Process product discontinuations (before market simulation)
+    for (const team of processedTeams) {
+      const discs = team.decisions?.productDiscontinuations;
+      if (discs) {
+        for (const disc of discs) {
+          const product = team.state.products.find(p => p.id === disc.productId);
+          if (product && !product.discontinued) {
+            product.discontinued = true;
+            product.discontinuedRound = input.roundNumber;
+            product.developmentStatus = "discontinued";
+          }
+        }
+      }
+    }
+
     // Step 2: Run market simulation (competition between all teams)
     // Use the first team's context for market simulation (all contexts share same market seed)
     summaryMessages.push("Running market simulation...");
@@ -683,6 +700,14 @@ export class SimulationEngine {
       team.state.marketShare = teamMarketShares;
       team.state.revenue = teamRevenue;
 
+      // Update customer loyalty based on market share and sales vs demand
+      team.state.customerLoyalty = MarketSimulator.updateCustomerLoyalty(
+        team.state.customerLoyalty,
+        teamSales as Record<import("../types/factory").Segment, number>,
+        marketResult.totalDemand,
+        teamMarketShares as Record<import("../types/factory").Segment, number>
+      );
+
       // INTEG-02: Sync products' unitsSold from market results (cappedUnits)
       // Must happen BEFORE COGS calculation so we use actual sold quantities
       for (const product of team.state.products || []) {
@@ -692,27 +717,29 @@ export class SimulationEngine {
         }
       }
 
-      // 2B FIX: Consume materials from inventory based on actual units sold
+      // Consume materials based on actual units sold
+      // Each unit sold consumes 1 unit of each material type for that segment
       if (team.state.materials && team.state.materials.inventory.length > 0) {
         for (const product of team.state.products || []) {
-          const unitsSold = ((product as unknown as Record<string, unknown>).unitsSold as number) || 0;
+          const unitsSold = ((product as unknown as Record<string, unknown>).unitsSold as number || 0);
           if (unitsSold > 0 && product.segment) {
-            try {
-              team.state.materials.inventory = MaterialEngine.consumeMaterials(
-                product.segment as any, unitsSold, team.state.materials.inventory
-              );
-            } catch {
-              // consumeMaterials may fail if inventory structure mismatches — continue gracefully
-            }
+            MaterialEngine.consumeMaterials(
+              product.segment as import("../types/factory").Segment,
+              unitsSold,
+              team.state.materials.inventory
+            );
           }
         }
-        // Update inventory value after consumption
+        // Recalculate inventory value after consumption
         team.state.materials.totalInventoryValue = team.state.materials.inventory.reduce(
           (sum, inv) => sum + inv.quantity * inv.averageCost, 0
         );
+        team.state.materials.holdingCosts = MaterialEngine.calculateHoldingCosts(
+          team.state.materials.inventory
+        );
       }
 
-      // 2C FIX: Material quality affects product quality (20% weight)
+      // Material quality → product quality (20% weight, R&D remains 80%)
       if (team.state.materials && team.state.materials.inventory.length > 0) {
         for (const product of team.state.products || []) {
           if (product.segment && product.developmentStatus === "launched") {
@@ -720,42 +747,30 @@ export class SimulationEngine {
               const qualityImpact = MaterialEngine.calculateMaterialQualityImpact(
                 product.segment as any, team.state.materials.inventory
               );
-              // Blend: 80% R&D quality + 20% material quality
               product.quality = Math.min(100, Math.round(
                 product.quality * 0.8 + qualityImpact.overallQuality * 0.2
               ));
-            } catch {
-              // Skip if quality calculation fails
-            }
+            } catch { /* Skip if quality calculation fails */ }
           }
         }
       }
 
-      // Step 6 FIX: Update product unitCost with actual material costs from inventory
-      // Instead of using hardcoded RAW_MATERIAL_COST_PER_UNIT, use the weighted average
-      // cost of materials actually consumed from inventory
+      // Update product unitCost with actual inventory costs (replaces hardcoded material costs)
       if (team.state.materials && team.state.materials.inventory.length > 0) {
         for (const product of team.state.products || []) {
           if (product.developmentStatus === "launched" && product.segment) {
             const unitsSold = ((product as unknown as Record<string, unknown>).unitsSold as number) || 0;
             if (unitsSold > 0) {
-              // Calculate actual material cost per unit from inventory average costs
               const segmentMats = MaterialEngine.SEGMENT_MATERIAL_REQUIREMENTS[
                 product.segment as keyof typeof MaterialEngine.SEGMENT_MATERIAL_REQUIREMENTS
               ];
               if (segmentMats) {
                 let actualMaterialCostPerUnit = 0;
                 for (const mat of segmentMats.materials) {
-                  const inv = team.state.materials.inventory.find(
-                    (i: any) => i.materialType === mat.type
-                  );
-                  // Use actual average cost from inventory, or base cost as fallback
+                  const inv = team.state.materials.inventory.find((i: any) => i.materialType === mat.type);
                   actualMaterialCostPerUnit += inv?.averageCost ?? mat.costPerUnit;
                 }
-                // Update unitCost: actual materials + labor + overhead
-                const laborCost = CONSTANTS.LABOR_COST_PER_UNIT || 15;
-                const overheadCost = CONSTANTS.OVERHEAD_COST_PER_UNIT || 10;
-                product.unitCost = actualMaterialCostPerUnit + laborCost + overheadCost;
+                product.unitCost = actualMaterialCostPerUnit + (CONSTANTS.LABOR_COST_PER_UNIT || 45) + (CONSTANTS.OVERHEAD_COST_PER_UNIT || 35);
               }
             }
           }
@@ -763,10 +778,15 @@ export class SimulationEngine {
       }
 
       // v5.1.0 Audit F-08: Compute actual COGS from unitCost × unitsSold
+      // Quality premium: higher quality products cost more to produce (Capsim pattern)
+      // Base unitCost + $2 per quality point above 50 (premium materials, tighter tolerances)
       // v6.0.0: Rubber-banding Mechanism A — trailing teams get reduced COGS
       const cogsCostRelief = team.state.rubberBanding?.costReliefFactor ?? 0;
       team.state.cogs = safeNumber((team.state.products || []).reduce((sum, p) => {
-        return sum + (((p as unknown as Record<string, unknown>).unitsSold as number || 0) * (p.unitCost || 0));
+        const unitsSold = ((p as unknown as Record<string, unknown>).unitsSold as number || 0);
+        const qualityPremium = Math.max(0, (p.quality - 50)) * 2; // $2 per quality point above 50
+        const effectiveUnitCost = (p.unitCost || 0) + qualityPremium;
+        return sum + (unitsSold * effectiveUnitCost);
       }, 0) * (1 - cogsCostRelief));
 
       // FIX-032: Deduct warranty costs (calculated by MarketSimulator from defect rates)
@@ -826,8 +846,21 @@ export class SimulationEngine {
       // FIX-015: Deduct COGS from cash — variable production costs for goods sold
       team.state.cash = safeNumber(team.state.cash - team.state.cogs);
 
+      // Factory overhead: scales with active lines + machines (Capsim pattern)
+      // $500K per active line + $200K per machine per round = real operating pressure
+      const activeLines = team.state.factories.reduce((sum, f) =>
+        sum + (f.productionLines?.filter((l: any) => l.status === "active").length ?? 0), 0);
+      const totalMachines = Object.values(team.state.machineryStates || {}).reduce(
+        (sum: number, ms: any) => sum + (ms.machines?.length ?? 0), 0);
+      const factoryOverhead = activeLines * 500_000 + totalMachines * 200_000;
+      team.state.cash = safeNumber(team.state.cash - factoryOverhead);
+
+      // SGA: Selling, General & Administrative — mandatory 12% of revenue (Capsim pattern)
+      const sgaCost = safeNumber(teamRevenue * 0.12);
+      team.state.cash = safeNumber(team.state.cash - sgaCost);
+
       // Calculate costs (for net income reporting only — already deducted from cash by modules)
-      const totalCosts = this.calculateTotalCosts(team.state, team.moduleResults);
+      const totalCosts = this.calculateTotalCosts(team.state, team.moduleResults) + factoryOverhead + sgaCost;
 
       // Calculate net income (revenue minus COGS minus operating expenses)
       const pretaxIncome = teamRevenue - team.state.cogs - totalCosts;
@@ -1416,14 +1449,15 @@ export class SimulationEngine {
     defaultFactory.engineers = engineers;
 
     // Create one production line per active segment
-    // Each line gets 1 starter Assembly Line machine so teams can produce from round 1
+    // Each line gets 3 starter Assembly Line machines — balanced start (not machine-starved)
+    const MACHINES_PER_STARTER_LINE = 3;
     defaultFactory.productionLines = activeSegments.map((seg, i) => ({
       id: `line-${i + 1}`,
       factoryId: defaultFactory.id,
       segment: seg.segment,
       productId: seg.id,
-      targetOutput: 20_000, // Starter target = 1 Assembly Line capacity
-      assignedMachines: [`starter-machine-${i + 1}`],
+      targetOutput: 60_000, // 3 Assembly Lines × 20K = 60K capacity
+      assignedMachines: Array.from({ length: MACHINES_PER_STARTER_LINE }, (_, j) => `starter-machine-${i + 1}-${j + 1}`),
       assignedWorkers: Math.floor(workers / Math.max(1, activeSegments.length)),
       assignedEngineers: Math.floor(engineers / Math.max(1, activeSegments.length)),
       assignedSupervisors: Math.floor(supervisors / Math.max(1, activeSegments.length)),
@@ -1433,34 +1467,36 @@ export class SimulationEngine {
       efficiency: CONSTANTS.BASE_FACTORY_EFFICIENCY,
     }));
 
-    // Create starter machines (1 Assembly Line per active line)
-    const starterMachines = activeSegments.map((seg, i) => ({
-      id: `starter-machine-${i + 1}`,
-      type: "assembly_line" as const,
-      name: "Phone Assembly Line",
-      factoryId: defaultFactory.id,
-      assignedLineId: `line-${i + 1}`,
-      status: "operational" as const,
-      healthPercent: 100,
-      utilizationPercent: 0,
-      purchaseCost: 5_000_000,
-      currentValue: 5_000_000,
-      maintenanceCostPerRound: 50_000,
-      operatingCostPerRound: 100_000,
-      capacityUnits: 20_000, // Matches Assembly Line catalog
-      efficiencyMultiplier: 1.0,
-      defectRateImpact: 0,
-      purchaseRound: 0,
-      expectedLifespanRounds: 40,
-      ageRounds: 0,
-      roundsSinceLastMaintenance: 0,
-      scheduledMaintenanceRound: null as number | null,
-      maintenanceHistory: [] as Array<{ round: number; type: string; cost: number; healthRestored: number }>,
-      totalMaintenanceSpent: 0,
-      laborReduction: 0,
-      shippingReduction: 0,
-      specialtySegments: ["General", "Budget"],
-    }));
+    // Create starter machines (3 Assembly Lines per active line)
+    const starterMachines = activeSegments.flatMap((seg, i) =>
+      Array.from({ length: MACHINES_PER_STARTER_LINE }, (_, j) => ({
+        id: `starter-machine-${i + 1}-${j + 1}`,
+        type: "assembly_line" as const,
+        name: `Phone Assembly Line #${i + 1}-${j + 1}`,
+        factoryId: defaultFactory.id,
+        assignedLineId: `line-${i + 1}`,
+        status: "operational" as const,
+        healthPercent: 100,
+        utilizationPercent: 0,
+        purchaseCost: 5_000_000,
+        currentValue: 5_000_000,
+        maintenanceCostPerRound: 50_000,
+        operatingCostPerRound: 100_000,
+        capacityUnits: 20_000, // Matches Assembly Line catalog
+        efficiencyMultiplier: 1.0,
+        defectRateImpact: 0,
+        purchaseRound: 0,
+        expectedLifespanRounds: 40,
+        ageRounds: 0,
+        roundsSinceLastMaintenance: 0,
+        scheduledMaintenanceRound: null as number | null,
+        maintenanceHistory: [] as Array<{ round: number; type: string; cost: number; healthRestored: number }>,
+        totalMaintenanceSpent: 0,
+        laborReduction: 0,
+        shippingReduction: 0,
+        specialtySegments: ["General", "Budget"],
+      }))
+    );
 
     // Create products only for active segments
     const initialProducts = activeSegments.map((seg) => ({
@@ -1474,6 +1510,7 @@ export class SimulationEngine {
       developmentRound: 0,
       developmentStatus: "launched" as const,
       developmentProgress: 100,
+      launchRound: 0,
       targetQuality: seg.quality,
       targetFeatures: seg.features,
       roundsRemaining: 0,
@@ -1572,19 +1609,11 @@ export class SimulationEngine {
       cogs: 0,
       accountsReceivable: 0,
       accountsPayable: 0,
-      // 2D FIX: Initialize materials with starting inventory so teams can produce round 1
+      // Initialize materials & supply chain state
       materials: {
-        inventory: (["display", "processor", "memory", "storage", "camera", "battery", "chassis", "other"] as const).map(type => ({
-          materialType: type,
-          spec: `Starting ${type}`,
-          quantity: 100_000,
-          averageCost: 15, // ~$15/unit average starting material cost
-          sourceRegion: "North America" as const,
-        })),
+        inventory: [],
         activeOrders: [],
-        suppliers: [],
-        contracts: [],
-        totalInventoryValue: 100_000 * 8 * 15, // 8 types × 100K × $15
+        totalInventoryValue: 0,
         holdingCosts: 0,
         region: "North America" as const,
       },

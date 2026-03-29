@@ -46,6 +46,8 @@ export interface FactoryDecisions {
   };
   esgInitiatives?: ESGInitiatives;
   machineryDecisions?: MachineryDecisions;
+  /** Shift mode: single (1x), double (2x output, 1.7x labor), overtime (1.5x output, 1.6x labor) */
+  shiftMode?: "single" | "double" | "overtime";
 }
 
 // ============================================
@@ -206,7 +208,12 @@ export interface RDDecisions {
     qualityIncrease?: number;
     featuresIncrease?: number;
   }[];
+  discontinueProducts?: string[];
 }
+
+// ============================================
+// COMBINED DECISIONS
+// ============================================
 
 // ============================================
 // SUPPLY CHAIN DECISIONS
@@ -225,10 +232,6 @@ export interface MaterialOrderInput {
   shippingMethod: string;
 }
 
-// ============================================
-// COMBINED DECISIONS
-// ============================================
-
 export interface AllDecisions {
   factory?: FactoryDecisions;
   hr?: HRDecisions;
@@ -236,6 +239,7 @@ export interface AllDecisions {
   marketing?: MarketingDecisions;
   rd?: RDDecisions;
   supplyChain?: SupplyChainDecisions;
+  productDiscontinuations?: Array<{ productId: string }>;
 }
 
 // Re-export MachineryDecisions for convenience

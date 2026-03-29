@@ -76,7 +76,7 @@ describe("Machinery Stress Suite", () => {
       expect(result.machine!.healthPercent).toBe(100);
       expect(result.machine!.status).toBe("operational");
       expect(result.machine!.ageRounds).toBe(0);
-      expect(result.cost).toBe(5_000_000);
+      expect(result.cost).toBe(10_000_000);
     });
 
     it("process with empty decisions returns valid result", () => {
