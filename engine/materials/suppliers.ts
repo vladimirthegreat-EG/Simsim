@@ -418,15 +418,41 @@ export function findBestSupplier(
 }
 
 // ============================================
-// SUPPLIER TIER SYSTEM — Bronze / Silver / Gold
+// SUPPLIER & MATERIAL TIER SYSTEM — 5-Tier
 // ============================================
 
 import type { SupplierTier } from "./types";
 
-export function classifySupplierTier(supplier: Supplier): SupplierTier {
-  if (supplier.qualityRating >= 90) return "gold";
-  if (supplier.qualityRating >= 80) return "silver";
+export type MaterialTier = "bronze" | "silver" | "gold" | "platinum" | "diamond";
+
+export const MATERIAL_TIER_CONFIG: Record<MaterialTier, {
+  label: string;
+  color: string;
+  bgClass: string;
+  borderClass: string;
+  textClass: string;
+  qualityFloor: number;
+  qualityCeiling: number;
+  description: string;
+}> = {
+  bronze:   { label: "Bronze", color: "#CD7F32", bgClass: "bg-amber-900/30", borderClass: "border-amber-700", textClass: "text-amber-400", qualityFloor: 0, qualityCeiling: 74, description: "Standard materials — basic specs" },
+  silver:   { label: "Silver", color: "#C0C0C0", bgClass: "bg-slate-600/30", borderClass: "border-slate-400", textClass: "text-slate-300", qualityFloor: 75, qualityCeiling: 84, description: "Enhanced materials — improved durability" },
+  gold:     { label: "Gold", color: "#FFD700", bgClass: "bg-yellow-900/30", borderClass: "border-yellow-500", textClass: "text-yellow-400", qualityFloor: 85, qualityCeiling: 89, description: "Premium materials — high performance" },
+  platinum: { label: "Platinum", color: "#00CED1", bgClass: "bg-cyan-900/30", borderClass: "border-cyan-400", textClass: "text-cyan-300", qualityFloor: 90, qualityCeiling: 95, description: "Professional grade — top reliability" },
+  diamond:  { label: "Diamond", color: "#9370DB", bgClass: "bg-purple-900/30", borderClass: "border-purple-400", textClass: "text-purple-300", qualityFloor: 96, qualityCeiling: 100, description: "Ultra premium — absolute best" },
+};
+
+export function classifyMaterialTier(quality: number): MaterialTier {
+  if (quality >= 96) return "diamond";
+  if (quality >= 90) return "platinum";
+  if (quality >= 85) return "gold";
+  if (quality >= 75) return "silver";
   return "bronze";
+}
+
+/** Classify supplier into a 5-tier system based on quality rating */
+export function classifySupplierTier(supplier: Supplier): SupplierTier {
+  return classifyMaterialTier(supplier.qualityRating);
 }
 
 export function getSuppliersByTier(tier: SupplierTier, materialType?: MaterialType): Supplier[] {
@@ -437,17 +463,8 @@ export function getSuppliersByTier(tier: SupplierTier, materialType?: MaterialTy
   });
 }
 
-export const SUPPLIER_TIER_CONFIG: Record<SupplierTier, {
-  label: string;
-  color: string;
-  qualityFloor: number;
-  qualityCeiling: number;
-  description: string;
-}> = {
-  bronze: { label: "Bronze", color: "#CD7F32", qualityFloor: 0, qualityCeiling: 79, description: "Budget materials — cheap, slower, higher defects" },
-  silver: { label: "Silver", color: "#C0C0C0", qualityFloor: 80, qualityCeiling: 89, description: "Standard materials — moderate cost and quality" },
-  gold: { label: "Gold", color: "#FFD700", qualityFloor: 90, qualityCeiling: 100, description: "Premium materials — expensive, fast, lowest defects" },
-};
+/** @deprecated Use MATERIAL_TIER_CONFIG instead */
+export const SUPPLIER_TIER_CONFIG = MATERIAL_TIER_CONFIG;
 
 // Stamp tier on all suppliers at module load
 for (const supplier of DEFAULT_SUPPLIERS) {

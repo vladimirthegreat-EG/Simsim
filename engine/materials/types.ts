@@ -43,7 +43,7 @@ export interface SegmentMaterials {
   qualityTier: 1 | 2 | 3 | 4 | 5; // 1=Budget, 5=Ultra Premium
 }
 
-export type SupplierTier = "bronze" | "silver" | "gold";
+export type SupplierTier = "bronze" | "silver" | "gold" | "platinum" | "diamond";
 
 export interface MaterialInventory {
   materialType: MaterialType;

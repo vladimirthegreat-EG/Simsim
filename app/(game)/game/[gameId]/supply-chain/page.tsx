@@ -125,6 +125,8 @@ const TIER_COLORS: Record<SupplierTier, string> = {
   bronze: "#CD7F32",
   silver: "#C0C0C0",
   gold: "#FFD700",
+  platinum: "#00CED1",
+  diamond: "#9370DB",
 };
 
 // ─── Page Component ─────────────────────────────────────────────────

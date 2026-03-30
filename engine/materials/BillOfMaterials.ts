@@ -37,7 +37,7 @@ export interface BOMEntry {
 
 export interface SupplierOption {
   supplier: Supplier;
-  tier: "bronze" | "silver" | "gold";
+  tier: "bronze" | "silver" | "gold" | "platinum" | "diamond";
   unitCost: number;
   qualityRating: number;
   leadTimeRounds: number;
@@ -126,6 +126,96 @@ const TECH_FAMILY_TO_MATERIAL: Record<string, MaterialType> = {
   display: "display",
   connectivity: "processor", // Connectivity also needs processor quality
 };
+
+/** Material spec upgrade paths per tech tier. Higher R&D tech = better (and more expensive) components. */
+export const UPGRADE_PATHS: Record<string, Record<number, { spec: string; qualityBoost: number; costMult: number }>> = {
+  display: {
+    1: { spec: "OLED_Standard", qualityBoost: 0, costMult: 1.0 },
+    2: { spec: "AMOLED_120Hz", qualityBoost: 5, costMult: 1.4 },
+    3: { spec: "AMOLED_ProMotion", qualityBoost: 10, costMult: 1.8 },
+    4: { spec: "MicroLED", qualityBoost: 15, costMult: 2.5 },
+    5: { spec: "Holographic", qualityBoost: 20, costMult: 4.0 },
+  },
+  processor: {
+    1: { spec: "Standard_SoC", qualityBoost: 0, costMult: 1.0 },
+    2: { spec: "OnDevice_ML_SoC", qualityBoost: 5, costMult: 1.5 },
+    3: { spec: "Neural_Processing_SoC", qualityBoost: 10, costMult: 2.0 },
+    4: { spec: "Neural_Flagship_SoC", qualityBoost: 15, costMult: 3.0 },
+    5: { spec: "Quantum_SoC", qualityBoost: 20, costMult: 5.0 },
+  },
+  camera: {
+    1: { spec: "Enhanced_Optics", qualityBoost: 0, costMult: 1.0 },
+    2: { spec: "Computational_Photo", qualityBoost: 5, costMult: 1.3 },
+    3: { spec: "8K_Video_Suite", qualityBoost: 10, costMult: 1.8 },
+    4: { spec: "Pro_Cinema", qualityBoost: 15, costMult: 2.5 },
+    5: { spec: "Quantum_Imaging", qualityBoost: 20, costMult: 4.0 },
+  },
+  battery: {
+    1: { spec: "Extended_Battery", qualityBoost: 0, costMult: 1.0 },
+    2: { spec: "Fast_Charge", qualityBoost: 5, costMult: 1.2 },
+    3: { spec: "Graphene_Cell", qualityBoost: 10, costMult: 1.6 },
+    4: { spec: "Solid_State", qualityBoost: 15, costMult: 2.2 },
+    5: { spec: "Perpetual_Power", qualityBoost: 20, costMult: 3.5 },
+  },
+  chassis: {
+    1: { spec: "Gorilla_Glass", qualityBoost: 0, costMult: 1.0 },
+    2: { spec: "IP68_Rated", qualityBoost: 5, costMult: 1.3 },
+    3: { spec: "MilSTD_Certified", qualityBoost: 10, costMult: 1.7 },
+    4: { spec: "Titanium_Frame", qualityBoost: 15, costMult: 2.5 },
+    5: { spec: "Indestructible", qualityBoost: 20, costMult: 4.0 },
+  },
+  memory: {
+    1: { spec: "Standard_RAM", qualityBoost: 0, costMult: 1.0 },
+    2: { spec: "LPDDR5", qualityBoost: 5, costMult: 1.3 },
+    3: { spec: "LPDDR5X", qualityBoost: 10, costMult: 1.6 },
+    4: { spec: "HBM3", qualityBoost: 15, costMult: 2.2 },
+    5: { spec: "Quantum_Memory", qualityBoost: 20, costMult: 3.5 },
+  },
+  storage: {
+    1: { spec: "eMMC_Standard", qualityBoost: 0, costMult: 1.0 },
+    2: { spec: "UFS_3.1", qualityBoost: 5, costMult: 1.3 },
+    3: { spec: "UFS_4.0", qualityBoost: 10, costMult: 1.6 },
+    4: { spec: "PCIe_NVMe", qualityBoost: 15, costMult: 2.0 },
+    5: { spec: "Quantum_Storage", qualityBoost: 20, costMult: 3.0 },
+  },
+  other: {
+    1: { spec: "Basic_Components", qualityBoost: 0, costMult: 1.0 },
+    2: { spec: "Enhanced_Components", qualityBoost: 3, costMult: 1.2 },
+    3: { spec: "Premium_Components", qualityBoost: 6, costMult: 1.4 },
+    4: { spec: "Ultra_Components", qualityBoost: 10, costMult: 1.8 },
+    5: { spec: "Quantum_Components", qualityBoost: 15, costMult: 2.5 },
+  },
+};
+
+/**
+ * Get the upgraded material spec based on the team's highest tech tier for this material's family.
+ * Returns the upgrade path entry, or tier 1 (base) if no tech unlocked.
+ */
+export function getUpgradedMaterialSpec(
+  materialType: string,
+  appliedTechs: string[],
+): { spec: string; qualityBoost: number; costMult: number; tier: number } {
+  const paths = UPGRADE_PATHS[materialType];
+  if (!paths) return { spec: "Standard", qualityBoost: 0, costMult: 1.0, tier: 1 };
+
+  // Find highest tech tier for this material's family
+  let maxTier = 1;
+  try {
+    const { RDExpansions } = require("../modules/RDExpansions");
+    for (const techId of appliedTechs || []) {
+      const node = RDExpansions.getTechNode(techId);
+      if (!node) continue;
+      // Check if this tech's family maps to this material type
+      const mappedMaterials = TECH_FAMILY_TO_MATERIAL[node.family as string];
+      if (mappedMaterials === materialType) {
+        maxTier = Math.max(maxTier, node.tier);
+      }
+    }
+  } catch { /* RDExpansions not available */ }
+
+  const upgrade = paths[maxTier] || paths[1];
+  return { ...upgrade, tier: maxTier };
+}
 
 /** Quality grade minimum material quality requirements */
 const QUALITY_GRADE_MIN_QUALITY: Record<string, number> = {
