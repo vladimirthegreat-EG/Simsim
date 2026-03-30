@@ -46,7 +46,7 @@ export const SHIPPING_METHODS: Record<string, ShippingMethodDetails> = {
 };
 
 /**
- * Round-based lead times per shipping method.
+ * Round-based lead times per shipping method (base delays).
  * Air = same round (instant). Land/Rail = 1 round. Sea = 2 rounds.
  */
 export const SHIPPING_METHOD_ROUND_DELAYS: Record<string, number> = {
@@ -55,6 +55,22 @@ export const SHIPPING_METHOD_ROUND_DELAYS: Record<string, number> = {
   land: 1,
   rail: 1,
 };
+
+/**
+ * Get route-aware shipping delay in rounds.
+ * Same-region = instant (0 rounds). Cross-continental adds +1 round.
+ * Distant regions (Africa, South America, Oceania) add +1 on top.
+ */
+export function getRouteDelay(fromRegion: string, toRegion: string, method: string): number {
+  if (fromRegion === toRegion) return 0; // same region = instant delivery
+  const base = SHIPPING_METHOD_ROUND_DELAYS[method] ?? 1;
+  // Cross-continental routes take longer
+  const distant = ["Africa", "South America", "Oceania"];
+  if (distant.includes(fromRegion) || distant.includes(toRegion)) {
+    return base + 1;
+  }
+  return base;
+}
 
 export const MAJOR_PORTS: Port[] = [
   // North America

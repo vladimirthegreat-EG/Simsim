@@ -49,6 +49,7 @@ import { FXEngine } from "../fx/FXEngine";
 import { updateESGSubscores, calculateESGBonuses } from "../modules/ESGSubscoreCalculator";
 import { calculateStorageCosts, ensureWarehouseState } from "../modules/WarehouseManager";
 import { checkDisruptions, type ActiveDisruption } from "../logistics/disruptions";
+import { detectDeprecatedInventory } from "../materials/BillOfMaterials";
 import { normalizeProductionLines, autoAssignMachinesToLines } from "../modules/ProductionLineManager";
 import { EconomyEngine } from "../economy/EconomyEngine";
 import { CashEnforcement } from "../finance/CashEnforcement";
@@ -221,6 +222,26 @@ export class SimulationEngine {
         if (currentState.materials.holdingCosts > 0) {
           currentState.cash = safeNumber(currentState.cash - currentState.materials.holdingCosts);
         }
+
+        // Auto-scrap deprecated inventory (parts 2+ tech tiers behind)
+        try {
+          const deprecated = detectDeprecatedInventory(currentState);
+          for (const item of deprecated) {
+            if (item.tierGap >= 2) {
+              currentState.materials.inventory = currentState.materials.inventory.filter(
+                inv => !(inv.materialType === item.materialType && inv.spec === item.spec
+                  && (inv as any).techTierAtPurchase === item.techTierAtPurchase)
+              );
+              summaryMessages.push(`  ${team.id}: 🗑️ Scrapped ${item.quantity.toLocaleString()} deprecated ${item.materialType} (${item.tierGap} tiers behind)`);
+            } else if (item.tierGap === 1) {
+              // 1 tier behind: 20% value loss
+              const inv = currentState.materials.inventory.find(
+                i => i.materialType === item.materialType && i.spec === item.spec
+              );
+              if (inv) inv.averageCost = Math.max(1, inv.averageCost * 0.80);
+            }
+          }
+        } catch { /* detectDeprecatedInventory may fail if tech tree not available */ }
 
         // Auto-procurement: replenish materials below threshold (disabled on advanced complexity)
         const autoReplenishEnabled = currentState.complexityLevel === "simple"

@@ -161,32 +161,45 @@ export default function SupplyChainPage({ params }: PageProps) {
     },
   });
 
-  // ─── Derived State ──────────────────────────────────────────────
-  const inventory = materialsState?.inventory ?? [];
-  const activeOrders = (materialsState?.activeOrders ?? []) as MaterialOrder[];
-  const currentRound = (teamState as any)?.game?.currentRound ?? 1;
-  const cash = (teamState as any)?.cash ?? 0;
-  const teamRegion: Region = materialsState?.region ?? "North America";
-
-  // Aggregate BOM from all active factory lines
-  const bom = useMemo(() => {
+  // ─── Parse Team State ──────────────────────────────────────────
+  // teamState from tRPC is { team, game, state: JSON_STRING, marketState, ... }
+  // We need to parse state from JSON string into TeamState object
+  const parsedState = useMemo<TeamState | null>(() => {
     if (!teamState) return null;
     try {
-      return aggregateProductionRequirements(teamState as unknown as TeamState);
+      const raw = (teamState as any).state;
+      if (!raw) return null;
+      return (typeof raw === "string" ? JSON.parse(raw) : raw) as TeamState;
     } catch {
       return null;
     }
   }, [teamState]);
 
+  const inventory = materialsState?.inventory ?? parsedState?.materials?.inventory ?? [];
+  const activeOrders = (materialsState?.activeOrders ?? parsedState?.materials?.activeOrders ?? []) as MaterialOrder[];
+  const currentRound = (teamState as any)?.game?.currentRound ?? 1;
+  const cash = parsedState?.cash ?? 0;
+  const teamRegion: Region = materialsState?.region ?? (parsedState?.materials as any)?.region ?? "North America";
+
+  // Aggregate BOM from all active factory lines
+  const bom = useMemo(() => {
+    if (!parsedState) return null;
+    try {
+      return aggregateProductionRequirements(parsedState);
+    } catch {
+      return null;
+    }
+  }, [parsedState]);
+
   // Deprecated inventory check
   const deprecatedItems = useMemo(() => {
-    if (!teamState) return [];
+    if (!parsedState) return [];
     try {
-      return detectDeprecatedInventory(teamState as unknown as TeamState);
+      return detectDeprecatedInventory(parsedState);
     } catch {
       return [];
     }
-  }, [teamState]);
+  }, [parsedState]);
 
   // Build stock status for all 8 materials
   const stockStatus = useMemo(() => {
@@ -1028,8 +1041,9 @@ export default function SupplyChainPage({ params }: PageProps) {
 
   // ─── TAB 3: Market Intel ────────────────────────────────────────
   const renderMarketTab = () => {
-    const tariffs = (teamState as any)?.tariffs;
-    const fx = (teamState as any)?.fx ?? (teamState as any)?.marketState?.fx;
+    const tariffs = parsedState?.tariffs ?? (teamState as any)?.tariffs;
+    const marketState = (teamState as any)?.marketState;
+    const fx = marketState?.fxRates ?? (parsedState as any)?.fxRates;
 
     return (
       <div className="space-y-6">

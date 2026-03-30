@@ -7,7 +7,7 @@ import { z } from "zod";
 import { createTRPCRouter, teamProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { MaterialEngine, DEFAULT_SUPPLIERS, type Region, type MaterialType } from "@/engine/materials";
-import { LogisticsEngine } from "@/engine/logistics";
+import { LogisticsEngine, SHIPPING_METHOD_ROUND_DELAYS } from "@/engine/logistics";
 import { TariffEngine } from "@/engine/tariffs";
 import type { TeamState } from "@/engine/types/state";
 
@@ -203,9 +203,9 @@ export const materialRouter = createTRPCRouter({
         (order as any).qualityRating = supplier?.qualityRating ?? 80;
         (order as any).techTierAtPurchase = 1; // Default — will be overridden by BOM context if available
 
-        // Update ETA based on logistics lead time
-        const roundsInTransit = Math.ceil(logistics.totalLeadTime / 90); // 90 days per round
-        order.estimatedArrivalRound = currentRound + Math.max(1, roundsInTransit);
+        // Update ETA using standardized round-based delays
+        const roundDelay = SHIPPING_METHOD_ROUND_DELAYS[input.shippingMethod] ?? 1;
+        order.estimatedArrivalRound = currentRound + roundDelay;
       } catch {
         // If logistics/tariff calc fails, order still proceeds with material cost only
       }
