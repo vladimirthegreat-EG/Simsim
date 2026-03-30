@@ -1,17 +1,27 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { use } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { StatCard } from "@/components/ui/stat-card";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { formatCurrency, formatNumber } from "@/lib/utils";
-import { PageHeader, SectionHeader } from "@/components/ui/section-header";
 import { trpc } from "@/lib/api/trpc";
-import { useDecisionStore } from "@/lib/stores/decisionStore";
-// DecisionSubmitBar not needed - material orders are submitted directly via API
 import { toast } from "sonner";
 import {
   Package,
@@ -21,1152 +31,1405 @@ import {
   CheckCircle2,
   Clock,
   DollarSign,
-  TrendingUp,
-  TrendingDown,
-  MapPin,
   ShoppingCart,
   Boxes,
   Factory,
-  Percent,
   Ship,
   Plane,
   Truck,
-  Leaf,
-  Anchor,
+  ChevronDown,
+  ChevronRight,
+  X,
+  Zap,
+  ArrowDown,
+  BarChart3,
+  Warehouse,
+  CircleDot,
 } from "lucide-react";
-import type { Segment } from "@/engine/types";
-import { aggregateProductionRequirements } from "@/engine/materials/BillOfMaterials";
+import {
+  aggregateProductionRequirements,
+  detectDeprecatedInventory,
+} from "@/engine/materials/BillOfMaterials";
+import type { AggregatedBOMEntry, SupplierOption } from "@/engine/materials/BillOfMaterials";
 import type { TeamState } from "@/engine/types/state";
 import {
-  MaterialEngine,
   DEFAULT_SUPPLIERS,
-  REGIONAL_CAPABILITIES,
-  type Material,
-  type MaterialInventory,
-  type MaterialOrder,
-  type Supplier,
-  type Region,
   type MaterialType,
+  type Region,
+  type MaterialOrder,
+  type SupplierTier,
 } from "@/engine/materials";
-import { LogisticsEngine, SHIPPING_METHODS, SHIPPING_ROUTES, MAJOR_PORTS, type ShippingMethod } from "@/engine/logistics";
-import { TariffEngine } from "@/engine/tariffs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { SUPPLIER_TIER_CONFIG } from "@/engine/materials/suppliers";
+import { SHIPPING_METHOD_ROUND_DELAYS } from "@/engine/logistics/routes";
+import { SHIPPING_METHODS } from "@/engine/logistics";
 
+// ─── Types ──────────────────────────────────────────────────────────
 interface PageProps {
   params: Promise<{ gameId: string }>;
 }
 
-const SEGMENT_OPTIONS: Segment[] = ["Budget", "General", "Enthusiast", "Professional", "Active Lifestyle"];
+interface CartItem {
+  id: string;
+  materialType: MaterialType;
+  spec: string;
+  supplierId: string;
+  supplierName: string;
+  sourceRegion: Region;
+  shippingMethod: "sea" | "air" | "land" | "rail";
+  quantity: number;
+  unitCost: number;
+  landedCost: number;
+  shippingCostEst: number;
+  tariffCostEst: number;
+  totalCost: number;
+}
+
+// ─── Constants ──────────────────────────────────────────────────────
+const MATERIAL_LABELS: Record<MaterialType, string> = {
+  display: "Display",
+  processor: "Processor",
+  memory: "Memory",
+  storage: "Storage",
+  camera: "Camera",
+  battery: "Battery",
+  chassis: "Chassis",
+  other: "Other",
+};
 
 const MATERIAL_ICONS: Record<MaterialType, React.ElementType> = {
   display: Globe,
   processor: Factory,
   memory: Boxes,
   storage: Package,
-  camera: Globe,
-  battery: TrendingUp,
-  chassis: Package,
+  camera: CircleDot,
+  battery: Zap,
+  chassis: Warehouse,
   other: Boxes,
 };
 
-// Default production capacity per segment per round (units)
-const DEFAULT_PRODUCT_CAPACITY = 50_000;
+const SHIP_METHOD_ICONS: Record<string, React.ElementType> = {
+  sea: Ship,
+  air: Plane,
+  land: Truck,
+  rail: TruckIcon,
+};
 
+const SHIP_METHOD_LABELS: Record<string, string> = {
+  sea: "Sea Freight",
+  air: "Air Freight",
+  land: "Land Transport",
+  rail: "Rail Freight",
+};
+
+const TIER_COLORS: Record<SupplierTier, string> = {
+  bronze: "#CD7F32",
+  silver: "#C0C0C0",
+  gold: "#FFD700",
+};
+
+// ─── Page Component ─────────────────────────────────────────────────
 export default function SupplyChainPage({ params }: PageProps) {
   const { gameId } = use(params);
-  const [activeTab, setActiveTab] = useState("source-order");
-  const [selectedSegment, setSelectedSegment] = useState<Segment>("General");
-  const [selectedMaterialType, setSelectedMaterialType] = useState<MaterialType>("display");
-  const [selectedSupplier, setSelectedSupplier] = useState<string>("");
-  const [orderQuantity, setOrderQuantity] = useState<number>(10000);
-  const [shippingMethod, setShippingMethod] = useState<"sea" | "air" | "land" | "rail">("sea");
-  // Logistics state
-  const [routeFrom, setRouteFrom] = useState<Region>("North America");
-  const [routeTo, setRouteTo] = useState<Region>("Asia");
-  const [shipWeight, setShipWeight] = useState(10);
-  const [shipVolume, setShipVolume] = useState(20);
-
-  // Fetch live game state
-  const { data: teamState, isLoading: teamStateLoading } = trpc.team.getMyState.useQuery();
-  const { data: materialsState, isLoading: materialsLoading } = trpc.material.getMaterialsState.useQuery();
-
-  // Extract state values with defaults
-  const inventory = materialsState?.inventory ?? [];
-  const activeOrders = materialsState?.activeOrders ?? [];
-  const currentRound = teamState?.game.currentRound ?? 1;
-  const teamRegion: Region = materialsState?.region ?? "North America";
-  const cash = (teamState as any)?.cash ?? 0;
-
-  // Get material requirements for selected segment
-  const requirements = useMemo(
-    () => MaterialEngine.getMaterialRequirements(selectedSegment),
-    [selectedSegment]
+  const [activeTab, setActiveTab] = useState("source");
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [expandedMaterials, setExpandedMaterials] = useState<Set<string>>(
+    new Set()
   );
+  const [vendorShipMethods, setVendorShipMethods] = useState<
+    Record<string, "sea" | "air" | "land" | "rail">
+  >({});
+  const [vendorQuantities, setVendorQuantities] = useState<
+    Record<string, number>
+  >({});
+  const vendorSectionRef = useRef<HTMLDivElement>(null);
 
-  // Get suppliers for selected material type
-  const availableSuppliers = useMemo(() => {
-    return DEFAULT_SUPPLIERS.filter(s => s.materials.includes(selectedMaterialType));
-  }, [selectedMaterialType]);
+  // ─── Data Fetching ──────────────────────────────────────────────
+  const { data: teamState, isLoading: teamLoading } =
+    trpc.team.getMyState.useQuery();
+  const { data: materialsState, isLoading: materialsLoading } =
+    trpc.material.getMaterialsState.useQuery();
+  const utils = trpc.useUtils();
 
-  // Get selected supplier details
-  const supplierDetails = useMemo(() => {
-    return DEFAULT_SUPPLIERS.find(s => s.id === selectedSupplier);
-  }, [selectedSupplier]);
-
-  // Calculate order preview
-  const orderPreview = useMemo(() => {
-    if (!supplierDetails) return null;
-
-    const material = requirements.materials.find(m => m.type === selectedMaterialType);
-    if (!material) return null;
-
-    const regional = REGIONAL_CAPABILITIES[supplierDetails.region];
-    const baseCost = material.costPerUnit * regional.costMultiplier;
-    const materialCost = baseCost * orderQuantity;
-
-    // Estimate logistics (simplified)
-    const weight = orderQuantity * 0.001; // kg to tons
-    const volume = orderQuantity * 0.0001; // to cubic meters
-
-    try {
-      const logistics = LogisticsEngine.calculateLogistics(
-        supplierDetails.region,
-        teamRegion,
-        shippingMethod,
-        weight,
-        volume,
-        20 // production time
-      );
-
-      // Estimate tariff (simplified - would use full TariffEngine in real integration)
-      // Note: Tariff rates are simplified estimates. Actual rates calculated by TariffEngine during round processing.
-      const tariffRate = supplierDetails.region === "Asia" && teamRegion === "North America" ? 0.25 : 0.10;
-      const tariffCost = materialCost * tariffRate;
-
-      return {
-        materialCost,
-        shippingCost: logistics.totalLogisticsCost,
-        tariffCost,
-        totalCost: materialCost + logistics.totalLogisticsCost + tariffCost,
-        leadTime: logistics.totalLeadTime,
-        reliability: logistics.onTimeProbability,
-      };
-    } catch (error) {
-      return null;
-    }
-  }, [supplierDetails, requirements, selectedMaterialType, orderQuantity, shippingMethod, teamRegion]);
-
-  // Logistics: compare shipping methods for selected route
-  const shippingComparison = useMemo(() => {
-    try {
-      return LogisticsEngine.compareShippingOptions(routeFrom, routeTo, shipWeight, shipVolume, 1);
-    } catch {
-      return [];
-    }
-  }, [routeFrom, routeTo, shipWeight, shipVolume]);
-
-  // Logistics: route recommendations
-  const routeRecommendations = useMemo(() => {
-    try {
-      return LogisticsEngine.getRecommendations(routeFrom, routeTo, shipWeight, shipVolume, 50000, 30);
-    } catch {
-      return null;
-    }
-  }, [routeFrom, routeTo, shipWeight, shipVolume]);
-
-  const METHOD_ICONS: Record<string, React.ElementType> = {
-    sea: Ship, air: Plane, land: Truck, rail: TruckIcon,
-  };
-
-  // Calculate inventory value
-  const inventoryValue = useMemo(() => {
-    return inventory.reduce((sum, inv) => sum + inv.quantity * inv.averageCost, 0);
-  }, [inventory]);
-
-  // Place order mutation
   const placeOrderMutation = trpc.material.placeOrder.useMutation({
     onSuccess: (result) => {
       toast.success(result.message);
-      // Reset form
-      setOrderQuantity(10000);
-      setSelectedSupplier("");
+      utils.team.getMyState.invalidate();
+      utils.material.getMaterialsState.invalidate();
     },
     onError: (error) => {
       toast.error(error.message);
     },
   });
 
-  // Handle order placement
-  const handlePlaceOrder = () => {
-    if (!supplierDetails || !orderPreview) return;
+  // ─── Derived State ──────────────────────────────────────────────
+  const inventory = materialsState?.inventory ?? [];
+  const activeOrders = (materialsState?.activeOrders ?? []) as MaterialOrder[];
+  const currentRound = (teamState as any)?.game?.currentRound ?? 1;
+  const cash = (teamState as any)?.cash ?? 0;
+  const teamRegion: Region = materialsState?.region ?? "North America";
 
-    const material = requirements.materials.find(m => m.type === selectedMaterialType);
-    if (!material) return;
-
-    placeOrderMutation.mutate({
-      materialType: selectedMaterialType,
-      spec: material.spec,
-      supplierId: supplierDetails.id,
-      region: supplierDetails.region,
-      quantity: orderQuantity,
-      shippingMethod,
-    });
-  };
-
-  // Get all material requirements across all segments for inventory matching
-  const allSegmentRequirements = useMemo(() => {
-    const map: Record<string, { segment: Segment; materials: Material[] }> = {};
-    for (const seg of SEGMENT_OPTIONS) {
-      const reqs = MaterialEngine.getMaterialRequirements(seg);
-      map[seg] = { segment: seg, materials: reqs.materials };
+  // Aggregate BOM from all active factory lines
+  const bom = useMemo(() => {
+    if (!teamState) return null;
+    try {
+      return aggregateProductionRequirements(teamState as unknown as TeamState);
+    } catch {
+      return null;
     }
-    return map;
+  }, [teamState]);
+
+  // Deprecated inventory check
+  const deprecatedItems = useMemo(() => {
+    if (!teamState) return [];
+    try {
+      return detectDeprecatedInventory(teamState as unknown as TeamState);
+    } catch {
+      return [];
+    }
+  }, [teamState]);
+
+  // Build stock status for all 8 materials
+  const stockStatus = useMemo(() => {
+    const allTypes: MaterialType[] = [
+      "display",
+      "processor",
+      "memory",
+      "storage",
+      "camera",
+      "battery",
+      "chassis",
+      "other",
+    ];
+    return allTypes.map((mat) => {
+      const bomEntry = bom?.entries.find((e) => e.materialType === mat);
+      const inStock =
+        inventory
+          .filter((i) => i.materialType === mat)
+          .reduce((s, i) => s + i.quantity, 0) ?? 0;
+      const needed = bomEntry?.totalQuantityNeeded ?? 0;
+      const shortfall = bomEntry?.shortfall ?? 0;
+      const ratio = needed > 0 ? inStock / needed : inStock > 0 ? 2 : 1;
+      return { materialType: mat, inStock, needed, shortfall, ratio, bomEntry };
+    });
+  }, [bom, inventory]);
+
+  const inStockCount = inventory.reduce((s, i) => s + i.quantity, 0);
+  const inTransitCount = activeOrders
+    .filter((o) => o.status !== "delivered" && o.status !== "cancelled")
+    .reduce((s, o) => s + o.quantity, 0);
+
+  // Materials that need ordering (have shortfall)
+  const materialsNeedingOrders = useMemo(
+    () => stockStatus.filter((s) => s.shortfall > 0 && s.bomEntry),
+    [stockStatus]
+  );
+
+  // Cart totals
+  const cartTotals = useMemo(() => {
+    const materials = cart.reduce((s, i) => s + i.unitCost * i.quantity, 0);
+    const shipping = cart.reduce((s, i) => s + i.shippingCostEst, 0);
+    const tariffs = cart.reduce((s, i) => s + i.tariffCostEst, 0);
+    const total = cart.reduce((s, i) => s + i.totalCost, 0);
+    return { materials, shipping, tariffs, total };
+  }, [cart]);
+
+  // ─── Handlers ───────────────────────────────────────────────────
+  const toggleMaterial = useCallback((mat: string) => {
+    setExpandedMaterials((prev) => {
+      const next = new Set(prev);
+      if (next.has(mat)) next.delete(mat);
+      else next.add(mat);
+      return next;
+    });
   }, []);
 
-  // Map inventory items to their segment by matching spec
-  const inventoryWithSegment = useMemo(() => {
-    return inventory.map((item) => {
-      let matchedSegment: Segment | null = null;
-      for (const seg of SEGMENT_OPTIONS) {
-        const segReqs = allSegmentRequirements[seg];
-        if (segReqs?.materials.some(m => m.type === item.materialType && m.spec === item.spec)) {
-          matchedSegment = seg;
-          break;
-        }
-      }
-      return { ...item, segment: matchedSegment };
-    });
-  }, [inventory, allSegmentRequirements]);
+  const getVendorShipMethod = (vendorKey: string) =>
+    vendorShipMethods[vendorKey] ?? "sea";
 
-  // Estimate rounds of production remaining per segment
-  const roundsRemainingBySegment = useMemo(() => {
-    const result: Record<string, number> = {};
-    for (const seg of SEGMENT_OPTIONS) {
-      const segReqs = allSegmentRequirements[seg];
-      if (!segReqs) continue;
-      const segInventory = inventoryWithSegment.filter(inv => inv.segment === seg);
-      if (segInventory.length === 0) {
-        result[seg] = 0;
-        continue;
-      }
-      // The bottleneck material determines rounds remaining
-      // Each material needed: 1 unit per phone, capacity = DEFAULT_PRODUCT_CAPACITY phones/round
-      // So for each material type, rounds = inventory qty / DEFAULT_PRODUCT_CAPACITY
-      const materialRounds = segReqs.materials.map(mat => {
-        const inv = segInventory.find(i => i.materialType === mat.type && i.spec === mat.spec);
-        if (!inv || inv.quantity === 0) return 0;
-        return Math.floor(inv.quantity / DEFAULT_PRODUCT_CAPACITY);
-      });
-      result[seg] = Math.min(...materialRounds);
-    }
-    return result;
-  }, [allSegmentRequirements, inventoryWithSegment]);
-
-  // Find the last order for the selected segment (for Quick Reorder)
-  const lastOrderForSegment = useMemo(() => {
-    const segReqs = allSegmentRequirements[selectedSegment];
-    if (!segReqs) return null;
-    const segSpecs = segReqs.materials.map(m => m.spec);
-    // Find most recent order matching any spec for this segment
-    const matching = activeOrders.filter((o: MaterialOrder) => segSpecs.includes(o.spec));
-    if (matching.length === 0) return null;
-    // Return the most recent one (highest orderRound, or last in array)
-    return matching.reduce((latest: MaterialOrder, o: MaterialOrder) =>
-      o.orderRound >= latest.orderRound ? o : latest
-    , matching[0]);
-  }, [activeOrders, selectedSegment, allSegmentRequirements]);
-
-  // Handle quick reorder
-  const handleQuickReorder = () => {
-    if (!lastOrderForSegment) return;
-    // Find supplier by ID or name
-    const supplier = DEFAULT_SUPPLIERS.find(s =>
-      s.id === (lastOrderForSegment as Record<string, unknown>).supplierId ||
-      s.name === (lastOrderForSegment as Record<string, unknown>).supplierName
-    );
-    if (!supplier) {
-      toast.error("Could not find original supplier for reorder");
-      return;
-    }
-    placeOrderMutation.mutate({
-      materialType: lastOrderForSegment.materialType ?? "display",
-      spec: lastOrderForSegment.spec ?? "",
-      supplierId: supplier.id,
-      region: supplier.region,
-      quantity: lastOrderForSegment.quantity ?? 10000,
-      shippingMethod: (lastOrderForSegment as Record<string, unknown>).shippingMethod as string ?? "sea",
-    });
+  const setVendorShipMethod = (
+    vendorKey: string,
+    method: "sea" | "air" | "land" | "rail"
+  ) => {
+    setVendorShipMethods((prev) => ({ ...prev, [vendorKey]: method }));
   };
 
-  // Show loading state
-  if (teamStateLoading || materialsLoading) {
+  const getVendorQty = (vendorKey: string, defaultQty: number) =>
+    vendorQuantities[vendorKey] ?? defaultQty;
+
+  const setVendorQty = (vendorKey: string, qty: number) => {
+    setVendorQuantities((prev) => ({ ...prev, [vendorKey]: qty }));
+  };
+
+  const addToCart = useCallback(
+    (
+      entry: AggregatedBOMEntry,
+      supplier: SupplierOption,
+      shippingMethod: "sea" | "air" | "land" | "rail",
+      quantity: number
+    ) => {
+      const shipMethodConfig = SHIPPING_METHODS[shippingMethod];
+      const shippingCostEst =
+        supplier.shippingCostEstimate * quantity * (shipMethodConfig?.costMultiplier ?? 1);
+      const tariffCostEst = supplier.tariffCostEstimate * quantity;
+      const materialCost = supplier.unitCost * quantity;
+      const totalCost = supplier.totalLandedCostPerUnit * quantity;
+
+      const item: CartItem = {
+        id: `${entry.materialType}-${supplier.supplier.id}-${Date.now()}`,
+        materialType: entry.materialType,
+        spec: entry.spec,
+        supplierId: supplier.supplier.id,
+        supplierName: supplier.supplier.name,
+        sourceRegion: supplier.supplier.region,
+        shippingMethod,
+        quantity,
+        unitCost: supplier.unitCost,
+        landedCost: supplier.totalLandedCostPerUnit,
+        shippingCostEst,
+        tariffCostEst,
+        totalCost,
+      };
+
+      setCart((prev) => [...prev, item]);
+      toast.success(
+        `Added ${formatNumber(quantity)} ${MATERIAL_LABELS[entry.materialType]} to cart`
+      );
+    },
+    []
+  );
+
+  const removeFromCart = useCallback((id: string) => {
+    setCart((prev) => prev.filter((i) => i.id !== id));
+  }, []);
+
+  const autoFillCart = useCallback(() => {
+    if (!bom) return;
+    const newItems: CartItem[] = [];
+
+    for (const entry of bom.entries) {
+      if (entry.shortfall <= 0 || entry.eligibleSuppliers.length === 0)
+        continue;
+      const best = entry.eligibleSuppliers[0];
+      const qty = entry.shortfall;
+      const totalCost = best.totalLandedCostPerUnit * qty;
+
+      newItems.push({
+        id: `${entry.materialType}-${best.supplier.id}-${Date.now()}-auto`,
+        materialType: entry.materialType,
+        spec: entry.spec,
+        supplierId: best.supplier.id,
+        supplierName: best.supplier.name,
+        sourceRegion: best.supplier.region,
+        shippingMethod: "sea",
+        quantity: qty,
+        unitCost: best.unitCost,
+        landedCost: best.totalLandedCostPerUnit,
+        shippingCostEst: best.shippingCostEstimate * qty,
+        tariffCostEst: best.tariffCostEstimate * qty,
+        totalCost,
+      });
+    }
+
+    if (newItems.length === 0) {
+      toast.info("No shortfalls detected - nothing to auto-fill");
+      return;
+    }
+
+    setCart(newItems);
+    toast.success(`Auto-filled ${newItems.length} material orders`);
+  }, [bom]);
+
+  const submitAllOrders = useCallback(async () => {
+    if (cart.length === 0) return;
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const item of cart) {
+      try {
+        await placeOrderMutation.mutateAsync({
+          materialType: item.materialType,
+          spec: item.spec,
+          supplierId: item.supplierId,
+          region: item.sourceRegion,
+          quantity: item.quantity,
+          shippingMethod: item.shippingMethod,
+        });
+        successCount++;
+      } catch {
+        failCount++;
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`${successCount} order(s) placed successfully`);
+      setCart([]);
+    }
+    if (failCount > 0) {
+      toast.error(`${failCount} order(s) failed`);
+    }
+  }, [cart, placeOrderMutation]);
+
+  const scrollToVendors = () => {
+    vendorSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // ─── Loading State ──────────────────────────────────────────────
+  if (teamLoading || materialsLoading) {
     return (
-      <div className="container mx-auto p-6 space-y-6">
-        <PageHeader
-          title="Supply Chain & Logistics"
-          subtitle="Source materials, manage suppliers, compare shipping routes, and track FX exposure"
-          icon={<Package className="h-6 w-6" />}
-        />
-        <div className="flex items-center justify-center py-12">
-          <div className="text-muted-foreground">Loading supply chain data...</div>
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+          <p className="text-sm text-muted-foreground">
+            Loading supply chain...
+          </p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="container mx-auto p-6 space-y-6">
-      <PageHeader
-        title="Supply Chain Management"
-        subtitle="Source materials, manage suppliers, and optimize logistics"
-        icon={<Package className="h-6 w-6" />}
-      />
+  // ─── Render Helpers ─────────────────────────────────────────────
+  const renderStockBar = (
+    mat: (typeof stockStatus)[0],
+    index: number
+  ) => {
+    const Icon = MATERIAL_ICONS[mat.materialType];
+    const pct = Math.min(mat.ratio * 100, 200);
+    const barColor =
+      mat.ratio >= 1
+        ? "bg-emerald-500"
+        : mat.ratio >= 0.4
+          ? "bg-amber-500"
+          : "bg-red-500";
+    const textColor =
+      mat.ratio >= 1
+        ? "text-emerald-400"
+        : mat.ratio >= 0.4
+          ? "text-amber-400"
+          : "text-red-400";
 
-      {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard
-          label="Inventory Value"
-          value={formatCurrency(inventoryValue)}
-          icon={<Package className="h-5 w-5" />}
-          trend={inventoryValue > 0 ? "up" : "neutral"}
-        />
-        <StatCard
-          label="Active Orders"
-          value={activeOrders.length.toString()}
-          icon={<ShoppingCart className="h-5 w-5" />}
-          trend="neutral"
-        />
-        <StatCard
-          label="Active Suppliers"
-          value={DEFAULT_SUPPLIERS.length.toString()}
-          icon={<Factory className="h-5 w-5" />}
-          trend="neutral"
-        />
-        <StatCard
-          label="Available Cash"
-          value={formatCurrency(cash)}
-          icon={<DollarSign className="h-5 w-5" />}
-          trend="neutral"
-        />
-      </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="source-order">Source &amp; Order</TabsTrigger>
-          <TabsTrigger value="inventory-orders">Inventory &amp; Orders</TabsTrigger>
-          <TabsTrigger value="costs-logistics">Costs &amp; Logistics</TabsTrigger>
-        </TabsList>
-
-        {/* ============================================================ */}
-        {/* TAB 1: Source & Order                                        */}
-        {/* ============================================================ */}
-        <TabsContent value="source-order" className="space-y-4">
-          {/* Production Needs — Auto-generated from factory BOM */}
-          {teamState && (() => {
-            try {
-              const state = (typeof teamState === 'string' ? JSON.parse(teamState) : teamState) as TeamState;
-              const bom = aggregateProductionRequirements(state);
-              const shortfalls = bom.entries.filter(e => e.shortfall > 0);
-              if (shortfalls.length === 0 && bom.entries.length > 0) return (
-                <Card className="border-green-500/30 bg-green-500/5">
-                  <CardContent className="py-4">
-                    <div className="flex items-center gap-2 text-green-400">
-                      <CheckCircle2 className="h-5 w-5" />
-                      <span className="font-medium">All materials in stock for current production plan</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-              if (shortfalls.length > 0) return (
-                <Card className="border-amber-500/30 bg-amber-500/5">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-amber-400" />
-                      Production Needs — {shortfalls.length} material{shortfalls.length > 1 ? 's' : ''} to order
-                    </CardTitle>
-                    <CardDescription>
-                      Based on your factory production targets. Est. cost: {formatCurrency(bom.totalEstimatedCost)}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                      {bom.entries.map(entry => (
-                        <div key={entry.materialType} className={`rounded-lg p-2 text-sm ${
-                          entry.shortfall > 0
-                            ? entry.currentInventory === 0 ? 'bg-red-500/10 border border-red-500/30' : 'bg-amber-500/10 border border-amber-500/30'
-                            : 'bg-slate-800/50 border border-slate-700'
-                        }`}>
-                          <div className="font-medium capitalize">{entry.materialType}</div>
-                          <div className="text-xs text-slate-400">
-                            Need: {formatNumber(entry.totalQuantityNeeded)} | Have: {formatNumber(entry.currentInventory)}
-                          </div>
-                          {entry.shortfall > 0 && (
-                            <div className="text-xs font-medium text-amber-400 mt-1">
-                              Order {formatNumber(entry.shortfall)}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    {/* Quick Order All — one-click sourcing for all shortfalls */}
-                    <div className="mt-3 flex items-center justify-between border-t border-slate-700 pt-3">
-                      <div className="text-sm text-slate-400">
-                        {shortfalls.length} material{shortfalls.length > 1 ? 's' : ''} need ordering — cheapest supplier, sea shipping
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
-                        onClick={() => {
-                          // Auto-order all shortfalls from cheapest eligible supplier via sea
-                          for (const entry of shortfalls) {
-                            const cheapest = entry.eligibleSuppliers?.[0];
-                            if (cheapest && entry.shortfall > 0) {
-                              const qty = Math.max(entry.shortfall, cheapest.supplier.minimumOrder);
-                              placeOrderMutation.mutate({
-                                materialType: entry.materialType,
-                                spec: entry.spec,
-                                supplierId: cheapest.supplier.id,
-                                region: cheapest.supplier.region,
-                                quantity: qty,
-                                shippingMethod: "sea",
-                              });
-                            }
-                          }
-                          toast.success(`Ordering ${shortfalls.length} materials from cheapest suppliers`);
-                        }}
-                        disabled={placeOrderMutation.isPending}
-                      >
-                        <ShoppingCart className="h-4 w-4 mr-1" />
-                        Quick Order All ({formatCurrency(bom.totalEstimatedCost)})
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            } catch { /* BOM generation failed silently */ }
-            return null;
-          })()}
-
-          {/* Step 1 — Segment Selector */}
-          <Card>
-            <CardHeader>
-              <CardTitle>1. Select Segment</CardTitle>
-              <CardDescription>
-                Choose which phone segment you are sourcing materials for
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4">
-                <Label>Phone Segment:</Label>
-                <Select value={selectedSegment} onValueChange={(v) => setSelectedSegment(v as Segment)}>
-                  <SelectTrigger className="w-[240px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SEGMENT_OPTIONS.map((seg) => (
-                      <SelectItem key={seg} value={seg}>
-                        {seg}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {/* Quick Reorder button */}
-                {lastOrderForSegment && (
-                  <Button
-                    variant="outline"
-                    onClick={handleQuickReorder}
-                    disabled={placeOrderMutation.isPending}
-                  >
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    {placeOrderMutation.isPending
-                      ? "Reordering..."
-                      : `Quick Order: Reorder last quantities (${formatNumber(lastOrderForSegment.quantity)} ${lastOrderForSegment.materialType})`}
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Step 2 — Material Requirements for Selected Segment */}
-          <Card>
-            <CardHeader>
-              <CardTitle>2. Material Requirements — {selectedSegment}</CardTitle>
-              <CardDescription>
-                Specifications and per-unit costs for every material needed
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* Segment summary stats */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium">Total Material Cost</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{formatCurrency(requirements.totalCost)}</div>
-                    <p className="text-xs text-muted-foreground">per unit</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium">Lead Time</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{requirements.leadTime} days</div>
-                    <p className="text-xs text-muted-foreground">maximum across all materials</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium">Components</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{requirements.materials.length}</div>
-                    <p className="text-xs text-muted-foreground">unique materials required</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Material breakdown table */}
-              <SectionHeader title="Material Components" />
-              <div className="grid gap-3 mt-2">
-                {requirements.materials.map((material) => {
-                  const Icon = MATERIAL_ICONS[material.type];
-                  return (
-                    <Card key={material.type} className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-primary/10 rounded-lg">
-                            <Icon className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <div className="font-medium capitalize">{material.type}</div>
-                            <div className="text-sm text-muted-foreground">{material.spec}</div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-bold">{formatCurrency(material.costPerUnit)}</div>
-                          <div className="text-sm text-muted-foreground flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {material.source}
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Step 3 — Material Type + Supplier Picker */}
-          <Card>
-            <CardHeader>
-              <CardTitle>3. Choose Material &amp; Supplier</CardTitle>
-              <CardDescription>
-                Pick a material type, then select a supplier
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Material type selector */}
-              <div className="flex items-center gap-2">
-                <Label>Material Type:</Label>
-                <Select
-                  value={selectedMaterialType}
-                  onValueChange={(v) => {
-                    setSelectedMaterialType(v as MaterialType);
-                    setSelectedSupplier("");
-                  }}
-                >
-                  <SelectTrigger className="w-[220px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="display">Display</SelectItem>
-                    <SelectItem value="processor">Processor</SelectItem>
-                    <SelectItem value="memory">Memory</SelectItem>
-                    <SelectItem value="storage">Storage</SelectItem>
-                    <SelectItem value="camera">Camera</SelectItem>
-                    <SelectItem value="battery">Battery</SelectItem>
-                    <SelectItem value="chassis">Chassis</SelectItem>
-                    <SelectItem value="other">Other Components</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <p className="text-sm text-muted-foreground mb-2">
-                Higher quality suppliers reduce your factory defect rate and improve product reliability
-              </p>
-
-              {/* Supplier cards */}
-              <div className="grid gap-4">
-                {availableSuppliers.map((supplier) => {
-                  const isSelected = selectedSupplier === supplier.id;
-                  return (
-                    <Card
-                      key={supplier.id}
-                      className={`p-4 cursor-pointer transition-colors ${isSelected ? "border-primary border-2 bg-primary/5" : "hover:border-muted-foreground/40"}`}
-                      onClick={() => setSelectedSupplier(supplier.id)}
-                    >
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <div className="font-bold text-lg">{supplier.name}</div>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <MapPin className="h-4 w-4" />
-                              {supplier.region}
-                            </div>
-                          </div>
-                          <Badge variant={supplier.qualityRating >= 90 ? "default" : "secondary"}>
-                            Quality: {supplier.qualityRating}/100
-                          </Badge>
-                        </div>
-
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-                          <div>
-                            <div className="text-muted-foreground">Cost Multiplier</div>
-                            <div className="font-medium">{REGIONAL_CAPABILITIES[supplier.region].costMultiplier.toFixed(2)}x</div>
-                          </div>
-                          <div>
-                            <div className="text-muted-foreground">Defect Rate</div>
-                            <div className="font-medium">{(supplier.defectRate * 100).toFixed(2)}%</div>
-                          </div>
-                          <div>
-                            <div className="text-muted-foreground">Reliability</div>
-                            <div className="font-medium">{Math.round(supplier.onTimeDeliveryRate * 100)}%</div>
-                          </div>
-                          <div>
-                            <div className="text-muted-foreground">Capacity</div>
-                            <div className="font-medium">{formatNumber(supplier.monthlyCapacity)}/mo</div>
-                          </div>
-                          <div>
-                            <div className="text-muted-foreground">Min Order</div>
-                            <div className="font-medium">{formatNumber(supplier.minimumOrder)}</div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline">
-                            {supplier.paymentTerms === "immediate" ? "Immediate Payment" : supplier.paymentTerms.toUpperCase()}
-                          </Badge>
-                          <Badge variant="outline">
-                            Contract Discount: {Math.round(supplier.contractDiscount * 100)}%
-                          </Badge>
-                          {supplier.costCompetitiveness > 0.7 && (
-                            <Badge variant="default" className="bg-green-500">
-                              <DollarSign className="h-3 w-3 mr-1" />
-                              Cost Competitive
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Step 4 — Quantity, Shipping, Preview, Place Order */}
-          <Card>
-            <CardHeader>
-              <CardTitle>4. Configure &amp; Place Order</CardTitle>
-              <CardDescription>
-                Set quantity and shipping method, review the cost breakdown, then submit
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Quantity</Label>
-                  <Input
-                    type="number"
-                    value={orderQuantity}
-                    onChange={(e) => setOrderQuantity(Number(e.target.value))}
-                    min={supplierDetails?.minimumOrder ?? 1000}
-                    step={1000}
-                  />
-                  {supplierDetails && (
-                    <p className="text-xs text-muted-foreground">
-                      Minimum: {formatNumber(supplierDetails.minimumOrder)}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Shipping Method</Label>
-                  <Select
-                    value={shippingMethod}
-                    onValueChange={(v) => setShippingMethod(v as typeof shippingMethod)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="sea">
-                        <div className="flex items-center gap-2">
-                          <Ship className="h-4 w-4" />
-                          Sea Freight (Cheapest, Slowest)
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="air">Air Freight (Fastest, Most Expensive)</SelectItem>
-                      <SelectItem value="land">Land Transport (Moderate)</SelectItem>
-                      <SelectItem value="rail">Rail Transport (Eco-friendly)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Order Preview */}
-              {orderPreview && supplierDetails && (
-                <Card className="bg-muted/50">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Order Preview</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div>
-                        <div className="text-sm text-muted-foreground">Material Cost</div>
-                        <div className="text-lg font-bold">{formatCurrency(orderPreview.materialCost)}</div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-muted-foreground">Shipping Cost</div>
-                        <div className="text-lg font-bold">{formatCurrency(orderPreview.shippingCost)}</div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-muted-foreground">Tariff Cost</div>
-                        <div className="text-lg font-bold text-orange-500">
-                          {formatCurrency(orderPreview.tariffCost)}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-muted-foreground">Total Cost</div>
-                        <div className="text-xl font-bold text-primary">
-                          {formatCurrency(orderPreview.totalCost)}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-4 border-t">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">
-                          Estimated Delivery: {orderPreview.leadTime} days
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                        <span className="text-sm">
-                          Reliability: {Math.round(orderPreview.reliability * 100)}%
-                        </span>
-                      </div>
-                    </div>
-
-                    <Button
-                      className="w-full"
-                      size="lg"
-                      onClick={handlePlaceOrder}
-                      disabled={
-                        !selectedSupplier ||
-                        orderQuantity < (supplierDetails?.minimumOrder ?? 0) ||
-                        placeOrderMutation.isPending ||
-                        teamStateLoading ||
-                        materialsLoading
-                      }
-                    >
-                      <ShoppingCart className="h-4 w-4 mr-2" />
-                      {placeOrderMutation.isPending
-                        ? "Placing Order..."
-                        : `Place Order - ${formatCurrency(orderPreview.totalCost)}`}
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-
-              {!selectedSupplier && (
-                <div className="text-center py-8 text-muted-foreground">
-                  Select a supplier above to see order preview
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ============================================================ */}
-        {/* TAB 2: Inventory & Orders                                    */}
-        {/* ============================================================ */}
-        <TabsContent value="inventory-orders" className="space-y-4">
-          {/* Overview stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <StatCard
-              label="Total Inventory Value"
-              value={formatCurrency(inventoryValue)}
-              icon={<Boxes className="h-5 w-5" />}
-              trend={inventoryValue > 0 ? "up" : "neutral"}
-            />
-            <StatCard
-              label="Items in Stock"
-              value={formatNumber(inventory.reduce((sum, inv) => sum + inv.quantity, 0))}
-              icon={<Package className="h-5 w-5" />}
-              trend="neutral"
-            />
-            <StatCard
-              label="Active Orders"
-              value={activeOrders.length.toString()}
-              icon={<ShoppingCart className="h-5 w-5" />}
-              trend="neutral"
+    return (
+      <div
+        key={mat.materialType}
+        className="flex items-center gap-3 rounded-lg border border-border/50 bg-card/50 px-3 py-2"
+      >
+        <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <div className="min-w-[72px]">
+          <p className="text-xs font-medium">
+            {MATERIAL_LABELS[mat.materialType]}
+          </p>
+          <p className={`text-xs font-mono ${textColor}`}>
+            {formatNumber(mat.inStock)}/{formatNumber(mat.needed)}
+          </p>
+        </div>
+        <div className="flex-1">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-muted/30">
+            <div
+              className={`h-full rounded-full ${barColor} transition-all duration-500`}
+              style={{ width: `${Math.min(pct, 100)}%` }}
             />
           </div>
+        </div>
+        <span className={`text-xs font-mono font-bold ${textColor}`}>
+          {Math.round(mat.ratio * 100)}%
+        </span>
+        {mat.shortfall > 0 && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-6 px-2 text-[10px] font-bold border-red-500/30 text-red-400 hover:bg-red-500/10"
+            onClick={() => {
+              setExpandedMaterials(
+                (prev) => new Set([...prev, mat.materialType])
+              );
+              scrollToVendors();
+            }}
+          >
+            ORDER {formatNumber(mat.shortfall)}
+          </Button>
+        )}
+      </div>
+    );
+  };
 
-          {/* Current Inventory */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Current Inventory</CardTitle>
-              <CardDescription>
-                Per-material stock levels, costs, and estimated production rounds remaining
+  const renderTierBadge = (tier: SupplierTier) => {
+    const config = SUPPLIER_TIER_CONFIG[tier];
+    return (
+      <Badge
+        variant="outline"
+        className="text-[10px] font-bold border-0 px-1.5 py-0"
+        style={{
+          backgroundColor: `${config.color}20`,
+          color: config.color,
+          borderColor: `${config.color}40`,
+          borderWidth: 1,
+        }}
+      >
+        {config.label}
+      </Badge>
+    );
+  };
+
+  const renderShippingPicker = (
+    vendorKey: string,
+    currentMethod: "sea" | "air" | "land" | "rail"
+  ) => {
+    const methods: ("sea" | "air" | "land" | "rail")[] = [
+      "sea",
+      "air",
+      "land",
+      "rail",
+    ];
+    return (
+      <div className="flex gap-1">
+        {methods.map((m) => {
+          const Icon = SHIP_METHOD_ICONS[m];
+          const delay = SHIPPING_METHOD_ROUND_DELAYS[m] ?? 0;
+          const isActive = currentMethod === m;
+          return (
+            <button
+              key={m}
+              onClick={() => setVendorShipMethod(vendorKey, m)}
+              className={`flex items-center gap-1 rounded px-2 py-1 text-[10px] font-medium transition-all duration-200 ${
+                isActive
+                  ? "bg-emerald-600/20 text-emerald-400 ring-1 ring-emerald-500/40"
+                  : "bg-muted/20 text-muted-foreground hover:bg-muted/40"
+              }`}
+            >
+              <Icon className="h-3 w-3" />
+              <span className="hidden sm:inline">{m}</span>
+              <span className="text-[9px] opacity-70">
+                {delay === 0 ? "now" : `+${delay}R`}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderVendorCard = (
+    entry: AggregatedBOMEntry,
+    supplier: SupplierOption,
+    idx: number
+  ) => {
+    const vendorKey = `${entry.materialType}-${supplier.supplier.id}`;
+    const shipMethod = getVendorShipMethod(vendorKey);
+    const quantity = getVendorQty(vendorKey, entry.shortfall);
+    const tier = supplier.tier;
+    const delay = SHIPPING_METHOD_ROUND_DELAYS[shipMethod] ?? 0;
+
+    // Recalculate landed cost with selected shipping method
+    const shipMultiplier = SHIPPING_METHODS[shipMethod]?.costMultiplier ?? 1;
+    const adjustedShipping = supplier.shippingCostEstimate * shipMultiplier;
+    const adjustedLanded =
+      supplier.unitCost * supplier.fxMultiplier +
+      adjustedShipping +
+      supplier.tariffCostEstimate;
+
+    return (
+      <div
+        key={supplier.supplier.id}
+        className="rounded-lg border border-border/60 bg-card/70 p-4 transition-all duration-200 hover:border-border"
+      >
+        {/* Vendor header */}
+        <div className="mb-3 flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-sm">
+                {supplier.supplier.name}
+              </span>
+              {renderTierBadge(tier)}
+            </div>
+            <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+              <Globe className="h-3 w-3" />
+              {supplier.supplier.region}
+              <span className="opacity-50">|</span>
+              <span>Q: {supplier.qualityRating}/100</span>
+              <span className="opacity-50">|</span>
+              <span>
+                {Math.round(supplier.supplier.onTimeDeliveryRate * 100)}%
+                on-time
+              </span>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-2xl font-bold font-mono text-emerald-400">
+              {formatCurrency(adjustedLanded)}
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              landed cost / unit
+            </p>
+          </div>
+        </div>
+
+        {/* Cost breakdown */}
+        <div className="mb-3 grid grid-cols-4 gap-2 rounded-md bg-muted/10 p-2 text-xs">
+          <div>
+            <p className="text-muted-foreground">Material</p>
+            <p className="font-mono font-medium">
+              {formatCurrency(supplier.unitCost)}
+            </p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Shipping</p>
+            <p className="font-mono font-medium">
+              {formatCurrency(adjustedShipping)}
+            </p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Tariff</p>
+            <p className="font-mono font-medium">
+              {supplier.tariffRate > 0
+                ? `${Math.round(supplier.tariffRate * 100)}%`
+                : "0%"}
+            </p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">FX</p>
+            <p className="font-mono font-medium">
+              {supplier.fxMultiplier !== 1
+                ? `x${supplier.fxMultiplier.toFixed(2)}`
+                : "1.00"}
+            </p>
+          </div>
+        </div>
+
+        {/* Warnings */}
+        {supplier.warnings.length > 0 && (
+          <div className="mb-3 space-y-1">
+            {supplier.warnings.map((w, i) => (
+              <p key={i} className="flex items-center gap-1 text-[11px] text-amber-400">
+                <AlertTriangle className="h-3 w-3 shrink-0" />
+                {w}
+              </p>
+            ))}
+          </div>
+        )}
+
+        {/* Shipping method picker + qty + add */}
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex-1 min-w-[200px]">
+            <p className="mb-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+              Shipping Method
+            </p>
+            {renderShippingPicker(vendorKey, shipMethod)}
+          </div>
+          <div className="w-[120px]">
+            <p className="mb-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+              Quantity
+            </p>
+            <Input
+              type="number"
+              min={supplier.supplier.minimumOrder}
+              step={1000}
+              value={quantity}
+              onChange={(e) =>
+                setVendorQty(vendorKey, parseInt(e.target.value) || 0)
+              }
+              className="h-8 font-mono text-sm bg-muted/10"
+            />
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            <p className="text-xs font-mono font-bold">
+              {formatCurrency(adjustedLanded * quantity)}
+            </p>
+            <Button
+              size="sm"
+              className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1.5"
+              onClick={() => addToCart(entry, supplier, shipMethod, quantity)}
+            >
+              <ShoppingCart className="h-3.5 w-3.5" />
+              Add to Cart
+            </Button>
+          </div>
+        </div>
+
+        {/* Lead time note */}
+        <p className="mt-2 text-[10px] text-muted-foreground flex items-center gap-1">
+          <Clock className="h-3 w-3" />
+          ETA: Round {currentRound + delay}
+          {delay === 0
+            ? " (arrives this round)"
+            : ` (+${delay} round${delay > 1 ? "s" : ""})`}
+          {" | "}MOQ: {formatNumber(supplier.supplier.minimumOrder)}
+        </p>
+      </div>
+    );
+  };
+
+  // ─── TAB 1: Source Materials ────────────────────────────────────
+  const renderSourceTab = () => (
+    <div className="space-y-6">
+      {/* Production Needs Overview */}
+      <Card className="border-border/50 bg-card/80">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-emerald-500" />
+                Production Needs Overview
+              </CardTitle>
+              <CardDescription className="text-xs mt-1">
+                Stock levels vs. factory requirements for this round
               </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {inventory.length === 0 ? (
-                <div className="text-center py-12">
-                  <Boxes className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">No materials in inventory</p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Place orders to build your material inventory
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {/* Per-segment rounds remaining summary */}
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
-                    {SEGMENT_OPTIONS.map((seg) => {
-                      const rounds = roundsRemainingBySegment[seg] ?? 0;
-                      return (
-                        <Card key={seg} className="p-3">
-                          <div className="text-xs text-muted-foreground">{seg}</div>
-                          <div className="font-bold text-lg">
-                            {rounds} {rounds === 1 ? "round" : "rounds"}
-                          </div>
-                          <div className="text-xs text-muted-foreground">of materials remaining</div>
-                        </Card>
-                      );
-                    })}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+              onClick={autoFillCart}
+            >
+              <Zap className="h-3.5 w-3.5" />
+              Auto-fill Cart
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {stockStatus.map((mat, i) => renderStockBar(mat, i))}
+          </div>
+          {bom && bom.warnings.length > 0 && (
+            <div className="mt-4 space-y-1 rounded-md bg-muted/10 p-3">
+              {bom.warnings.map((w, i) => (
+                <p key={i} className="text-xs text-muted-foreground">
+                  {w}
+                </p>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Vendor Section */}
+      <div ref={vendorSectionRef} className="space-y-4">
+        {materialsNeedingOrders.length === 0 ? (
+          <Card className="border-border/50 bg-card/80">
+            <CardContent className="py-8 text-center">
+              <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-emerald-500" />
+              <p className="font-medium">All materials stocked</p>
+              <p className="text-sm text-muted-foreground">
+                Your factories have enough materials for this round.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          materialsNeedingOrders.map((mat) => {
+            const entry = mat.bomEntry!;
+            const isExpanded = expandedMaterials.has(mat.materialType);
+            const Icon = MATERIAL_ICONS[mat.materialType];
+
+            return (
+              <Card
+                key={mat.materialType}
+                className="border-border/50 bg-card/80 overflow-hidden"
+              >
+                {/* Material header - always visible */}
+                <button
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/5 transition-colors"
+                  onClick={() => toggleMaterial(mat.materialType)}
+                >
+                  <Icon className="h-5 w-5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">
+                        {MATERIAL_LABELS[mat.materialType]}
+                      </span>
+                      <Badge
+                        variant="destructive"
+                        className="text-[10px] px-1.5 py-0"
+                      >
+                        NEED {formatNumber(mat.shortfall)}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {entry.eligibleSuppliers.length} vendor
+                      {entry.eligibleSuppliers.length !== 1 ? "s" : ""}{" "}
+                      available | Best landed:{" "}
+                      <span className="font-mono font-medium text-foreground">
+                        {formatCurrency(entry.bestLandedCost)}
+                      </span>
+                      /unit
+                    </p>
                   </div>
-
-                  {/* Inventory table */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b text-left">
-                          <th className="py-2 pr-4 font-medium text-muted-foreground">Material</th>
-                          <th className="py-2 pr-4 font-medium text-muted-foreground">Segment</th>
-                          <th className="py-2 pr-4 font-medium text-muted-foreground text-right">Quantity</th>
-                          <th className="py-2 pr-4 font-medium text-muted-foreground text-right">Avg Cost</th>
-                          <th className="py-2 font-medium text-muted-foreground text-right">Total Value</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {inventoryWithSegment.map((item, idx) => (
-                          <tr key={idx} className="border-b last:border-0">
-                            <td className="py-3 pr-4">
-                              <div className="font-medium capitalize">{item.materialType}</div>
-                              <div className="text-xs text-muted-foreground">{item.spec}</div>
-                            </td>
-                            <td className="py-3 pr-4">
-                              <Badge variant="outline">{item.segment ?? "Unknown"}</Badge>
-                            </td>
-                            <td className="py-3 pr-4 text-right font-medium">{formatNumber(item.quantity)}</td>
-                            <td className="py-3 pr-4 text-right">{formatCurrency(item.averageCost)}</td>
-                            <td className="py-3 text-right font-medium">{formatCurrency(item.quantity * item.averageCost)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="text-right mr-2">
+                    <p className="text-sm font-mono font-bold text-red-400">
+                      ~{formatCurrency(entry.bestLandedCost * mat.shortfall)}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      est. to fill
+                    </p>
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Active Orders */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Active Orders</CardTitle>
-              <CardDescription>
-                Track your in-transit and pending material orders
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {activeOrders.length === 0 ? (
-                <div className="text-center py-12">
-                  <TruckIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">No active orders</p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Orders placed will appear here for tracking
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {activeOrders.map((order) => {
-                    const statusColor =
-                      order.status === "delivered"
-                        ? "default"
-                        : order.status === "delayed" || order.status === "cancelled"
-                        ? "destructive"
-                        : "secondary";
-                    return (
-                      <Card key={order.id} className="p-4">
-                        <div className="space-y-3">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <div className="font-medium capitalize">{order.materialType}</div>
-                              <div className="text-sm text-muted-foreground">{order.spec}</div>
-                            </div>
-                            <Badge variant={statusColor}>
-                              {order.status}
-                            </Badge>
-                          </div>
-
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-                            <div>
-                              <div className="text-muted-foreground">Supplier</div>
-                              <div className="font-medium">{order.supplierName}</div>
-                            </div>
-                            <div>
-                              <div className="text-muted-foreground">Quantity</div>
-                              <div className="font-medium">{formatNumber(order.quantity)}</div>
-                            </div>
-                            <div>
-                              <div className="text-muted-foreground">ETA</div>
-                              <div className="font-medium">Round {order.estimatedArrivalRound}</div>
-                            </div>
-                            <div>
-                              <div className="text-muted-foreground">Shipping</div>
-                              <div className="font-medium capitalize">{order.shippingMethod}</div>
-                            </div>
-                            <div>
-                              <div className="text-muted-foreground">Total Cost</div>
-                              <div className="font-medium">{formatCurrency(order.totalCost)}</div>
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ============================================================ */}
-        {/* TAB 3: Costs & Logistics                                     */}
-        {/* ============================================================ */}
-        <TabsContent value="costs-logistics" className="space-y-4">
-          {/* Shipping Comparison */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Shipping Route Comparison</CardTitle>
-              <CardDescription>Compare shipping methods between regions</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <Label>From Region</Label>
-                  <Select value={routeFrom} onValueChange={(v) => setRouteFrom(v as Region)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {(["North America", "Europe", "Asia", "MENA"] as Region[]).map(r => (
-                        <SelectItem key={r} value={r}>{r}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>To Region</Label>
-                  <Select value={routeTo} onValueChange={(v) => setRouteTo(v as Region)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {(["North America", "Europe", "Asia", "MENA"] as Region[]).map(r => (
-                        <SelectItem key={r} value={r}>{r}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Weight (tons)</Label>
-                  <Input type="number" value={shipWeight} onChange={(e) => setShipWeight(Number(e.target.value))} min={1} />
-                </div>
-                <div>
-                  <Label>Volume (m3)</Label>
-                  <Input type="number" value={shipVolume} onChange={(e) => setShipVolume(Number(e.target.value))} min={1} />
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Default values shown. Actual weight depends on order quantity and material type.</p>
-
-              {shippingComparison.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-                  {shippingComparison.map((option) => {
-                    const Icon = METHOD_ICONS[option.method] || Ship;
-                    const isRecommended = (routeRecommendations as any)?.bestOverall === option.method;
-                    return (
-                      <Card key={option.method} className={isRecommended ? "border-primary border-2" : ""}>
-                        <CardHeader className="pb-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Icon className="h-5 w-5" />
-                              <CardTitle className="text-base capitalize">{option.method}</CardTitle>
-                            </div>
-                            {isRecommended && <Badge variant="default">Recommended</Badge>}
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Cost</span>
-                            <span className="font-medium">{formatCurrency(option.logistics.totalLogisticsCost)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Lead Time</span>
-                            <span className="font-medium">{option.logistics.totalLeadTime} days</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Reliability</span>
-                            <span className="font-medium">{Math.round(option.logistics.onTimeProbability * 100)}%</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">CO2</span>
-                            <span className="font-medium flex items-center gap-1">
-                              <Leaf className="h-3 w-3" />
-                              {(option.logistics as any).carbonEmissions?.toFixed(1) ?? "N/A"} tons
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
-
-              {shippingComparison.length === 0 && (
-                <div className="text-center text-muted-foreground py-8">
-                  Select regions to compare shipping methods
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Cost Breakdown Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Supply Chain Cost Summary</CardTitle>
-              <CardDescription>Breakdown of all material, shipping, tariff, and holding costs</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <StatCard
-                  label="Total Material Cost"
-                  value={formatCurrency(inventory.reduce((sum: number, inv: MaterialInventory) => sum + (inv.averageCost * inv.quantity), 0))}
-                  icon={<Package className="h-5 w-5" />}
-                  trend="neutral"
-                />
-                <StatCard
-                  label="Active Orders Value"
-                  value={formatCurrency(activeOrders.reduce((sum: number, o: MaterialOrder) => sum + o.totalCost, 0))}
-                  icon={<ShoppingCart className="h-5 w-5" />}
-                  trend="neutral"
-                />
-                <StatCard
-                  label="Factory Region"
-                  value={teamRegion}
-                  icon={<MapPin className="h-5 w-5" />}
-                  trend="neutral"
-                />
-                <StatCard
-                  label="FX Exposure"
-                  value={teamRegion === "North America" ? "Domestic" : "Foreign"}
-                  icon={<Globe className="h-5 w-5" />}
-                  trend={teamRegion === "North America" ? "neutral" : "down"}
-                />
-              </div>
-
-              {/* Shipping + Tariff totals from active orders */}
-              {activeOrders.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card className="p-4">
-                    <div className="text-sm text-muted-foreground">Total Shipping Costs</div>
-                    <div className="text-2xl font-bold mt-1">
-                      {formatCurrency(activeOrders.reduce((sum: number, o: MaterialOrder) => sum + o.shippingCost, 0))}
-                    </div>
-                  </Card>
-                  <Card className="p-4">
-                    <div className="text-sm text-muted-foreground">Total Tariff Costs</div>
-                    <div className="text-2xl font-bold mt-1 text-orange-500">
-                      {formatCurrency(activeOrders.reduce((sum: number, o: MaterialOrder) => sum + o.tariffCost, 0))}
-                    </div>
-                  </Card>
-                  <Card className="p-4">
-                    <div className="text-sm text-muted-foreground">Holding Cost (Inventory)</div>
-                    <div className="text-2xl font-bold mt-1">
-                      {formatCurrency(inventoryValue * 0.02)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">~2% of inventory value per round</div>
-                  </Card>
-                </div>
-              )}
-
-              {/* Cost Breakdown by Order */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Cost Breakdown by Order</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {activeOrders.length === 0 ? (
-                    <div className="text-center text-muted-foreground py-4">No active orders to summarize</div>
+                  {isExpanded ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   ) : (
-                    <div className="space-y-2">
-                      {activeOrders.map((order: MaterialOrder, idx: number) => (
-                        <div key={idx} className="flex justify-between items-center py-2 border-b last:border-0">
-                          <div>
-                            <span className="font-medium capitalize">{order.materialType}</span>
-                            <span className="text-muted-foreground ml-2">x{formatNumber(order.quantity)}</span>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-medium">{formatCurrency(order.totalCost)}</div>
-                            <div className="text-xs text-muted-foreground">ETA Round {order.estimatedArrivalRound}</div>
-                          </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+
+                {/* Vendor cards */}
+                {isExpanded && (
+                  <div className="border-t border-border/30 px-4 py-3 space-y-3 bg-muted/5">
+                    {entry.eligibleSuppliers.map((supplier, idx) =>
+                      renderVendorCard(entry, supplier, idx)
+                    )}
+                  </div>
+                )}
+              </Card>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+
+  // ─── TAB 2: Inventory & Orders ──────────────────────────────────
+  const renderInventoryTab = () => {
+    const inTransitOrders = activeOrders.filter(
+      (o) => o.status !== "delivered" && o.status !== "cancelled"
+    );
+
+    return (
+      <div className="space-y-6">
+        {/* Incoming Shipments */}
+        <Card className="border-border/50 bg-card/80">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <TruckIcon className="h-4 w-4 text-blue-400" />
+              Incoming Shipments
+              {inTransitOrders.length > 0 && (
+                <Badge variant="secondary" className="text-[10px]">
+                  {inTransitOrders.length}
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {inTransitOrders.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                No orders in transit.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {inTransitOrders.map((order) => {
+                  const isDelayed = order.status === "delayed";
+                  const totalRounds =
+                    order.estimatedArrivalRound - order.orderRound;
+                  const elapsed = currentRound - order.orderRound;
+                  const progress =
+                    totalRounds > 0
+                      ? Math.min((elapsed / totalRounds) * 100, 100)
+                      : 100;
+
+                  return (
+                    <div
+                      key={order.id}
+                      className={`rounded-lg border p-3 ${
+                        isDelayed
+                          ? "border-red-500/40 bg-red-500/5"
+                          : "border-border/50 bg-card/50"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="font-medium text-sm flex items-center gap-2">
+                            {MATERIAL_LABELS[order.materialType as MaterialType] ??
+                              order.materialType}
+                            <Badge
+                              variant={isDelayed ? "destructive" : "secondary"}
+                              className="text-[10px] px-1.5 py-0"
+                            >
+                              {order.status.toUpperCase()}
+                            </Badge>
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {order.supplierName} | {order.sourceRegion} via{" "}
+                            {order.shippingMethod}
+                          </p>
                         </div>
-                      ))}
-                      {/* Grand total row */}
-                      <div className="flex justify-between items-center py-3 border-t-2 font-bold">
-                        <div>Total Supply Chain Costs</div>
-                        <div className="text-primary">
-                          {formatCurrency(
-                            inventory.reduce((sum: number, inv: MaterialInventory) => sum + (inv.averageCost * inv.quantity), 0) +
-                            activeOrders.reduce((sum: number, o: MaterialOrder) => sum + o.totalCost, 0) +
-                            inventoryValue * 0.02
-                          )}
+                        <div className="text-right">
+                          <p className="text-sm font-mono font-bold">
+                            {formatNumber(order.quantity)} units
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatCurrency(order.totalCost)}
+                          </p>
                         </div>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1.5 rounded-full bg-muted/30 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              isDelayed ? "bg-red-500" : "bg-blue-500"
+                            }`}
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                        <p className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">
+                          ETA R{order.estimatedArrivalRound}
+                          {isDelayed && order.delayRounds
+                            ? ` (+${order.delayRounds} delayed)`
+                            : ""}
+                        </p>
+                      </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Deprecated Parts Warning */}
+        {deprecatedItems.length > 0 && (
+          <Card className="border-red-500/30 bg-red-500/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2 text-red-400">
+                <AlertTriangle className="h-4 w-4" />
+                Deprecated Parts
+              </CardTitle>
+              <CardDescription>
+                Tech upgrades have made these materials obsolete. Value decays
+                each round.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {deprecatedItems.map((item, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between rounded-md border border-red-500/20 bg-card/40 px-3 py-2"
+                  >
+                    <div>
+                      <p className="text-sm font-medium">
+                        {MATERIAL_LABELS[item.materialType]} -{" "}
+                        {item.spec}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Tier gap: {item.tierGap} |{" "}
+                        {item.roundsUntilScrapped} rounds until scrapped
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-mono text-red-400">
+                        {formatNumber(item.quantity)} units
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        -{formatCurrency(item.valueLossPerRound)}/round
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Current Inventory Table */}
+        <Card className="border-border/50 bg-card/80">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Warehouse className="h-4 w-4 text-emerald-500" />
+              Current Inventory
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {inventory.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                No materials in inventory.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border/30 text-xs text-muted-foreground">
+                      <th className="py-2 text-left font-medium">Material</th>
+                      <th className="py-2 text-right font-medium">In Stock</th>
+                      <th className="py-2 text-right font-medium">
+                        Need/Round
+                      </th>
+                      <th className="py-2 text-right font-medium">
+                        Rounds of Supply
+                      </th>
+                      <th className="py-2 text-right font-medium">
+                        Avg Cost
+                      </th>
+                      <th className="py-2 text-right font-medium">
+                        Holding Value
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {inventory.map((item, i) => {
+                      const bomEntry = bom?.entries.find(
+                        (e) => e.materialType === item.materialType
+                      );
+                      const needPerRound =
+                        bomEntry?.totalQuantityNeeded ?? 0;
+                      const roundsSupply =
+                        needPerRound > 0
+                          ? Math.floor(item.quantity / needPerRound)
+                          : item.quantity > 0
+                            ? 999
+                            : 0;
+                      const supplyColor =
+                        roundsSupply >= 3
+                          ? "text-emerald-400"
+                          : roundsSupply >= 1
+                            ? "text-amber-400"
+                            : "text-red-400";
+
+                      return (
+                        <tr
+                          key={i}
+                          className="border-b border-border/10 hover:bg-muted/5"
+                        >
+                          <td className="py-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">
+                                {MATERIAL_LABELS[
+                                  item.materialType as MaterialType
+                                ] ?? item.materialType}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">
+                                {item.spec}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-2 text-right font-mono">
+                            {formatNumber(item.quantity)}
+                          </td>
+                          <td className="py-2 text-right font-mono text-muted-foreground">
+                            {formatNumber(needPerRound)}
+                          </td>
+                          <td
+                            className={`py-2 text-right font-mono font-bold ${supplyColor}`}
+                          >
+                            {roundsSupply >= 999 ? "--" : roundsSupply}
+                          </td>
+                          <td className="py-2 text-right font-mono text-muted-foreground">
+                            {formatCurrency(item.averageCost)}
+                          </td>
+                          <td className="py-2 text-right font-mono">
+                            {formatCurrency(item.quantity * item.averageCost)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  // ─── TAB 3: Market Intel ────────────────────────────────────────
+  const renderMarketTab = () => {
+    const tariffs = (teamState as any)?.tariffs;
+    const fx = (teamState as any)?.fx ?? (teamState as any)?.marketState?.fx;
+
+    return (
+      <div className="space-y-6">
+        {/* Active Events */}
+        <Card className="border-border/50 bg-card/80">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-400" />
+              Active Events & Disruptions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {tariffs?.activeEvents && tariffs.activeEvents.length > 0 ? (
+              <div className="space-y-2">
+                {tariffs.activeEvents.map((event: any, i: number) => (
+                  <div
+                    key={i}
+                    className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3"
+                  >
+                    <p className="font-medium text-sm text-amber-400">
+                      {event.name || event.type || "Trade Event"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {event.description || "Active trade policy affecting supply routes."}
+                    </p>
+                    {event.affectedRoutes && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Routes: {event.affectedRoutes.join(", ")}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground py-3 text-center">
+                No active trade events or disruptions.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Tariff Info */}
+        <Card className="border-border/50 bg-card/80">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-emerald-500" />
+              Tariff Rates by Route
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Your factories are in {teamRegion}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {(
+                [
+                  "North America",
+                  "South America",
+                  "Europe",
+                  "Africa",
+                  "Asia",
+                  "Oceania",
+                  "Middle East",
+                ] as Region[]
+              )
+                .filter((r) => r !== teamRegion)
+                .map((region) => {
+                  const isFriendly =
+                    (
+                      (
+                        {
+                          "North America": ["Europe", "Oceania"],
+                          "South America": ["North America"],
+                          Europe: ["North America", "Middle East"],
+                          Africa: ["Europe", "Middle East"],
+                          Asia: ["Oceania", "Middle East"],
+                          Oceania: ["Asia", "North America"],
+                          "Middle East": ["Europe", "Asia", "Africa"],
+                        } as Record<string, string[]>
+                      )[teamRegion] ?? []
+                    ).includes(region);
+
+                  return (
+                    <div
+                      key={region}
+                      className="flex items-center justify-between rounded-md border border-border/30 px-3 py-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-sm">{region}</span>
+                      </div>
+                      <Badge
+                        variant={isFriendly ? "secondary" : "outline"}
+                        className={`text-[10px] ${
+                          isFriendly
+                            ? "text-emerald-400 border-emerald-500/30"
+                            : "text-amber-400 border-amber-500/30"
+                        }`}
+                      >
+                        {isFriendly ? "LOW TARIFF" : "STANDARD"}
+                      </Badge>
+                    </div>
+                  );
+                })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* FX Rates */}
+        <Card className="border-border/50 bg-card/80">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-blue-400" />
+              FX Impact Estimates
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Currency multipliers applied to material costs from each region
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {bom && bom.entries.length > 0 ? (
+              <div className="space-y-2">
+                {Array.from(
+                  new Set(
+                    bom.entries.flatMap((e) =>
+                      e.eligibleSuppliers.map(
+                        (s) =>
+                          `${s.supplier.region}|${s.fxMultiplier.toFixed(3)}`
+                      )
+                    )
+                  )
+                ).map((key) => {
+                  const [region, mult] = key.split("|");
+                  const fxVal = parseFloat(mult);
+                  const isUp = fxVal > 1.02;
+                  const isDown = fxVal < 0.98;
+                  return (
+                    <div
+                      key={key}
+                      className="flex items-center justify-between rounded-md border border-border/30 px-3 py-2"
+                    >
+                      <span className="text-sm">{region}</span>
+                      <span
+                        className={`font-mono font-bold text-sm ${
+                          isUp
+                            ? "text-red-400"
+                            : isDown
+                              ? "text-emerald-400"
+                              : "text-muted-foreground"
+                        }`}
+                      >
+                        x{fxVal.toFixed(3)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground py-3 text-center">
+                FX data available after first production round.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Shipping Comparison */}
+        <Card className="border-border/50 bg-card/80">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Ship className="h-4 w-4 text-blue-400" />
+              Shipping Method Reference
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {(["sea", "air", "land", "rail"] as const).map((method) => {
+                const Icon = SHIP_METHOD_ICONS[method];
+                const config = SHIPPING_METHODS[method];
+                const delay = SHIPPING_METHOD_ROUND_DELAYS[method] ?? 0;
+                return (
+                  <div
+                    key={method}
+                    className="flex items-center gap-3 rounded-md border border-border/30 px-3 py-2"
+                  >
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">
+                        {SHIP_METHOD_LABELS[method]}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {config?.description ?? ""}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-mono font-bold">
+                        +{delay}R
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        x{config?.costMultiplier.toFixed(1)} cost
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  // ─── Cart Panel (sticky bottom) ─────────────────────────────────
+  const renderCart = () => {
+    if (cart.length === 0) return null;
+    const cashAfter = cash - cartTotals.total;
+
+    return (
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 backdrop-blur-md shadow-[0_-4px_20px_rgba(0,0,0,0.3)]">
+        <div className="mx-auto max-w-7xl px-4 py-3">
+          {/* Cart items - horizontal scrollable */}
+          <div className="mb-2 flex gap-2 overflow-x-auto pb-1">
+            {cart.map((item) => (
+              <div
+                key={item.id}
+                className="flex shrink-0 items-center gap-2 rounded-md border border-border/50 bg-card/80 px-2.5 py-1.5"
+              >
+                <span className="text-xs font-medium">
+                  {MATERIAL_LABELS[item.materialType]}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {formatNumber(item.quantity)}x
+                </span>
+                <span className="text-xs font-mono">
+                  {formatCurrency(item.totalCost)}
+                </span>
+                <button
+                  onClick={() => removeFromCart(item.id)}
+                  className="ml-1 rounded p-0.5 text-muted-foreground hover:bg-destructive/20 hover:text-red-400 transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Cart summary + submit */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex gap-4 text-xs">
+              <div>
+                <span className="text-muted-foreground">Materials</span>{" "}
+                <span className="font-mono font-medium">
+                  {formatCurrency(cartTotals.materials)}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Shipping</span>{" "}
+                <span className="font-mono font-medium">
+                  {formatCurrency(cartTotals.shipping)}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Tariffs</span>{" "}
+                <span className="font-mono font-medium">
+                  {formatCurrency(cartTotals.tariffs)}
+                </span>
+              </div>
+              <div className="border-l border-border/50 pl-4">
+                <span className="text-muted-foreground">Total</span>{" "}
+                <span className="text-sm font-mono font-bold">
+                  {formatCurrency(cartTotals.total)}
+                </span>
+              </div>
+              <div className="border-l border-border/50 pl-4">
+                <span className="text-muted-foreground">Cash After</span>{" "}
+                <span
+                  className={`text-sm font-mono font-bold ${
+                    cashAfter < 0 ? "text-red-400" : "text-emerald-400"
+                  }`}
+                >
+                  {formatCurrency(cashAfter)}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-muted-foreground"
+                onClick={() => setCart([])}
+              >
+                Clear
+              </Button>
+              <Button
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1.5 px-6"
+                disabled={placeOrderMutation.isPending || cashAfter < 0}
+                onClick={submitAllOrders}
+              >
+                {placeOrderMutation.isPending ? (
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                ) : (
+                  <ShoppingCart className="h-3.5 w-3.5" />
+                )}
+                Submit {cart.length} Order{cart.length !== 1 ? "s" : ""}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ─── Main Render ────────────────────────────────────────────────
+  return (
+    <div className={`pb-${cart.length > 0 ? "32" : "4"} space-y-4`}>
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-40 -mx-4 border-b border-border/50 bg-background/95 backdrop-blur-md px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
+              <Package className="h-5 w-5 text-emerald-500" />
+              Supply Chain
+            </h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Round {currentRound} | {teamRegion}
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                Cash
+              </p>
+              <p className="text-lg font-bold font-mono text-emerald-400">
+                {formatCurrency(cash)}
+              </p>
+            </div>
+            <div className="h-8 w-px bg-border/50" />
+            <div className="text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                In Stock
+              </p>
+              <p className="text-lg font-bold font-mono">
+                {formatNumber(inStockCount)}
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                In Transit
+              </p>
+              <p className="text-lg font-bold font-mono text-blue-400">
+                {formatNumber(inTransitCount)}
+              </p>
+            </div>
+            {cart.length > 0 && (
+              <>
+                <div className="h-8 w-px bg-border/50" />
+                <div className="text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    Cart
+                  </p>
+                  <p className="text-lg font-bold font-mono text-amber-400">
+                    {cart.length}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="w-full grid grid-cols-3 bg-muted/20">
+          <TabsTrigger value="source" className="gap-1.5 text-xs">
+            <Factory className="h-3.5 w-3.5" />
+            Source Materials
+          </TabsTrigger>
+          <TabsTrigger value="inventory" className="gap-1.5 text-xs">
+            <Warehouse className="h-3.5 w-3.5" />
+            Inventory & Orders
+          </TabsTrigger>
+          <TabsTrigger value="intel" className="gap-1.5 text-xs">
+            <BarChart3 className="h-3.5 w-3.5" />
+            Market Intel
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="source" className="mt-4">
+          {renderSourceTab()}
+        </TabsContent>
+        <TabsContent value="inventory" className="mt-4">
+          {renderInventoryTab()}
+        </TabsContent>
+        <TabsContent value="intel" className="mt-4">
+          {renderMarketTab()}
         </TabsContent>
       </Tabs>
 
-      {/* Material orders are submitted directly via API - no decision bar needed */}
+      {/* Sticky Cart */}
+      {renderCart()}
     </div>
   );
 }
