@@ -12,8 +12,9 @@ import type { Product } from "../types/product";
 import type { Segment } from "../types/factory";
 import type { MaterialType, Region, Supplier } from "./types";
 import { MaterialEngine } from "./MaterialEngine";
-import { DEFAULT_SUPPLIERS, REGIONAL_CAPABILITIES } from "./suppliers";
+import { DEFAULT_SUPPLIERS, REGIONAL_CAPABILITIES, classifySupplierTier } from "./suppliers";
 import { LogisticsEngine } from "../logistics/LogisticsEngine";
+import { SHIPPING_METHOD_ROUND_DELAYS } from "../logistics/routes";
 import { TariffEngine } from "../tariffs/TariffEngine";
 import { FXEngine } from "../fx/FXEngine";
 import type { MarketState } from "../types/market";
@@ -36,6 +37,7 @@ export interface BOMEntry {
 
 export interface SupplierOption {
   supplier: Supplier;
+  tier: "bronze" | "silver" | "gold";
   unitCost: number;
   qualityRating: number;
   leadTimeRounds: number;
@@ -45,6 +47,19 @@ export interface SupplierOption {
   shippingCostEstimate: number;
   totalLandedCostPerUnit: number;
   warnings: string[];
+}
+
+export interface DeprecatedInventoryItem {
+  materialType: MaterialType;
+  spec: string;
+  quantity: number;
+  currentValue: number;
+  techTierAtPurchase: number;
+  currentTechTier: number;
+  tierGap: number;
+  roundsUntilScrapped: number;
+  valueLossPerRound: number;
+  warningMessage: string;
 }
 
 export interface BOMOutput {
@@ -226,7 +241,8 @@ export function generateBOM(
             Math.max(weight, 0.1), Math.max(volume, 0.1), 0
           );
           shippingPerUnit = shortfall > 0 ? logistics.totalLogisticsCost / shortfall : 0;
-          leadTimeRounds = Math.max(1, Math.ceil(logistics.totalLeadTime / DAYS_PER_ROUND));
+          // Use fixed round-based delays instead of day conversion
+          leadTimeRounds = SHIPPING_METHOD_ROUND_DELAYS["sea"] ?? 2;
         } catch {
           shippingPerUnit = unitCost * 0.05; // 5% fallback estimate
         }
@@ -270,6 +286,7 @@ export function generateBOM(
 
         return {
           supplier,
+          tier: classifySupplierTier(supplier),
           unitCost,
           qualityRating: supplier.qualityRating,
           leadTimeRounds,
@@ -416,4 +433,67 @@ export function calculateSupplierQualityImpact(
   }
 
   return 1.0;
+}
+
+/**
+ * Detect inventory items that are deprecated due to tech upgrades.
+ * When a team unlocks a higher tech tier, parts bought for lower tiers become obsolete.
+ * Each tier gap = 20% value loss per round. 2+ tiers behind for 2+ rounds = scrapped.
+ */
+export function detectDeprecatedInventory(
+  state: TeamState,
+): DeprecatedInventoryItem[] {
+  const deprecated: DeprecatedInventoryItem[] = [];
+  if (!state.materials?.inventory) return deprecated;
+
+  // Get current max tech tier per family
+  const unlockedTechs = state.unlockedTechnologies || [];
+  const currentTechTiers: Record<string, number> = {};
+
+  try {
+    const { RDExpansions } = require("../modules/RDExpansions");
+    for (const techId of unlockedTechs) {
+      const node = RDExpansions.getTechNode(techId);
+      if (node) {
+        const family = node.family as string;
+        currentTechTiers[family] = Math.max(currentTechTiers[family] || 0, node.tier);
+      }
+    }
+  } catch {
+    return deprecated; // RDExpansions not available
+  }
+
+  // Check each inventory item against current tech tiers
+  for (const inv of state.materials.inventory) {
+    const purchaseTier = inv.techTierAtPurchase ?? 0;
+    if (purchaseTier === 0) continue; // No tech tier tracked — skip
+
+    // Map material type to tech family
+    const family = Object.entries(TECH_FAMILY_TO_MATERIAL).find(
+      ([, matType]) => matType === inv.materialType
+    )?.[0];
+    if (!family) continue;
+
+    const currentTier = currentTechTiers[family] || 0;
+    if (currentTier <= purchaseTier) continue; // Not deprecated
+
+    const tierGap = currentTier - purchaseTier;
+    const valueLossPerRound = tierGap * 0.20; // 20% per tier gap
+    const roundsUntilScrapped = tierGap >= 2 ? 2 : Math.ceil(1 / valueLossPerRound) + 1;
+
+    deprecated.push({
+      materialType: inv.materialType,
+      spec: inv.spec,
+      quantity: inv.quantity,
+      currentValue: inv.quantity * inv.averageCost,
+      techTierAtPurchase: purchaseTier,
+      currentTechTier: currentTier,
+      tierGap,
+      roundsUntilScrapped,
+      valueLossPerRound,
+      warningMessage: `${inv.quantity.toLocaleString()} ${inv.spec} (Tier ${purchaseTier}) — your phones now use Tier ${currentTier}. Losing ${Math.round(valueLossPerRound * 100)}%/round.${roundsUntilScrapped <= 2 ? " Will be scrapped soon!" : ""}`,
+    });
+  }
+
+  return deprecated;
 }

@@ -422,7 +422,9 @@ export class MaterialEngine {
   }
 
   /**
-   * Consume materials for production
+   * Consume materials for production (quality-first consumption)
+   * For each material type needed, gathers ALL inventory entries of that type (any spec),
+   * sorts by qualityRating descending (highest quality first), and consumes from top.
    */
   static consumeMaterials(
     segment: Segment,
@@ -432,17 +434,22 @@ export class MaterialEngine {
     const requirements = this.SEGMENT_MATERIAL_REQUIREMENTS[segment];
 
     for (const material of requirements.materials) {
-      const inv = inventory.find(
-        i => i.materialType === material.type && i.spec === material.spec
-      );
+      // Gather ALL inventory entries of this material type (any spec)
+      const entriesOfType = inventory
+        .filter(i => i.materialType === material.type)
+        .sort((a, b) => ((b as any).qualityRating ?? 0) - ((a as any).qualityRating ?? 0));
 
-      if (inv) {
-        inv.quantity -= quantity;
-        if (inv.quantity < 0) inv.quantity = 0;
+      let remaining = quantity;
+      for (const entry of entriesOfType) {
+        if (remaining <= 0) break;
+        const consumed = Math.min(entry.quantity, remaining);
+        entry.quantity -= consumed;
+        remaining -= consumed;
       }
     }
 
-    return inventory;
+    // Remove entries with zero quantity
+    return inventory.filter(inv => inv.quantity > 0);
   }
 
   /**

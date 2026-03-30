@@ -198,6 +198,11 @@ export const materialRouter = createTRPCRouter({
         // Recalculate total with real costs
         order.totalCost = order.materialCost + (order.shippingCost || 0) + (order.tariffCost || 0);
 
+        // Stamp quality and tech tier for inventory tracking
+        const supplier = DEFAULT_SUPPLIERS.find(s => s.id === input.supplierId);
+        (order as any).qualityRating = supplier?.qualityRating ?? 80;
+        (order as any).techTierAtPurchase = 1; // Default — will be overridden by BOM context if available
+
         // Update ETA based on logistics lead time
         const roundsInTransit = Math.ceil(logistics.totalLeadTime / 90); // 90 days per round
         order.estimatedArrivalRound = currentRound + Math.max(1, roundsInTransit);

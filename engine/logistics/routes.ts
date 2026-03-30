@@ -45,6 +45,17 @@ export const SHIPPING_METHODS: Record<string, ShippingMethodDetails> = {
   }
 };
 
+/**
+ * Round-based lead times per shipping method.
+ * Air = same round (instant). Land/Rail = 1 round. Sea = 2 rounds.
+ */
+export const SHIPPING_METHOD_ROUND_DELAYS: Record<string, number> = {
+  sea: 2,
+  air: 0,
+  land: 1,
+  rail: 1,
+};
+
 export const MAJOR_PORTS: Port[] = [
   // North America
   { name: "Los Angeles", region: "North America", country: "USA", efficiency: 0.88, capacity: 9500000, avgProcessingTime: 3, fees: 2500 },

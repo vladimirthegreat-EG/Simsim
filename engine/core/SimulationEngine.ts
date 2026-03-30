@@ -258,6 +258,15 @@ export class SimulationEngine {
         const deliveredCost = arrivedOrders.reduce((sum, order) => sum + order.totalCost, 0);
         currentState.accountsPayable = Math.max(0, currentState.accountsPayable - deliveredCost);
 
+        // Archive delivered orders to history (keep last 20)
+        if (!(currentState.materials as any).orderHistory) (currentState.materials as any).orderHistory = [];
+        for (const order of arrivedOrders) {
+          (currentState.materials as any).orderHistory.push(order);
+        }
+        if ((currentState.materials as any).orderHistory.length > 20) {
+          (currentState.materials as any).orderHistory = (currentState.materials as any).orderHistory.slice(-20);
+        }
+
         // Log material arrival messages
         if (messages.length > 0) {
           summaryMessages.push(...messages.map(msg => `  ${team.id}: ${msg}`));
@@ -737,6 +746,41 @@ export class SimulationEngine {
         team.state.materials.holdingCosts = MaterialEngine.calculateHoldingCosts(
           team.state.materials.inventory
         );
+      }
+
+      // Tech deprecation: parts bought for lower tech tiers lose value faster
+      if (team.state.materials && team.state.materials.inventory.length > 0) {
+        const unlockedTechs = team.state.unlockedTechnologies || [];
+        const techTiers: Record<string, number> = {};
+        try {
+          for (const techId of unlockedTechs) {
+            const node = RDExpansions.getTechNode(techId);
+            if (node) techTiers[node.family] = Math.max(techTiers[node.family] || 0, node.tier);
+          }
+        } catch {}
+
+        const TECH_TO_MAT: Record<string, string> = { battery:"battery", camera:"camera", ai:"processor", durability:"chassis", display:"display", connectivity:"processor" };
+
+        team.state.materials.inventory = team.state.materials.inventory.filter((inv: any) => {
+          const purchaseTier = inv.techTierAtPurchase ?? 0;
+          if (purchaseTier === 0) return true; // no tier tracked, keep
+
+          const family = Object.entries(TECH_TO_MAT).find(([,m]) => m === inv.materialType)?.[0];
+          if (!family) return true;
+
+          const currentTier = techTiers[family] || 0;
+          if (currentTier <= purchaseTier) return true; // not deprecated
+
+          const tierGap = currentTier - purchaseTier;
+          // Each tier gap = 20% value loss
+          inv.averageCost *= Math.max(0.1, 1 - tierGap * 0.20);
+          // Scrap if 2+ tiers behind and cost drops below 10% of original
+          if (tierGap >= 2 && inv.averageCost < 1) {
+            summaryMessages.push(`  ${team.id}: 🗑️ Scrapped ${inv.quantity.toLocaleString()} deprecated ${inv.materialType} (tech gap: ${tierGap} tiers)`);
+            return false; // remove from inventory
+          }
+          return true;
+        });
       }
 
       // Material quality → product quality (20% weight, R&D remains 80%)

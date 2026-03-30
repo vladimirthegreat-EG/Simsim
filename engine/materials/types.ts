@@ -43,6 +43,8 @@ export interface SegmentMaterials {
   qualityTier: 1 | 2 | 3 | 4 | 5; // 1=Budget, 5=Ultra Premium
 }
 
+export type SupplierTier = "bronze" | "silver" | "gold";
+
 export interface MaterialInventory {
   materialType: MaterialType;
   spec: string;
@@ -51,6 +53,8 @@ export interface MaterialInventory {
   sourceRegion: Region;
   arrivalRound?: number; // If in transit
   orderId?: string;
+  qualityRating?: number;        // Supplier quality when sourced
+  techTierAtPurchase?: number;   // Max tech tier in relevant family when ordered
 }
 
 export interface MaterialOrder {
@@ -129,6 +133,9 @@ export interface Supplier {
   // Relationship
   relationshipLevel: number; // 0-100, built over time
   contractedUntilRound?: number;
+
+  // Tier classification (derived from qualityRating)
+  tier?: SupplierTier;
 }
 
 export interface MaterialSourcingChoice {
@@ -159,6 +166,7 @@ export interface MaterialQuality {
 export interface MaterialsState {
   inventory: MaterialInventory[];
   activeOrders: MaterialOrder[];
+  orderHistory?: MaterialOrder[];  // Delivered orders archived for reorder
   suppliers: Supplier[];
   contracts: MaterialContract[];
   totalInventoryValue: number;

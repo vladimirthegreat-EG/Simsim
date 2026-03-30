@@ -416,3 +416,40 @@ export function findBestSupplier(
       );
   }
 }
+
+// ============================================
+// SUPPLIER TIER SYSTEM — Bronze / Silver / Gold
+// ============================================
+
+import type { SupplierTier } from "./types";
+
+export function classifySupplierTier(supplier: Supplier): SupplierTier {
+  if (supplier.qualityRating >= 90) return "gold";
+  if (supplier.qualityRating >= 80) return "silver";
+  return "bronze";
+}
+
+export function getSuppliersByTier(tier: SupplierTier, materialType?: MaterialType): Supplier[] {
+  return DEFAULT_SUPPLIERS.filter(s => {
+    if (classifySupplierTier(s) !== tier) return false;
+    if (materialType && !s.materials.includes(materialType)) return false;
+    return true;
+  });
+}
+
+export const SUPPLIER_TIER_CONFIG: Record<SupplierTier, {
+  label: string;
+  color: string;
+  qualityFloor: number;
+  qualityCeiling: number;
+  description: string;
+}> = {
+  bronze: { label: "Bronze", color: "#CD7F32", qualityFloor: 0, qualityCeiling: 79, description: "Budget materials — cheap, slower, higher defects" },
+  silver: { label: "Silver", color: "#C0C0C0", qualityFloor: 80, qualityCeiling: 89, description: "Standard materials — moderate cost and quality" },
+  gold: { label: "Gold", color: "#FFD700", qualityFloor: 90, qualityCeiling: 100, description: "Premium materials — expensive, fast, lowest defects" },
+};
+
+// Stamp tier on all suppliers at module load
+for (const supplier of DEFAULT_SUPPLIERS) {
+  supplier.tier = classifySupplierTier(supplier);
+}
